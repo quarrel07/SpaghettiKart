@@ -276,7 +276,16 @@ void set_object_timer_state(s32 objectIndex, s32 arg1) {
     gObjectList[objectIndex].isTimerActive = arg1;
 }
 
+// Spawn generation per object slot, folded into the smokes_particles
+// interpolation tag (render_objects.c): the tag was objectIndex-based and
+// object slots recycle, so interpolated smoke could pair two different puffs
+// and draw between their positions.
+u16 gObjectSpawnGen[OBJECT_LIST_SIZE];
+
 void init_object(s32 objectIndex, s32 arg1) {
+    if (objectIndex >= 0 && objectIndex < OBJECT_LIST_SIZE) {
+        gObjectSpawnGen[objectIndex]++;
+    }
     gObjectList[objectIndex].status = 0;
     gObjectList[objectIndex].unk_058 = 0;
     gObjectList[objectIndex].unk_05C = 0;

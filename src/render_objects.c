@@ -52,6 +52,8 @@
 #include "port/interpolation/FrameInterpolation.h"
 #include "assets/textures/tracks/sherbet_land/sherbet_land_data.h"
 
+extern u16 gObjectSpawnGen[]; // update_objects.c; interpolation identity for recycled object slots
+
 Lights1 D_800E45C0[] = {
     gdSPDefLights1(100, 0, 0, 100, 0, 0, 0, -120, 0),
     gdSPDefLights1(100, 100, 0, 255, 255, 0, 0, -120, 0),
@@ -3872,14 +3874,26 @@ void render_object_smoke_particles(s32 cameraId) {
         if (objectIndex != NULL_OBJECT_ID) {
             object = &gObjectList[objectIndex];
 
-            FrameInterpolation_RecordOpenChild("smokes_particles", (uintptr_t) (objectIndex << 4) | cameraId);
+            FrameInterpolation_RecordOpenChild("smokes_particles", ((uintptr_t) gObjectSpawnGen[objectIndex] << 16) | (uintptr_t) (objectIndex << 4) | cameraId);
             if (object->state >= 2) {
+                u32 dist;
+                u32 thresh;
                 if (object->unk_0D8 == 3) {
                     func_8008A364(objectIndex, cameraId, 0x4000U, 0x00000514);
+                    thresh = 0x514;
                 } else {
                     func_8008A364(objectIndex, cameraId, 0x4000U, 0x000001F4);
+                    thresh = 0x1F4;
                 }
-                if (is_obj_flag_status_active(objectIndex, VISIBLE) != 0) {
+                // Honest re-check of the vanilla gate (distance cap + angular
+                // sweep on the puff's own position): func_8008A364 forces both
+                // under gNoCulling, which drew shell-trail and torch smoke with
+                // no visible emitter attached. Vanilla ranges apply exactly: a
+                // shell is near-invisible at distance, so its trail beyond the
+                // stock cap reads as phantom smoke floating in the open.
+                dist = get_horizontal_distance_to_camera(objectIndex, sp54);
+                if ((dist < thresh * thresh) &&
+                    (is_object_visible_on_camera_real(objectIndex, sp54, dist < 0x2711U ? 0x5555 : 0x4000) != 0)) {
                     func_8005477C(objectIndex, object->unk_0D8, sp54->pos);
                 }
             }

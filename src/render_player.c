@@ -65,6 +65,12 @@ s16 gLastAnimGroupSelector[4][8];
 s16 D_80165150[4][8];
 s16 D_80165190[4][8];
 s16 D_801651D0[4][8];
+// Real (enhancement-independent) per-screen kart visibility. Under gNoCulling
+// the unk_002 bits are forced true so karts always attempt to render, but the
+// exhaust/drift particle batches also keyed off those bits: puffs linger in
+// world space, so an off-screen kart's still-in-frustum trail drew with no
+// kart attached (phantom exhaust). Indexed [screenId][playerIndex].
+u8 gKartReallyVisible[4][8];
 
 void func_8001F980(s32* arg0, s32* arg1) {
     if ((gDemoMode == 1) || (D_80164A28 != 0) || (D_8015F894 != 0)) {
@@ -85,11 +91,28 @@ void func_8001F9E4(Player* player, Camera* camera, s8 screenId) {
     s32 sp2C;
     UNUSED s32 pad2;
 
-    get_player_index_for_player(player);
+    // Compute the index directly from the player pointer with a bounds check:
+    // get_player_index_for_player returns an UNINITIALIZED value for pointers
+    // that match none of the eight player globals (vanilla callers discard the
+    // result), and using it as an array index corrupted adjacent BSS.
+    s32 playerIndex = (s32) (player - gPlayerOne);
     func_8001F980(&sp30, &sp2C);
 
     player->unk_002 &= ~(UNK_002_UNKNOWN_0x2 << (screenId * 4));
     player->unk_002 &= ~(SIDE_OF_KART << (screenId * 4));
+
+    // Purely angular test, any distance: the vanilla wedge has a finite
+    // forward range (front-row karts at the countdown fall beyond it), and
+    // the phantom-exhaust cases are behind/beside the camera, which an
+    // angular sweep already rejects. 0x6000 = 135 degrees of acceptance,
+    // deliberately wider than the FOV so edge-of-screen karts keep smoke.
+    if (playerIndex >= 0 && playerIndex < 8 && screenId >= 0 && screenId < 4) {
+        u16 sweep = 0x6000;
+        u16 rel = (u16) ((get_angle_between_xy(camera->pos[0], player->pos[0], camera->pos[2], player->pos[2]) +
+                          (sweep / 2)) -
+                         camera->rot[1]);
+        gKartReallyVisible[screenId][playerIndex] = rel <= sweep;
+    }
 
     if (check_player_camera_collision(player, camera, (f32) (D_80165578 + sp30), (f32) (D_8016557A + sp2C)) == 1) {
         player->unk_002 |= UNK_002_UNKNOWN_0x2 << (screenId * 4);
@@ -99,7 +122,9 @@ void func_8001F9E4(Player* player, Camera* camera, s8 screenId) {
     }
 }
 
-u16 check_player_camera_collision(Player* player, Camera* camera, f32 arg2, f32 arg3) {
+// The geometric test only, unaffected by the no-culling enhancement. Used
+// for the honest kart-visibility flag that gates exhaust/drift particles.
+u16 check_player_camera_collision_real(Player* player, Camera* camera, f32 arg2, f32 arg3) {
     UNUSED f32 pad[6];
     f32 sp64;
     f32 sp60;
@@ -112,10 +137,6 @@ u16 check_player_camera_collision(Player* player, Camera* camera, f32 arg2, f32 
     f32 sp44;
     s16 var_v0;
     u16 ret;
-
-    if (CVarGetInteger("gNoCulling", 0) == 1) {
-        return true;
-    }
 
     ret = false;
     switch (gActiveScreenMode) { /* irregular */
@@ -149,6 +170,13 @@ u16 check_player_camera_collision(Player* player, Camera* camera, f32 arg2, f32 
         ret = true;
     }
     return ret;
+}
+
+u16 check_player_camera_collision(Player* player, Camera* camera, f32 arg2, f32 arg3) {
+    if (CVarGetInteger("gNoCulling", 0) == 1) {
+        return true;
+    }
+    return check_player_camera_collision_real(player, camera, arg2, arg3);
 }
 
 u16 func_8001FD78(Player* player, f32 posX, UNUSED f32 arg2, f32 posZ) {

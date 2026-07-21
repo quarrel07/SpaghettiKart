@@ -3,6 +3,7 @@
  * @warning there are too many variables here
  */
 
+#include <stddef.h>
 #include <libultraship.h>
 #include <macros.h>
 #include <libultra/gbi.h>
@@ -221,6 +222,12 @@ s8 D_80165A90;
 UNUSED s32 D_80165AA0[95];
 UNUSED s32 D_80165C14;
 Object gObjectList[OBJECT_LIST_SIZE];
+// Spawn generation per kart-particle slot, folded into the smoke_dust*
+// interpolation tags: the tags were slot-based and slots recycle, so the
+// interpolator paired a recycled slot's new puff with its previous occupant
+// and drew smoke between the two positions (phantom smoke detached from its
+// kart). Indexed [playerIndex][pool][slot].
+u16 gKartParticleGen[8][4][10];
 UNUSED s32 D_80183D58;
 s32 objectListSize;
 Mtx D_80183D60;
@@ -2546,6 +2553,32 @@ void set_particle_position_and_rotation(Player* player, UnkPlayerStruct258* arg1
 }
 
 s32 init_particle_player(UnkPlayerStruct258* arg0, s8 type, f32 arg2) {
+    // Bump the slot's spawn generation (see gKartParticleGen). The pool and
+    // slot are derived from the pointer; gPlayers is contiguous.
+    uintptr_t off = (uintptr_t) arg0 - (uintptr_t) gPlayers;
+    if (off < (uintptr_t) (8 * sizeof(Player))) {
+        s32 pIdx = (s32) (off / sizeof(Player));
+        uintptr_t rem = off % sizeof(Player);
+        s32 pool = -1;
+        s32 slot = 0;
+        if (rem >= offsetof(Player, particlePool0) && rem < offsetof(Player, particlePool1)) {
+            pool = 0;
+            slot = (s32) ((rem - offsetof(Player, particlePool0)) / sizeof(UnkPlayerStruct258));
+        } else if (rem >= offsetof(Player, particlePool1) && rem < offsetof(Player, particlePool2)) {
+            pool = 1;
+            slot = (s32) ((rem - offsetof(Player, particlePool1)) / sizeof(UnkPlayerStruct258));
+        } else if (rem >= offsetof(Player, particlePool2) && rem < offsetof(Player, particlePool3)) {
+            pool = 2;
+            slot = (s32) ((rem - offsetof(Player, particlePool2)) / sizeof(UnkPlayerStruct258));
+        } else if (rem >= offsetof(Player, particlePool3) &&
+                   rem < offsetof(Player, particlePool3) + 10 * sizeof(UnkPlayerStruct258)) {
+            pool = 3;
+            slot = (s32) ((rem - offsetof(Player, particlePool3)) / sizeof(UnkPlayerStruct258));
+        }
+        if (pool >= 0 && slot < 10) {
+            gKartParticleGen[pIdx][pool][slot]++;
+        }
+    }
     arg0->isAlive = true;
     arg0->type = type;
     arg0->unk_01E = 0;
@@ -6319,10 +6352,14 @@ void func_8006D194(Player* player, s8 arg1, s8 arg2) {
 
 void func_8006D474(Player* player, s8 playerId, s8 screenId) {
     s16 var_s2;
-    if ((player->unk_002 & (SIDE_OF_KART << (screenId * 4))) == (SIDE_OF_KART << (screenId * 4))) {
+    // Also require the real (enhancement-independent) kart visibility: with
+    // gNoCulling the unk_002 bits are forced true, and lingering world-space
+    // puffs of an off-screen kart drew with no kart attached (phantom exhaust).
+    if (((player->unk_002 & (SIDE_OF_KART << (screenId * 4))) == (SIDE_OF_KART << (screenId * 4))) &&
+        gKartReallyVisible[screenId][playerId]) {
         for (var_s2 = 0; var_s2 < 10; var_s2++) {
             // @port: Tag the transform.
-            FrameInterpolation_RecordOpenChild("smoke_dust", TAG_SMOKE_DUST((playerId << 8) | (screenId << 4) | var_s2));
+            FrameInterpolation_RecordOpenChild("smoke_dust", TAG_SMOKE_DUST(((u32) gKartParticleGen[playerId][0][var_s2] << 12) | (playerId << 8) | (screenId << 4) | var_s2));
             switch (player->particlePool0[var_s2].type) {
                 case 1:
                     if (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) {
@@ -6344,7 +6381,7 @@ void func_8006D474(Player* player, s8 playerId, s8 screenId) {
                     break;
             }
             FrameInterpolation_RecordCloseChild();
-            FrameInterpolation_RecordOpenChild("smoke_dust2", TAG_SMOKE_DUST((playerId << 8) | (screenId << 4) | var_s2));
+            FrameInterpolation_RecordOpenChild("smoke_dust2", TAG_SMOKE_DUST(((u32) gKartParticleGen[playerId][3][var_s2] << 12) | (playerId << 8) | (screenId << 4) | var_s2));
             switch (player->particlePool3[var_s2].type) {
                 case 1:
                 case 9:
@@ -6407,7 +6444,7 @@ void func_8006D474(Player* player, s8 playerId, s8 screenId) {
                     break;
             }
             FrameInterpolation_RecordCloseChild();
-            FrameInterpolation_RecordOpenChild("smoke_dust3", TAG_SMOKE_DUST((playerId << 8) | (screenId << 4) | var_s2));
+            FrameInterpolation_RecordOpenChild("smoke_dust3", TAG_SMOKE_DUST(((u32) gKartParticleGen[playerId][1][var_s2] << 12) | (playerId << 8) | (screenId << 4) | var_s2));
             switch (player->particlePool1[var_s2].type) {
                 case DRIFT_PARTICLE:
                     if (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) {
@@ -6463,7 +6500,9 @@ void func_8006DC54(Player* player, s8 playerId, s8 screenId) {
     s32 bitwiseMask;
 
     bitwiseMask = SIDE_OF_KART << (screenId * 4);
-    if (bitwiseMask == (player->unk_002 & bitwiseMask)) {
+    // See func_8006D474: honest visibility keeps phantom particles culled
+    // under the no-culling enhancement.
+    if ((bitwiseMask == (player->unk_002 & bitwiseMask)) && gKartReallyVisible[screenId][playerId]) {
         for (i = 0; i < 10; i++) {
             if (player->particlePool0[i].type == 7) {
                 func_800658A0(player, playerId, i, screenId);
@@ -6477,7 +6516,9 @@ void func_8006DD3C(Player* player, s8 playerId, s8 screenId) {
     s32 temp_v0;
 
     temp_v0 = SIDE_OF_KART << (screenId * 4);
-    if (temp_v0 == (player->unk_002 & temp_v0)) {
+    // See func_8006D474: honest visibility keeps phantom particles culled
+    // under the no-culling enhancement.
+    if ((temp_v0 == (player->unk_002 & temp_v0)) && gKartReallyVisible[screenId][playerId]) {
         for (temp_s0 = 0; temp_s0 < 10; ++temp_s0) {
             temp_v0 = player->particlePool0[temp_s0].type;
             if (temp_v0 != 3) {

@@ -12,6 +12,8 @@
 void func_8001F980(s32*, s32*);
 void func_8001F9E4(Player*, Camera*, s8);
 u16 check_player_camera_collision(Player*, Camera*, f32, f32);
+u16 check_player_camera_collision_real(Player*, Camera*, f32, f32);
+extern u8 gKartReallyVisible[4][8];
 u16 func_8001FD78(Player*, f32, f32, f32);
 void init_render_player(Player*, Camera*, s8, s8);
 void load_kart_texture_and_render_kart_particles(s32 screenIdx);
