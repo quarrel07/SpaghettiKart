@@ -287,7 +287,31 @@ struct InterpolateCtx {
         return &mtx_replacements[addr];
     }
 
+    // True when a matrix moved or turned further in one game tick than any real
+    // motion does: billboards re-aimed after a camera cut and reused particle
+    // slots flip/teleport between frames, and lerping across that draws
+    // one-frame smears and paper-thin ghosts.
+    bool implausible_jump(MtxF* o, MtxF* n) {
+        f32 tx = n->mf[3][0] - o->mf[3][0];
+        f32 ty = n->mf[3][1] - o->mf[3][1];
+        f32 tz = n->mf[3][2] - o->mf[3][2];
+        if (tx * tx + ty * ty + tz * tz > 100.0f * 100.0f) {
+            return true;
+        }
+        for (size_t i = 0; i < 3; i++) {
+            f32 dot = o->mf[i][0] * n->mf[i][0] + o->mf[i][1] * n->mf[i][1] + o->mf[i][2] * n->mf[i][2];
+            if (dot < 0.0f) { // this axis turned more than 90 degrees in one tick
+                return true;
+            }
+        }
+        return false;
+    }
+
     void interpolate_mtxf(MtxF* res, MtxF* o, MtxF* n) {
+        if (implausible_jump(o, n)) {
+            *res = *n;
+            return;
+        }
         for (size_t i = 0; i < 4; i++) {
             for (size_t j = 0; j < 4; j++) {
                 res->mf[i][j] = w * o->mf[i][j] + step * n->mf[i][j];
