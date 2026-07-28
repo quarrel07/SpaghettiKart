@@ -6555,14 +6555,9 @@ void func_80019760(Camera* camera, UNUSED Player* player, UNUSED s32 arg2, s32 c
 // per-shot setup, which teleports the camera to the shot's opening position.
 void camera_start_cinematic_shot(s32 playerId, s32 cameraId) {
     s32 pathIndex;
-    f32 prevX, prevY, prevZ, dx, dy, dz;
     Camera* camera = camera1;
     camera += cameraId;
     camera->playerId = playerId;
-
-    prevX = camera->pos[0];
-    prevY = camera->pos[1];
-    prevZ = camera->pos[2];
 
     D_801646C0[cameraId] = 0;
     pathIndex = gPathIndexByPlayerId[playerId];
@@ -6621,15 +6616,6 @@ void camera_start_cinematic_shot(s32 playerId, s32 cameraId) {
         func_8000BD94(camera->pos[0], camera->pos[1], camera->pos[2], (s32) pathIndex);
     if ((s16) D_80164680[cameraId] == 9) {
         D_80163DD8[cameraId] = (s32) pathIndex;
-    }
-
-    // Flag a camera cut only when the camera teleported to a new shot;
-    // small moves are continuous tracking updates that should stay smooth.
-    dx = camera->pos[0] - prevX;
-    dy = camera->pos[1] - prevY;
-    dz = camera->pos[2] - prevZ;
-    if ((dx * dx + dy * dy + dz * dz) > 100.0f * 100.0f) {
-        FrameInterpolation_DontInterpolateCamera();
     }
 }
 

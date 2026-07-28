@@ -1107,6 +1107,30 @@ void func_8001EE98(Player* player, Camera* camera, s8 index) {
         switch (camera->mode) {
             case 3: // end of race
                 func_8001A588(&camera->mode, camera, player, index, cameraIndex);
+                {
+                    // Cinematic shots cut by teleporting the camera and/or whipping
+                    // its aim to a new subject, sometimes a tick after the shot
+                    // starts; watch both here so every cut renders as a hard cut
+                    // instead of frame interpolation blending unrelated views.
+                    static Vec3f sPrevPos[NUM_CAMERAS];
+                    static Vec3f sPrevLookAt[NUM_CAMERAS];
+                    f32 dx = camera->pos[0] - sPrevPos[cameraIndex][0];
+                    f32 dy = camera->pos[1] - sPrevPos[cameraIndex][1];
+                    f32 dz = camera->pos[2] - sPrevPos[cameraIndex][2];
+                    f32 lx = camera->lookAt[0] - sPrevLookAt[cameraIndex][0];
+                    f32 ly = camera->lookAt[1] - sPrevLookAt[cameraIndex][1];
+                    f32 lz = camera->lookAt[2] - sPrevLookAt[cameraIndex][2];
+                    if ((dx * dx + dy * dy + dz * dz) > 100.0f * 100.0f ||
+                        (lx * lx + ly * ly + lz * lz) > 100.0f * 100.0f) {
+                        FrameInterpolation_DontInterpolateCamera();
+                    }
+                    sPrevPos[cameraIndex][0] = camera->pos[0];
+                    sPrevPos[cameraIndex][1] = camera->pos[1];
+                    sPrevPos[cameraIndex][2] = camera->pos[2];
+                    sPrevLookAt[cameraIndex][0] = camera->lookAt[0];
+                    sPrevLookAt[cameraIndex][1] = camera->lookAt[1];
+                    sPrevLookAt[cameraIndex][2] = camera->lookAt[2];
+                }
                 break;
             case 1: // player camera
                 if (((player->lakituProps & LAKITU_RETRIEVAL) == LAKITU_RETRIEVAL) || ((player->lakituProps & HELD_BY_LAKITU) == HELD_BY_LAKITU)) {
