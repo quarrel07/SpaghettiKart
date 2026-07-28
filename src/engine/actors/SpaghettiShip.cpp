@@ -1,4 +1,5 @@
 #include "SpaghettiShip.h"
+#include <macros.h>
 
 #include <libultra/gbi.h>
 #include "engine/Matrix.h"
@@ -46,7 +47,7 @@ void ASpaghettiShip::Tick() {
     WheelRot.pitch += 500;
 }
 
-void ASpaghettiShip::Draw(Camera *camera) {
+void ASpaghettiShip::Draw(UNUSED Camera *camera) {
     Mat4 shipMtx;
     Mat4 objectMtx;
     Mat4 resultMtx;

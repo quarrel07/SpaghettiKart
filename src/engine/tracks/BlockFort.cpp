@@ -1,4 +1,5 @@
 #include <libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include <vector>
 #include <memory>
@@ -131,7 +132,7 @@ void BlockFort::BeginPlay() {
     }
 }
 
-void BlockFort::Draw(ScreenContext* arg0) {
+void BlockFort::Draw(UNUSED ScreenContext* arg0) {
     set_track_light_direction(D_800DC610, D_802B87D4, 0, 1);
     gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     gSPSetGeometryMode(gDisplayListHead++, G_SHADING_SMOOTH);
@@ -140,6 +141,6 @@ void BlockFort::Draw(ScreenContext* arg0) {
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_block_fort_packed_dl_15C0);
 }
 
-void BlockFort::Waypoints(Player* player, int8_t playerId) {
+void BlockFort::Waypoints(Player* player, UNUSED int8_t playerId) {
     player->nearestPathPointId = 0;
 }

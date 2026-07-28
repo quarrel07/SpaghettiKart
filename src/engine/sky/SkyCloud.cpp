@@ -1,4 +1,5 @@
 #include <libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include "SkyCloud.h"
 #include <vector>
@@ -86,7 +87,7 @@ void SkyCloud::Tick() { // func_800788F8
     }
 }
 
-void SkyCloud::Draw(ScreenContext* screen, s32 arg0) { // render_clouds
+void SkyCloud::Draw(UNUSED ScreenContext* screen, s32 arg0) { // render_clouds
    // Object* object = &gObjectList[_objectIndex];
     s32 posY = arg0 - mY;
     func_8004B6C4(255, 255, 255);

@@ -1,4 +1,5 @@
 #include <libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include <vector>
 
@@ -293,10 +294,10 @@ void AText::Print3D(char* text, s32 tracking, s32 mode) {
 }
 
 void AText::PrintLetter3D(MenuTexture* glyphTexture, f32 column, f32 row, s32 mode) {
-    s32 var_v0;
-    u8* temp_v0_2;
-    f32 thing0;
-    f32 thing1;
+    UNUSED s32 var_v0;
+    UNUSED u8* temp_v0_2;
+    UNUSED f32 thing0;
+    UNUSED f32 thing1;
     MenuTexture* texture;
 
     texture = glyphTexture;

@@ -1,4 +1,5 @@
 #include <libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include <vector>
 #include <memory>
@@ -167,7 +168,7 @@ void FrappeSnowland::BeginPlay() {
 }
 
 void FrappeSnowland::InitTrackObjects() {
-    size_t objectId;
+    UNUSED size_t objectId;
     size_t i;
     for (i = 0; i < NUM_SNOWFLAKES; i++) {
         find_unused_obj_index(&gObjectParticle1[i]);

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <macros.h>
 #include <libultraship/libultraship.h>
 #include <libultra/gbi.h>
 #include "../CoreMath.h"
@@ -31,7 +32,7 @@ namespace TrackEditor {
 
 size_t LightObject::NumLights = 0;
 
-    LightObject::LightObject(const char* name, FVector* pos, s8* direction) {
+    LightObject::LightObject(const char* name, UNUSED FVector* pos, s8* direction) {
         Name = name;
         ResourceName = "editor:light";
 

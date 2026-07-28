@@ -1,4 +1,5 @@
 #include <libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include "engine/CoreMath.h"
 #include <vector>
@@ -683,7 +684,7 @@ void Harbour::BeginPlay() {
     //GetWorld()->AddActor(new AShip(FVector(2811, -83, 966), AShip::Skin::SHIP2));                                                                                                                                                
 }
 
-void Harbour::WhatDoesThisDo(Player* player, int8_t playerId) {
+void Harbour::WhatDoesThisDo(UNUSED Player* player, int8_t playerId) {
     if (((s16) gNearestPathPointByPlayerId[playerId] >= 0x19B) &&
         ((s16) gNearestPathPointByPlayerId[playerId] < 0x1B9)) {
         if (D_80165300[playerId] != 1) {
@@ -698,7 +699,7 @@ void Harbour::WhatDoesThisDo(Player* player, int8_t playerId) {
     }
 }
 
-void Harbour::WhatDoesThisDoAI(Player* player, int8_t playerId) {
+void Harbour::WhatDoesThisDoAI(UNUSED Player* player, int8_t playerId) {
     if (((s16) gNearestPathPointByPlayerId[playerId] >= 0x19B) &&
         ((s16) gNearestPathPointByPlayerId[playerId] < 0x1B9)) {
         if (D_80165300[playerId] != 1) {

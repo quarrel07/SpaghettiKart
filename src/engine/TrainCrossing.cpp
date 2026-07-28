@@ -25,8 +25,8 @@ TrainCrossing::TrainCrossing(Vec3f position, u32 waypointMin, u32 waypointMax, f
 }
 
 void TrainCrossing::CrossingTrigger() {
-    f32 waypoint;
-    s32 i;
+    UNUSED f32 waypoint;
+    UNUSED s32 i;
     OnTriggered = 0;
 
     for (const auto& actor : GetWorld()->Actors) {

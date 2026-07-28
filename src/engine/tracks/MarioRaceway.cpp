@@ -1,4 +1,5 @@
 #include <libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include <vector>
 #include <memory>
@@ -155,8 +156,8 @@ void MarioRaceway::Load() {
 }
 
 void MarioRaceway::BeginPlay() {
-    struct Actor* actor;
-    Vec3f position;
+    UNUSED struct Actor* actor;
+    UNUSED Vec3f position;
     Vec3f velocity = { 0.0f, 0.0f, 0.0f };
     Vec3s rotation = { 0, 0, 0 };
 
@@ -195,7 +196,7 @@ void MarioRaceway::SomeSounds() {
     func_800C9D80(D_8015F748, D_802B91C8, 0x5103700B);
 }
 
-void MarioRaceway::WhatDoesThisDo(Player* player, int8_t playerId) {
+void MarioRaceway::WhatDoesThisDo(UNUSED Player* player, int8_t playerId) {
     if (((s16) gNearestPathPointByPlayerId[playerId] >= 0x19B) &&
         ((s16) gNearestPathPointByPlayerId[playerId] < 0x1B9)) {
         if (D_80165300[playerId] != 1) {
@@ -210,7 +211,7 @@ void MarioRaceway::WhatDoesThisDo(Player* player, int8_t playerId) {
     }
 }
 
-void MarioRaceway::WhatDoesThisDoAI(Player* player, int8_t playerId) {
+void MarioRaceway::WhatDoesThisDoAI(UNUSED Player* player, int8_t playerId) {
     if (((s16) gNearestPathPointByPlayerId[playerId] >= 0x19B) &&
         ((s16) gNearestPathPointByPlayerId[playerId] < 0x1B9)) {
         if (D_80165300[playerId] != 1) {

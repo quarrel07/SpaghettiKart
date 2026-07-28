@@ -1,4 +1,5 @@
 #include <libultraship/libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include "../CoreMath.h"
 #include <libultra/types.h>
@@ -152,7 +153,7 @@ void ObjectPicker::Draw() {
     }
 }
 
-void ObjectPicker::FindObject(Ray ray, std::vector<GameObject*> objects) {
+void ObjectPicker::FindObject(Ray ray, UNUSED std::vector<GameObject*> objects) {
     float distance = FLT_MAX;
     std::variant<AActor*, OObject*, GameObject*> object;
 
@@ -237,7 +238,7 @@ std::pair<GameObject*, float> ObjectPicker::CheckEditorObjectRay(Ray ray) {
     return std::pair(hitObject, hitDistance);
 }
 
-std::pair<OObject*, float> ObjectPicker::CheckOObjectRay(Ray ray) {
+std::pair<OObject*, float> ObjectPicker::CheckOObjectRay(UNUSED Ray ray) {
     OObject* hitObject = nullptr;
     float hitDistance = FLT_MAX;
 

@@ -1,4 +1,5 @@
 #include "Podium.h"
+#include <macros.h>
 #include "assets/models/ceremony_data.h"
 
 extern "C" {
@@ -66,7 +67,7 @@ void OPodium::Tick() { // func_80086604
     }
 }
 
-void OPodium::Draw(s32 cameraId) { // func_80055F48
+void OPodium::Draw(UNUSED s32 cameraId) { // func_80055F48
         Object* object = &gObjectList[_podium1Index];
         if (object->state >= 2) {
             //func_80043220(object->pos, object->direction_angle, object->sizeScaling, object->model);

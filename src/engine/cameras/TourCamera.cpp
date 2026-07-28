@@ -1,4 +1,5 @@
 #include <libultraship/libultraship.h>
+#include <macros.h>
 #include "TourCamera.h"
 #include "port/Engine.h"
 #include "port/Game.h"
@@ -186,10 +187,10 @@ bool TourCamera::IsTourComplete() {
 
 void TourCamera::SetViewProjection() {
     u16 perspNorm;
-    Mat4 matrix;
+    UNUSED Mat4 matrix;
 
-    Mat4 persp;
-    Mat4 lookAt;
+    UNUSED Mat4 persp;
+    UNUSED Mat4 lookAt;
 
     gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
     gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);

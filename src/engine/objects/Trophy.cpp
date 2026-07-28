@@ -1,4 +1,5 @@
 #include "Trophy.h"
+#include <macros.h>
 #include "assets/models/common_data.h"
 #include "assets/models/data_segment2.h"
 #include "port/Game.h"
@@ -97,7 +98,7 @@ OTrophy::OTrophy(const SpawnParams& params) : OObject(params) {
 
 void OTrophy::SetSpawnParams(SpawnParams& params) {
     OObject::SetSpawnParams(params);
-    Object *object = &gObjectList[_objectIndex];
+    UNUSED Object *object = &gObjectList[_objectIndex];
     params.Type = _type;
     params.Behaviour = _bhv;
 }
@@ -170,7 +171,7 @@ void OTrophy::Tick() { // func_80086D80
                 float lookAtZ = player->pos[2] + sin(yaw);
 
                 float forwardX = lookAtX - player->pos[0];
-                float forwardY = 0; // Optional: Ignore height changes
+                UNUSED float forwardY = 0; // Optional: Ignore height changes
                 float forwardZ = lookAtZ - player->pos[2];
 
                 // Normalize the forward vector

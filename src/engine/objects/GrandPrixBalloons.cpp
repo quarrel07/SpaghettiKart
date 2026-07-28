@@ -1,4 +1,5 @@
 #include "GrandPrixBalloons.h"
+#include <macros.h>
 
 #include "port/Game.h"
 #include "assets/textures/other_textures.h"
@@ -109,7 +110,7 @@ void OGrandPrixBalloons::func_80053D74(s32 objectIndex, s32 cameraId, s32 vertex
 
     Vtx* vtx = (Vtx*) LOAD_ASSET_RAW(common_vtx_hedgehog);
 
-    size_t i = 0;
+    UNUSED size_t i = 0;
     if (gMatrixHudCount <= MTX_HUD_POOL_SIZE_MAX) {
         object = &gObjectList[objectIndex];
 

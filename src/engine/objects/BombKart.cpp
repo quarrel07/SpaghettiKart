@@ -389,7 +389,7 @@ void OBombKart::Draw(s32 cameraId) {
     }
 }
 
-void OBombKart::DrawBattle(s32 cameraId) {
+void OBombKart::DrawBattle(UNUSED s32 cameraId) {
 
 }
 

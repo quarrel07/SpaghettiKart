@@ -105,7 +105,7 @@ void OThwomp::SetSpawnParams(SpawnParams& params) {
 void OThwomp::Tick60fps() { // func_80081210
     Player* player;
     s32 objectIndex;
-    s32 var_s2_3;
+    UNUSED s32 var_s2_3;
     s32 var_s4;
 
     func_800722CC(_objectIndex, 0x00000010);
@@ -364,7 +364,7 @@ void OThwomp::SetVisibility(s32 objectIndex) { // func_8008A4CC
 void OThwomp::func_8007F8D8() {
     Player* player;
     s32 var_s0;
-    s32 someIndex;
+    UNUSED s32 someIndex;
     s32 var_s4;
     Object* object;
 
@@ -392,7 +392,7 @@ void OThwomp::func_8007F8D8() {
 }
 
 s32 OThwomp::func_8007F75C(s32 playerId) {
-    s32 someIndex;
+    UNUSED s32 someIndex;
     static s32 temp_s7 = 0; // Must be static to sync far travelling thwomp instances
     s32 var_s6;
     s32 waypoint;

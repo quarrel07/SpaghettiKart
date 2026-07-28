@@ -1,4 +1,5 @@
 #include "FallingRock.h"
+#include <macros.h>
 
 #include <libultra/gbi.h>
 #include "engine/CoreMath.h"

@@ -1,4 +1,5 @@
 #include <libultraship.h>
+#include <macros.h>
 #include <libultra/gbi.h>
 #include <vector>
 #include <memory>
@@ -192,7 +193,7 @@ void ChocoMountain::SomeSounds() {
     func_800C9D80(D_8015F748, D_802B91C8, 0x5103700B);
 }
 
-void ChocoMountain::WhatDoesThisDo(Player* player, int8_t playerId) {
+void ChocoMountain::WhatDoesThisDo(UNUSED Player* player, int8_t playerId) {
     if (((s16) gNearestPathPointByPlayerId[playerId] >= 0xA0) &&
         ((s16) gNearestPathPointByPlayerId[playerId] < 0xB4)) {
         if (D_80165300[playerId] != 1) {
@@ -207,7 +208,7 @@ void ChocoMountain::WhatDoesThisDo(Player* player, int8_t playerId) {
     }
 }
 
-void ChocoMountain::WhatDoesThisDoAI(Player* player, int8_t playerId) {
+void ChocoMountain::WhatDoesThisDoAI(UNUSED Player* player, int8_t playerId) {
     if (((s16) gNearestPathPointByPlayerId[playerId] >= 0xA0) &&
         ((s16) gNearestPathPointByPlayerId[playerId] < 0xB4)) {
         if (D_80165300[playerId] != 1) {
