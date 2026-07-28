@@ -45,3 +45,4 @@ const Gfx* banshee_boardwalk_dls[] = {
     d_course_banshee_boardwalk_dl_42D0, d_course_banshee_boardwalk_dl_4428, d_course_banshee_boardwalk_dl_43A8,
     d_course_banshee_boardwalk_dl_4480,
 };
+const s32 banshee_boardwalk_dls_count = (s32) (sizeof(banshee_boardwalk_dls) / sizeof(banshee_boardwalk_dls[0]));

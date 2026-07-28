@@ -48,3 +48,4 @@ const Gfx* royal_raceway_dls[] = {
     d_course_royal_raceway_dl_AFB0, d_course_royal_raceway_dl_B188, d_course_royal_raceway_dl_B230,
     d_course_royal_raceway_dl_B3E8, d_course_royal_raceway_dl_B2E0, d_course_royal_raceway_dl_B508,
 };
+const s32 royal_raceway_dls_count = (s32) (sizeof(royal_raceway_dls) / sizeof(royal_raceway_dls[0]));

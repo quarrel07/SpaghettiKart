@@ -39,6 +39,7 @@ extern "C" {
     #include "courses/staff_ghost_data.h"
     #include "ending/podium_ceremony_actors.h"
     extern const char *royal_raceway_dls[];
+extern const s32 royal_raceway_dls_count;
 }
 
 PodiumCeremony::PodiumCeremony() {
@@ -219,7 +220,7 @@ void PodiumCeremony::Draw(ScreenContext* arg0) {
     // d_course_royal_raceway_packed_dl_A648
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_royal_raceway_packed_dl_A648);
 
-    render_track_sections(royal_raceway_dls, arg0);
+    render_track_sections(royal_raceway_dls, royal_raceway_dls_count, arg0);
 
     // d_course_royal_raceway_packed_dl_11A8
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_royal_raceway_packed_dl_11A8);

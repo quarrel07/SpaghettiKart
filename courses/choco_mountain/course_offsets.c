@@ -36,3 +36,4 @@ const Gfx* choco_mountain_dls[] = {
     d_course_choco_mountain_dl_3EE0, d_course_choco_mountain_dl_4090, d_course_choco_mountain_dl_4138,
     d_course_choco_mountain_dl_42C8, d_course_choco_mountain_dl_41F8, d_course_choco_mountain_dl_43C8,
 };
+const s32 choco_mountain_dls_count = (s32) (sizeof(choco_mountain_dls) / sizeof(choco_mountain_dls[0]));

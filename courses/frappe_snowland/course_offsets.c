@@ -27,3 +27,4 @@ const Gfx* d_course_frappe_snowland_dl_list[] = {
     d_course_frappe_snowland_dl_30D0, d_course_frappe_snowland_dl_3198, d_course_frappe_snowland_dl_3328,
     d_course_frappe_snowland_dl_3270, d_course_frappe_snowland_dl_33E0,
 };
+const s32 d_course_frappe_snowland_dl_list_count = (s32) (sizeof(d_course_frappe_snowland_dl_list) / sizeof(d_course_frappe_snowland_dl_list[0]));

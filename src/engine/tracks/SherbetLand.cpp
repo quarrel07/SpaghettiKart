@@ -33,7 +33,9 @@ extern "C" {
     #include "racing/collision.h"
     #include "memory.h"
     extern const char *sherbet_land_dls[72];
+extern const s32 sherbet_land_dls_count;
     extern const char *sherbet_land_dls_2[72];
+extern const s32 sherbet_land_dls_2_count;
 }
 
 SherbetLand::SherbetLand() {
@@ -202,7 +204,7 @@ void SherbetLand::Draw(ScreenContext* arg0) {
     gSPSetGeometryMode(gDisplayListHead++, G_SHADING_SMOOTH);
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEI, G_CC_MODULATEI);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
-    render_track_sections(sherbet_land_dls, arg0);
+    render_track_sections(sherbet_land_dls, sherbet_land_dls_count, arg0);
 }
 
 void SherbetLand::DrawCredits() {
@@ -217,7 +219,7 @@ void SherbetLand::DrawTransparency(ScreenContext* screen, uint16_t pathCounter, 
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
     gDPSetTextureFilter(gDisplayListHead++, G_TF_BILERP);
     gDPSetTexturePersp(gDisplayListHead++, G_TP_PERSP);
-    render_track_sections(sherbet_land_dls_2, screen);
+    render_track_sections(sherbet_land_dls_2, sherbet_land_dls_2_count, screen);
 
     gDPSetAlphaCompare(gDisplayListHead++, G_AC_NONE);
     if ((func_80290C20(screen->camera) == 1) && (get_water_level(screen->player) < screen->player->pos[1])) {

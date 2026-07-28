@@ -31,3 +31,4 @@ const Gfx* mario_raceway_dls[] = {
     d_course_mario_raceway_dl_4CD8, d_course_mario_raceway_dl_4DC8, d_course_mario_raceway_dl_4FF0,
     d_course_mario_raceway_dl_4ED0, d_course_mario_raceway_dl_5150,
 };
+const s32 mario_raceway_dls_count = (s32) (sizeof(mario_raceway_dls) / sizeof(mario_raceway_dls[0]));

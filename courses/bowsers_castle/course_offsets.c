@@ -40,3 +40,4 @@ const Gfx* bowsers_castle_dls[] = {
     d_course_bowsers_castle_dl_4748, d_course_bowsers_castle_dl_4998, d_course_bowsers_castle_dl_4A98,
     d_course_bowsers_castle_dl_4CE8, d_course_bowsers_castle_dl_4C00, d_course_bowsers_castle_dl_4EA8,
 };
+const s32 bowsers_castle_dls_count = (s32) (sizeof(bowsers_castle_dls) / sizeof(bowsers_castle_dls[0]));

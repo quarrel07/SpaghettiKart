@@ -35,6 +35,7 @@ extern "C" {
     #include "memory.h"
     #include "courses/staff_ghost_data.h"
     extern const char *mario_raceway_dls[68];
+extern const s32 mario_raceway_dls_count;
 }
 
 MarioRaceway::MarioRaceway() {
@@ -346,7 +347,7 @@ void MarioRaceway::Draw(ScreenContext* arg0) {
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_mario_raceway_packed_dl_3508);
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_mario_raceway_packed_dl_3240);
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_mario_raceway_packed_dl_14A0);
-    render_track_sections(mario_raceway_dls, arg0);
+    render_track_sections(mario_raceway_dls, mario_raceway_dls_count, arg0);
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_TEX_EDGE, G_RM_AA_ZB_TEX_EDGE2);
     gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK);

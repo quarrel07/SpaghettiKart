@@ -32,3 +32,4 @@ Gfx* d_course_toads_turnpike_dl_list[] = {
     d_course_toads_turnpike_dl_3758, d_course_toads_turnpike_dl_37F0, d_course_toads_turnpike_dl_39C8,
     d_course_toads_turnpike_dl_3910, d_course_toads_turnpike_dl_3AD8,
 };
+const s32 d_course_toads_turnpike_dl_list_count = (s32) (sizeof(d_course_toads_turnpike_dl_list) / sizeof(d_course_toads_turnpike_dl_list[0]));

@@ -40,3 +40,4 @@ const Gfx* wario_stadium_dls[] = {
     d_course_wario_stadium_dl_5168, d_course_wario_stadium_dl_5270, d_course_wario_stadium_dl_5338,
     d_course_wario_stadium_dl_54E8, d_course_wario_stadium_dl_5460, d_course_wario_stadium_dl_5588,
 };
+const s32 wario_stadium_dls_count = (s32) (sizeof(wario_stadium_dls) / sizeof(wario_stadium_dls[0]));

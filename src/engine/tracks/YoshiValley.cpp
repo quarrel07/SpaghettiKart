@@ -34,6 +34,7 @@ extern "C" {
     #include "racing/collision.h"
     #include "memory.h"
     extern const char *d_course_yoshi_valley_dl_list[124];
+extern const s32 d_course_yoshi_valley_dl_list_count;
 }
 
 YoshiValley::YoshiValley() {
@@ -194,7 +195,7 @@ void YoshiValley::Draw(ScreenContext* arg0) {
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEI, G_CC_MODULATEI);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
     gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
-    render_track_sections(d_course_yoshi_valley_dl_list, arg0);
+    render_track_sections(d_course_yoshi_valley_dl_list, d_course_yoshi_valley_dl_list_count, arg0);
     gDPPipeSync(gDisplayListHead++);
 }
 

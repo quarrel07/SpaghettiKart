@@ -39,3 +39,4 @@ const Gfx* d_course_dks_jungle_parkway_unknown_dl_list[] = {
     d_course_dks_jungle_parkway_dl_6EB0, d_course_dks_jungle_parkway_dl_6F10, d_course_dks_jungle_parkway_dl_7080,
     d_course_dks_jungle_parkway_dl_7008, d_course_dks_jungle_parkway_dl_7108,
 };
+const s32 d_course_dks_jungle_parkway_unknown_dl_list_count = (s32) (sizeof(d_course_dks_jungle_parkway_unknown_dl_list) / sizeof(d_course_dks_jungle_parkway_unknown_dl_list[0]));

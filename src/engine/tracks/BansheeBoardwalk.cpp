@@ -40,6 +40,7 @@ extern "C" {
 #include "racing/collision.h"
 #include "memory.h"
 extern const char *banshee_boardwalk_dls[100];
+extern const s32 banshee_boardwalk_dls_count;
 }
 
 BansheeBoardwalk::BansheeBoardwalk() {
@@ -275,7 +276,7 @@ void BansheeBoardwalk::Draw(ScreenContext* arg0) {
     // d_course_banshee_boardwalk_packed_dl_69B0
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_banshee_boardwalk_packed_dl_69B0);
 
-    render_track_sections(banshee_boardwalk_dls, arg0);
+    render_track_sections(banshee_boardwalk_dls, banshee_boardwalk_dls_count, arg0);
 
     gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);

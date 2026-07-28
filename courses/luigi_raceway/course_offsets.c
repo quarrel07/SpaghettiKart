@@ -44,3 +44,4 @@ const Gfx* luigi_raceway_dls[] = {
     d_course_luigi_raceway_dl_99C0, d_course_luigi_raceway_dl_9C50, d_course_luigi_raceway_dl_9E58,
     d_course_luigi_raceway_dl_A178, d_course_luigi_raceway_dl_A028, d_course_luigi_raceway_dl_A320,
 };
+const s32 luigi_raceway_dls_count = (s32) (sizeof(luigi_raceway_dls) / sizeof(luigi_raceway_dls[0]));

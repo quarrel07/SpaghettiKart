@@ -417,3 +417,5 @@ Animation* d_course_sherbet_land_unk_data11[] = {
 
 // No idea what this stuff is
 u32 d_course_sherbet_land_unk_data12[] = { 0x00000000, 0x00000000, 0x00000001, 0x00000000, 0x00000001 };
+const s32 sherbet_land_dls_count = (s32) (sizeof(sherbet_land_dls) / sizeof(sherbet_land_dls[0]));
+const s32 sherbet_land_dls_2_count = (s32) (sizeof(sherbet_land_dls_2) / sizeof(sherbet_land_dls_2[0]));

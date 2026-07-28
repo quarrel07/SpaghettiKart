@@ -35,3 +35,4 @@ const Gfx* moo_moo_farm_dls[] = {
     d_course_moo_moo_farm_dl_DF60, d_course_moo_moo_farm_dl_E1D8, d_course_moo_moo_farm_dl_E708,
     d_course_moo_moo_farm_dl_E4B0, d_course_moo_moo_farm_dl_EA18,
 };
+const s32 moo_moo_farm_dls_count = (s32) (sizeof(moo_moo_farm_dls) / sizeof(moo_moo_farm_dls[0]));

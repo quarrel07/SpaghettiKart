@@ -35,6 +35,7 @@ extern "C" {
     #include "memory.h"
     #include "course_offsets.h"
     extern const char *choco_mountain_dls[96];
+extern const s32 choco_mountain_dls_count;
 }
 
 ChocoMountain::ChocoMountain() {
@@ -252,7 +253,7 @@ void ChocoMountain::Draw(ScreenContext* arg0) {
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_choco_mountain_packed_dl_5868);
     gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
 
-    render_track_sections(choco_mountain_dls, arg0);
+    render_track_sections(choco_mountain_dls, choco_mountain_dls_count, arg0);
 
     gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK);
     gDPSetRenderMode(gDisplayListHead++, G_RM_FOG_SHADE_A, G_RM_AA_ZB_TEX_EDGE2);

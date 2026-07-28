@@ -290,3 +290,5 @@ Animation* d_course_koopa_troopa_beach_unk_data5[] = {
 uintptr_t d_course_koopa_troopa_beach_unk_data6[] = {
     0x00000000, 0x00000000, 0x00000001, 0x00000000, 0x00000001,
 };
+const s32 d_course_koopa_troopa_beach_dl_list1_count = (s32) (sizeof(d_course_koopa_troopa_beach_dl_list1) / sizeof(d_course_koopa_troopa_beach_dl_list1[0]));
+const s32 koopa_troopa_beach_dls2_count = (s32) (sizeof(koopa_troopa_beach_dls2) / sizeof(koopa_troopa_beach_dls2[0]));

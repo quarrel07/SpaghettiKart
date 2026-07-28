@@ -197,3 +197,4 @@ u32 d_course_yoshi_valley_unk6[] = {
     0x00000000,
     0x00000001,
 };
+const s32 d_course_yoshi_valley_dl_list_count = (s32) (sizeof(d_course_yoshi_valley_dl_list) / sizeof(d_course_yoshi_valley_dl_list[0]));

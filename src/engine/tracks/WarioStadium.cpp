@@ -34,6 +34,7 @@ extern "C" {
 #include "memory.h"
 #include "racing/skybox_and_splitscreen.h"
 extern const char* wario_stadium_dls[108];
+extern const s32 wario_stadium_dls_count;
 extern s16 currentScreenSection;
 }
 
@@ -252,7 +253,7 @@ void WarioStadium::Draw(ScreenContext* arg0) {
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATERGBA, G_CC_MODULATERGBA);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
 
-    render_track_sections(wario_stadium_dls, arg0);
+    render_track_sections(wario_stadium_dls, wario_stadium_dls_count, arg0);
 
     // d_course_wario_stadium_packed_dl_A228
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_wario_stadium_packed_dl_A228);

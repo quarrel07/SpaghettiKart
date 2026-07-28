@@ -124,3 +124,4 @@ uintptr_t d_rainbow_road_unk4[] = {
 u32 d_rainbow_road_unk5[] = {
     0x00000000, 0x00000000, 0x00000002, 0x00000000, 0x00000002,
 };
+const s32 rainbow_road_dls_count = (s32) (sizeof(rainbow_road_dls) / sizeof(rainbow_road_dls[0]));

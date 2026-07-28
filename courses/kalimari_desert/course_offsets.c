@@ -31,3 +31,4 @@ const Gfx* kalimari_desert_dls[] = {
     d_course_kalimari_desert_dl_63E0, d_course_kalimari_desert_dl_65B0, d_course_kalimari_desert_dl_6838,
     d_course_kalimari_desert_dl_66F0, d_course_kalimari_desert_dl_6940,
 };
+const s32 kalimari_desert_dls_count = (s32) (sizeof(kalimari_desert_dls) / sizeof(kalimari_desert_dls[0]));

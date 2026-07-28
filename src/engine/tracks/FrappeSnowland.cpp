@@ -36,6 +36,7 @@ extern "C" {
     #include "update_objects.h"
     #include "course_offsets.h"
     extern const char *d_course_frappe_snowland_dl_list[68];
+extern const s32 d_course_frappe_snowland_dl_list_count;
     extern s8 gPlayerCount;
 }
 
@@ -192,7 +193,7 @@ void FrappeSnowland::Draw(ScreenContext* arg0) {
 
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
-    render_track_sections(d_course_frappe_snowland_dl_list, arg0);
+    render_track_sections(d_course_frappe_snowland_dl_list, d_course_frappe_snowland_dl_list_count, arg0);
 }
 
 void FrappeSnowland::DrawCredits() {

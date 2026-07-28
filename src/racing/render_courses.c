@@ -88,7 +88,7 @@ void parse_track_displaylists(TrackSections* asset) {
 
 extern u32 isFlycam;
 
-void render_track_sections(const char* addr[], ScreenContext* arg1) {
+void render_track_sections(const char* addr[], s32 dlCount, ScreenContext* arg1) {
     Player* player = arg1->player;
     Camera* camera = arg1->camera;
     s16 direction;
@@ -184,6 +184,19 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
     }
 
     arg1->pathCounter = index;
+
+    // The per-(section, direction) lists are hand-authored for the player
+    // camera; cinematic cameras sit at vantage points they were never tuned
+    // for, so geometry pops in whenever the game swaps lists. With No Culling
+    // enabled, draw the whole course in cinematic shots instead.
+    if (camera->mode == 3 && CVarGetInteger("gNoCulling", 0) == 1) {
+        s32 i;
+        for (i = 0; i < dlCount; i++) {
+            gSPDisplayList(gDisplayListHead++, addr[i]);
+        }
+        return;
+    }
+
     index = ((index - 1) * 4) + direction;
     gSPDisplayList(gDisplayListHead++, addr[index]);
 

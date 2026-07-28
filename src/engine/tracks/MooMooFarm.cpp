@@ -34,6 +34,7 @@ extern "C" {
     #include "memory.h"
     #include "code_80086E70.h"
     extern const char *moo_moo_farm_dls[92];
+extern const s32 moo_moo_farm_dls_count;
     extern s16 currentScreenSection;
     extern s8 gPlayerCount;
 }
@@ -272,7 +273,7 @@ void MooMooFarm::Draw(ScreenContext* arg0) {
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_5640);
     gSPFogPosition(gDisplayListHead++, gFogMin, gFogMax);
 
-    render_track_sections(moo_moo_farm_dls, arg0);
+    render_track_sections(moo_moo_farm_dls, moo_moo_farm_dls_count, arg0);
 
     if ((temp_s0 < 14) && (temp_s0 > 10)) {
         if ((temp_s1 == 2) || (temp_s1 == 3) || (temp_s1 == 1)) {
