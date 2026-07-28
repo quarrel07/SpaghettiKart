@@ -1,4 +1,5 @@
 #include "FreecamWindow.h"
+#include <macros.h>
 #include "port/ui/PortMenu.h"
 #include "port/Game.h"
 #include "UIWidgets.h"
@@ -39,7 +40,7 @@ namespace GameUI {
 extern std::shared_ptr<PortMenu> mPortMenu;
 namespace Freecam {
 
-static s32 sReadyUpBool = false;
+UNUSED static s32 sReadyUpBool = false;
 
 int32_t controllerType = 0;
 std::unordered_map<int32_t, const char*> controlType = {{ 0, "Mouse/Keyboard" }, { 1, "Controller" }};
@@ -70,7 +71,7 @@ void RegisterFreecamWidgets() {
     mPortMenu->AddWidget(path, "Enable Freecam", WIDGET_CVAR_CHECKBOX)
         .CVar("gFreecam")
         .Options(UIWidgets::CheckboxOptions({{ .tooltip = "Allows you to fly around the track"}}))
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             bool state = (bool) CVarGetInteger("gFreecam", false);
             CM_SetFreeCamera(state);
         });
@@ -93,7 +94,7 @@ void RegisterFreecamWidgets() {
 
     mPortMenu->AddWidget(path, "Target Player", WIDGET_TEXT);
     mPortMenu->AddWidget(path, "None", WIDGET_BUTTON)
-        .Callback([](WidgetInfo& info) { fTargetPlayer = false; });
+        .Callback([](UNUSED WidgetInfo& info) { fTargetPlayer = false; });
 
     mPortMenu->AddWidget(path, "Player 1", WIDGET_BUTTON)
         .PreFunc([](WidgetInfo& info) {
@@ -103,7 +104,7 @@ void RegisterFreecamWidgets() {
             }
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(0);
             fTargetPlayer = true;
         });
@@ -116,7 +117,7 @@ void RegisterFreecamWidgets() {
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
         .SameLine(true)
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(1);
             fTargetPlayer = true;
         });
@@ -129,7 +130,7 @@ void RegisterFreecamWidgets() {
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
         .SameLine(true)
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(2);
             fTargetPlayer = true;
         });
@@ -142,7 +143,7 @@ void RegisterFreecamWidgets() {
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
         .SameLine(true)
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(3);
             fTargetPlayer = true;
         });
@@ -154,7 +155,7 @@ void RegisterFreecamWidgets() {
             }
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(4);
             fTargetPlayer = true;
         });
@@ -167,7 +168,7 @@ void RegisterFreecamWidgets() {
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
         .SameLine(true)
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(5);
             fTargetPlayer = true;
         });
@@ -180,7 +181,7 @@ void RegisterFreecamWidgets() {
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
         .SameLine(true)
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(6);
             fTargetPlayer = true;
         });
@@ -193,7 +194,7 @@ void RegisterFreecamWidgets() {
         })
         .Options(UIWidgets::ButtonOptions().Size(UIWidgets::Sizes::Inline))
         .SameLine(true)
-        .Callback([](WidgetInfo& info) {
+        .Callback([](UNUSED WidgetInfo& info) {
             freecam_get_player_from_character(7);
             fTargetPlayer = true;
         });
