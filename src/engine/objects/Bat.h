@@ -66,5 +66,5 @@ public:
 private:
     FVector _pos;
     static size_t _count;
-    size_t _idx;
+    [[maybe_unused]] size_t _idx;
 };

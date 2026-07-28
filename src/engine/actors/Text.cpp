@@ -176,7 +176,7 @@ void AText::Draw(Camera* camera) {
         case STATIONARY:
             break; // Do nothing
         case FOLLOW_PLAYER:
-            if (PlayerIndex == camera->playerId) {
+            if ((s32) PlayerIndex == camera->playerId) {
                 return; // Do not draw the local players own name
             }
             if ((gPlayers[PlayerIndex].effects & BOO_EFFECT) == BOO_EFFECT) {
@@ -391,6 +391,9 @@ void AText::DrawText3D(Camera* camera) { // Based on func_80095BD0
         }
 
         switch(FadeState) {
+        // Unhandled states take no action.
+        default:
+            break;
             case FADE_IN:
                 AText::FadeIn(tex.vtx);
                 break;

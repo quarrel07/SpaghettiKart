@@ -48,7 +48,7 @@ public:
 
 private:
     static size_t _count;
-    s32 _idx;
+    [[maybe_unused]] s32 _idx;
     FVector Pos;
     bool _active;
     size_t _numBalloons;

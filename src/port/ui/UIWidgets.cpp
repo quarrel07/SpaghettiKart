@@ -28,7 +28,7 @@ std::string WrappedText(const char* text, unsigned int charactersPerLine) {
             lastSpace = currentCharacter;
         }
 
-        if ((currentLineLength >= charactersPerLine) && (lastSpace >= 0)) {
+        if ((currentLineLength >= (int) charactersPerLine) && (lastSpace >= 0)) {
             newText[lastSpace] = '\n';
             currentLineLength = currentCharacter - lastSpace - 1;
             lastSpace = -1;

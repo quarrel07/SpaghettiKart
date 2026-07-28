@@ -147,6 +147,9 @@ void OPenguin::Behaviours(s32 objectIndex) { // func_800850B0
 
     object = &gObjectList[objectIndex];
     switch (SpawnBhv) {
+        // Unhandled states take no action.
+        default:
+            break;
         case 1: // emperor
             OPenguin::func_80085080(objectIndex);
             break;
@@ -382,6 +385,9 @@ void OPenguin::InitOtherPenguin(s32 objectIndex) {
     // This code has been significantly refactored from the original func_800845C8
     // Into a switch statement instead of checking for the index of the penguin
     switch(SpawnBhv) {
+        // Unhandled states take no action.
+        default:
+            break;
         case Behaviour::CIRCLE:
             object->unk_01C[1] = Speed;
 

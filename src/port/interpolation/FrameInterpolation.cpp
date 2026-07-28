@@ -403,6 +403,9 @@ struct InterpolateCtx {
                 if (item.second < it->second.size()) {
                     Data& old_op = it->second[item.second];
                     switch (item.first) {
+        // Unhandled states take no action.
+        default:
+            break;
                         case Op::OpenChild:
                         case Op::CloseChild:
                         case Op::Marker:

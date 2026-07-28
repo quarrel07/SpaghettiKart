@@ -47,7 +47,7 @@ f32 D_800E594C[][2] = {
     { -0.0, 0.0 },
 };
 
-s16 D_800E597C[] = { 0x0000, 0x0000, 0x4000, 0x8000, 0x8000, 0xc000 };
+s16 D_800E597C[] = { 0x0000, 0x0000, 0x4000, (s16) 0x8000, (s16) 0x8000, (s16) 0xc000 };
 
 size_t OThwomp::_count = 0;
 size_t OThwomp::_rand = 0;
@@ -123,6 +123,9 @@ void OThwomp::Tick60fps() { // func_80081210
 
     if (gObjectList[_objectIndex].state != 0) {
         switch(Behaviour) {
+        // Unhandled states take no action.
+        default:
+            break;
             case States::STATIONARY:
                 OThwomp::StationaryBehaviour(_objectIndex);
                 break;
@@ -695,7 +698,8 @@ void OThwomp::Draw(s32 cameraId) {
     s32 objectIndex = _objectIndex;
     s32 i;
     UNUSED s32 stackPadding0;
-    s16 minusone, plusone;
+    UNUSED s16 minusone;
+    UNUSED s16 plusone;
     Camera* camera;
     Object* object;
 

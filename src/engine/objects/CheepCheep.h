@@ -52,6 +52,6 @@ public:
 
 private:
 
-    s32 _idx;
+    [[maybe_unused]] s32 _idx;
     Behaviour _behaviour;
 };

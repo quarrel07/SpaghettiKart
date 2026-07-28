@@ -142,7 +142,7 @@ bool TourCamera::MoveCameraAlongSpline(f32* arg1, std::vector<KeyFrame>& keyFram
     }
 
     // Check for end of the spline
-    if ( (keyFrameIdx + 3) >= keyFrame.size() ) {
+    if ((size_t) (keyFrameIdx + 3) >= keyFrame.size()) {
         return true;
     }
 

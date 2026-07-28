@@ -155,7 +155,7 @@ void OBombKart::Tick() {
                 }
             } else {
 
-                for (size_t i = 0; i < gPlayerCount; i++) {
+                for (size_t i = 0; i < (size_t) gPlayerCount; i++) {
                     player = &gPlayers[i];
                     if (!(player->effects & 0x80000000)) {
                         temp_f0 = newPos[0] - player->pos[0];

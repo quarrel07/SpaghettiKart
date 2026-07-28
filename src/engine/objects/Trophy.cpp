@@ -80,6 +80,9 @@ OTrophy::OTrophy(const SpawnParams& params) : OObject(params) {
     }
 
     switch(_bhv) {
+        // Unhandled states take no action.
+        default:
+            break;
         case OTrophy::Behaviour::GO_FISH:
             gObjectList[_objectIndex].sizeScaling = 0.010f;
             break;
@@ -114,6 +117,9 @@ void OTrophy::Tick() { // func_80086D80
     }
 
     switch(_bhv) {
+        // Unhandled states take no action.
+        default:
+            break;
         case OTrophy::Behaviour::PODIUM_CEREMONY:
             if (gObjectList[objectIndex].state != 0 && (*_toggleVisibility == true)) {
                 OTrophy::func_80086C14(objectIndex);
@@ -260,6 +266,9 @@ void OTrophy::Draw(s32 cameraId) {
         }
 
         switch (_bhv) {
+        // Unhandled states take no action.
+        default:
+            break;
             case GO_FISH:
                 size_t numTrophies = 0;
                 func_80057A50(40, 22, (char*) "Trophies Collected: ", (s16) numTrophies);

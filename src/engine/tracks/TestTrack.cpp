@@ -192,7 +192,7 @@ void TestTrack::BeginPlay() {
                                                                             ACTOR_RAILROAD_CROSSING));
     rrxing->crossingTrigger = crossing1;
 
-    Vec3f pos = {0, 80, 0};
+    UNUSED Vec3f pos = {0, 80, 0};
     // GetWorld()->AddActor(new ACloud(pos));
 
     // GetWorld()->AddActor(new OSeagull(0, pos));

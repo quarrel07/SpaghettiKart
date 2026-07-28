@@ -31,7 +31,7 @@ namespace TrackEditor {
 
     void PropertiesWindow::DrawElement() {
 
-        std::visit([this](auto* obj) {
+        std::visit([](auto* obj) {
 
             using T = std::decay_t<decltype(*obj)>;  // Get the type the pointer is pointing to
             if (nullptr == obj) {

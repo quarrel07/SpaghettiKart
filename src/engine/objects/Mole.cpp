@@ -205,7 +205,7 @@ void OMole::func_80081D34(s32 objectIndex) {
     var_s5 = 0;
     player = gPlayerOne;
     camera = camera1;
-    for (size_t i = 0; i < D_8018D158; i++, player++, camera++) {
+    for (size_t i = 0; i < (size_t) D_8018D158; i++, player++, camera++) {
         if ((is_obj_flag_status_active(objectIndex, 0x00000200) != 0) && !(player->effects & 0x80000000) &&
             (has_collided_with_player(objectIndex, player) != 0)) {
             if ((player->type & PLAYER_EXISTS) && !(player->type & PLAYER_INVISIBLE_OR_BOMB)) {

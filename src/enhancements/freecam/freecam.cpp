@@ -180,7 +180,7 @@ f32 gFreecamSpeedMultiplier = 2.0f;
 bool prevPrev = false;
 
 #define MAX_KEYS 256
-static bool prevKeyState[MAX_KEYS] = { false };
+UNUSED static bool prevKeyState[MAX_KEYS] = { false };
 
 // KeyDown function
 bool FreecamKeyDown(int virtualKey) {

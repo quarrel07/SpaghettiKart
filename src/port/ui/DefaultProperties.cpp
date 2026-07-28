@@ -4,7 +4,7 @@
 // Draw default properties
 void DrawDefaultEditorProperties() {
     std::visit([](auto* obj) {
-        using T = std::decay_t<decltype(*obj)>;
+        using T [[maybe_unused]] = std::decay_t<decltype(*obj)>;
         if (nullptr == obj) {
             return;
         }

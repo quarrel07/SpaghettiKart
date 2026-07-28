@@ -178,7 +178,7 @@ uint32_t Menu::DrawSearchResults(std::string& menuSearchText) {
         auto& menuEntry = menuEntries.at(menuLabel);
         for (auto& sidebarLabel : menuEntry.sidebarOrder) {
             auto& sidebar = menuEntry.sidebars[sidebarLabel];
-            for (int i = 0; i < sidebar.columnWidgets.size(); i++) {
+            for (int i = 0; i < (int) sidebar.columnWidgets.size(); i++) {
                 auto& column = sidebar.columnWidgets.at(i);
                 for (auto& info : column) {
                     if (info.type == WIDGET_SEARCH || info.type == WIDGET_SEPARATOR || info.type == WIDGET_SEPARATOR_TEXT ||
@@ -768,7 +768,7 @@ void Menu::DrawElement() {
                 }
             }
         }
-        for (int i = 0; i < columnFuncs; i++) {
+        for (int i = 0; i < (int) columnFuncs; i++) {
             std::string sectionId = fmt::format("{} Column {}", sectionMenuId, i);
             if (useColumns) {
                 ImGui::SetNextWindowSizeConstraints({ columnWidth, 0 }, { columnWidth, columnHeight });

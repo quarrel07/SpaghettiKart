@@ -181,7 +181,7 @@ void ChocoMountain::InitTrackObjects() {
         if (gModeSelection == GRAND_PRIX) {
             func_80070714();
         }
-        for (size_t i = 0; i < D_80165738; i++) {
+        for (size_t i = 0; i < (size_t) D_80165738; i++) {
             find_unused_obj_index(&gObjectParticle3[i]);
             init_object(gObjectParticle3[i], 0);
         }

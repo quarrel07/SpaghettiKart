@@ -41,5 +41,5 @@ private:
     s32 _idx;
     bool _toggle;
 
-    SplineData *spline;
+    [[maybe_unused]] SplineData* spline;
 };

@@ -237,7 +237,7 @@ void ATrain::Tick60fps() {
         sync_train_components(car, orientationYUpdate);
     }
 
-    for (j = 0; j < PassengerCars.size(); j++) {
+    for (j = 0; j < (s32) PassengerCars.size(); j++) {
         car = &PassengerCars[j];
         if (car->isActive == 1) {
             temp_f20.x = car->position[0];

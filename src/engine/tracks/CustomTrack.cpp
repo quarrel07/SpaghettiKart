@@ -180,6 +180,9 @@ void CustomTrack::ParseMeshForCollision(TrackSections* sections, size_t numMesh)
 
     for (size_t i = 0; i < numMesh; i++) {
         switch(static_cast<SurfaceClip>(sections[i].clip)) {
+        // Unhandled states take no action.
+        default:
+            break;
             case SurfaceClip::CLIP_NONE:
                 continue;
             case SurfaceClip::CLIP_SINGLE_SIDED_WALL:

@@ -463,7 +463,7 @@ namespace TrackEditor {
         // ============================
         //   Display Camera Shots
         // ============================
-        for (int32_t i = 0; i < track->TourShots.size(); i++)
+        for (int32_t i = 0; i < (int32_t) track->TourShots.size(); i++)
         {
             TourCamera::CameraShot& shot = track->TourShots[i];
             ImGui::PushID(i);
@@ -510,7 +510,7 @@ namespace TrackEditor {
                 // ============================
                 //   KeyFrame List
                 // ============================
-                for (int32_t k = 0; k < shot.Frames.size(); k++)
+                for (int32_t k = 0; k < (int32_t) shot.Frames.size(); k++)
                 {
                     TourCamera::KeyFrame& kf = shot.Frames[k];
                     ImGui::PushID(k);

@@ -628,7 +628,7 @@ void Harbour::Load() {
 }
 
 void Harbour::BeginPlay() {
-    struct ActorSpawnData itemboxes[] = {
+    UNUSED struct ActorSpawnData itemboxes[] = {
         {   200, 1500, 200 , 0},
         {   350, 2500, 300 , 1},
         {   400, 2000, 350 , 2},
@@ -643,7 +643,7 @@ void Harbour::BeginPlay() {
         {{ -32768, 0,    0 }, {0}},
     };
 
-    struct ActorSpawnData rocks[] = {
+    UNUSED struct ActorSpawnData rocks[] = {
         {{   200, 1500, 200 }, {0}},
         {{   350, 2500, 300 }, {1}},
         {{   400, 2000, 350 }, {2}},
@@ -652,14 +652,14 @@ void Harbour::BeginPlay() {
 
     //spawn_all_item_boxes(itemboxes);
 
-    Vec3f test = {-100, 0, -150};
-    Vec3s rot = {0, 0, 0};
-    Vec3f vel = {0, 0, 0};
+    UNUSED Vec3f test = {-100, 0, -150};
+    UNUSED Vec3s rot = {0, 0, 0};
+    UNUSED Vec3f vel = {0, 0, 0};
 
     //add_actor_to_empty_slot(test, rot, vel, ACTOR_TREE_MARIO_RACEWAY);
 
 
-    Vec3f pos = {0, 80, 0};
+    UNUSED Vec3f pos = {0, 80, 0};
     // GetWorld()->AddActor(new ACloud(pos));
 
     // GetWorld()->AddActor(new OSeagull(0, pos));

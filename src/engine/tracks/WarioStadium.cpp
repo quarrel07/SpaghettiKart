@@ -296,7 +296,7 @@ void WarioStadium::SomeCollisionThing(Player* player, Vec3f arg1, Vec3f arg2, Ve
 }
 
 void WarioStadium::DrawTransparency(UNUSED ScreenContext* screen, UNUSED uint16_t pathCounter, UNUSED uint16_t cameraRot,
-                             uint16_t playerDirection) {
+                             UNUSED uint16_t playerDirection) {
 
     gDPPipeSync(gDisplayListHead++);
     gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);

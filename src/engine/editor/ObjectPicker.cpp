@@ -181,7 +181,7 @@ void ObjectPicker::FindObject(Ray ray, UNUSED std::vector<GameObject*> objects) 
 
     // Set _selected from object variant
     _selected = object;
-    std::visit([this](auto* obj) {
+    std::visit([](auto* obj) {
         if (obj) {
         }
     }, object);

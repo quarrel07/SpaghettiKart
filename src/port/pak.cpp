@@ -208,7 +208,7 @@ extern "C" s32 osPfsAllocateFile(UNUSED OSPfs* pfs, u16 company_code, u32 game_c
     file_size_in_bytes = (file_size_in_bytes + 31) & ~31;
 
     char* zero_block = (char*) malloc(file_size_in_bytes);
-    for (size_t i = 0; i < file_size_in_bytes; i++) {
+    for (size_t i = 0; i < (size_t) file_size_in_bytes; i++) {
         zero_block[i] = 0;
     }
 

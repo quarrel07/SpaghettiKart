@@ -42,6 +42,6 @@ private:
     FVector _pos;
     IRotator _rot;
     float _scale;
-    size_t _idx;
+    [[maybe_unused]] size_t _idx;
     bool _drawBin = false;
 };

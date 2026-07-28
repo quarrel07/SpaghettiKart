@@ -211,7 +211,7 @@ namespace TrackEditor {
 
     void Editor::DeleteObject() {
 
-        std::visit([this](auto* obj) {
+        std::visit([](auto* obj) {
             if (nullptr != obj) {
                 gEditor.ResetGizmo(); // Unselect the object to prevent crashes
                 obj->Destroy();
