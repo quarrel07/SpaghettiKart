@@ -28,6 +28,8 @@
 
 std::unordered_map<std::string, std::string> mGameList = {
     { "579c48e211ae952530ffc8738709f078d5dd215e", "Mario Kart 64 (US)" },
+    { "f6b5f519dd57ea59e9f013cc64816e9d273b2329", "Mario Kart 64 (EU V1.1)" },
+    { "a729039453210b84f17019dda3f248d5888f7690", "Mario Kart 64 (EU V1.0)" },
 };
 
 bool GameExtractor::SelectGameFromUI() {

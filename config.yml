@@ -27,3 +27,61 @@
     - 0x132B50 # 0x0D
     - 0x000000 # 0x0E
     - 0x145470 # 0x0F
+f6b5f519dd57ea59e9f013cc64816e9d273b2329:
+  name: Mario Kart 64 [EU V1.1]
+  path: yamls/eur11
+  config:
+    gbi: F3DEX_MK64
+    sort: OFFSET
+    enums: 
+      - include/defines.h
+    output:
+      binary: mk64.o2r
+      headers: include/assets
+      code: assets/code
+  segments:
+    - 0x000000 # 0x00
+    - 0x000000 # 0x01
+    - 0x12AC00 # 0x02
+    - 0x000000 # 0x03
+    - 0x000000 # 0x04
+    - 0x000000 # 0x05
+    - 0x825920 # 0x06
+    - 0x000000 # 0x07
+    - 0x000000 # 0x08
+    - 0x88CE90 # 0x09
+    - 0x729B50 # 0x0A
+    - 0x821E30 # 0x0B
+    - 0x7FA4E0 # 0x0C
+    - 0x132C70 # 0x0D
+    - 0x000000 # 0x0E
+    - 0x145590 # 0x0F
+a729039453210b84f17019dda3f248d5888f7690:
+  name: Mario Kart 64 [EU V1.0]
+  path: yamls/eur10
+  config:
+    gbi: F3DEX_MK64
+    sort: OFFSET
+    enums: 
+      - include/defines.h
+    output:
+      binary: mk64.o2r
+      headers: include/assets
+      code: assets/code
+  segments:
+    - 0x000000 # 0x00
+    - 0x000000 # 0x01
+    - 0x12ACE0 # 0x02
+    - 0x000000 # 0x03
+    - 0x000000 # 0x04
+    - 0x000000 # 0x05
+    - 0x825A00 # 0x06
+    - 0x000000 # 0x07
+    - 0x000000 # 0x08
+    - 0x88CF70 # 0x09
+    - 0x729C30 # 0x0A
+    - 0x821F10 # 0x0B
+    - 0x7FA5C0 # 0x0C
+    - 0x132D50 # 0x0D
+    - 0x000000 # 0x0E
+    - 0x145670 # 0x0F
