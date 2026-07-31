@@ -448,12 +448,12 @@ struct InterpolateCtx {
                             tempF[1] = lerp(old_op.matrix_pos_rot_xyz.pos.y, new_op.matrix_pos_rot_xyz.pos.y);
                             tempF[2] = lerp(old_op.matrix_pos_rot_xyz.pos.z, new_op.matrix_pos_rot_xyz.pos.z);
 
-                            tempS[0] =
-                                lerp(old_op.matrix_pos_rot_xyz.orientation.x, new_op.matrix_pos_rot_xyz.orientation.x);
-                            tempS[1] =
-                                lerp(old_op.matrix_pos_rot_xyz.orientation.y, new_op.matrix_pos_rot_xyz.orientation.y);
-                            tempS[2] =
-                                lerp(old_op.matrix_pos_rot_xyz.orientation.z, new_op.matrix_pos_rot_xyz.orientation.z);
+                            tempS[0] = interpolate_angle(old_op.matrix_pos_rot_xyz.orientation.x,
+                                                         new_op.matrix_pos_rot_xyz.orientation.x);
+                            tempS[1] = interpolate_angle(old_op.matrix_pos_rot_xyz.orientation.y,
+                                                         new_op.matrix_pos_rot_xyz.orientation.y);
+                            tempS[2] = interpolate_angle(old_op.matrix_pos_rot_xyz.orientation.z,
+                                                         new_op.matrix_pos_rot_xyz.orientation.z);
 
                             mtxf_pos_rotation_xyz(*gInterpolationMatrix, tempF, tempS);
                             break;
@@ -531,8 +531,8 @@ struct InterpolateCtx {
                             lerp_vec3f(&tmp_vec3f2, &old_op.set_transform_matrix_data.positionVector,
                                        &new_op.set_transform_matrix_data.positionVector);
 
-                            u16 rotationAngleTemp = lerp_s16(old_op.set_transform_matrix_data.rotationAngle,
-                                       new_op.set_transform_matrix_data.rotationAngle);
+                            u16 rotationAngleTemp = interpolate_angle((s16) old_op.set_transform_matrix_data.rotationAngle,
+                                       (s16) new_op.set_transform_matrix_data.rotationAngle);
                             f32 scaleFactorTemp = lerp(old_op.set_transform_matrix_data.scaleFactor, new_op.set_transform_matrix_data.scaleFactor);
 
                             set_transform_matrix(*gInterpolationMatrix, tmp_vec3f, tmp_vec3f2, rotationAngleTemp, scaleFactorTemp);
@@ -545,8 +545,8 @@ struct InterpolateCtx {
                             lerp_vec3f(&tmp_vec3f, &old_op.set_matrix_transformation_data.location,
                                        &new_op.set_matrix_transformation_data.location);
 
-                            lerp_vec3s(&tmp_vec3s, *(Vec3s*)&old_op.set_matrix_transformation_data.rotation,
-                                                   *(Vec3s*)&new_op.set_matrix_transformation_data.rotation);
+                            interpolate_angles(&tmp_vec3s, (Vec3s*) &old_op.set_matrix_transformation_data.rotation,
+                                                           (Vec3s*) &new_op.set_matrix_transformation_data.rotation);
 
                             f32 scaleFactorTemp = lerp(old_op.set_matrix_transformation_data.scale, new_op.set_matrix_transformation_data.scale);
 
@@ -558,8 +558,8 @@ struct InterpolateCtx {
                             lerp_vec3f(&tmp_vec3f, &old_op.set_translate_rotate_data.location,
                                        &new_op.set_translate_rotate_data.location);
 
-                            lerp_vec3s(&tmp_vec3s, old_op.set_translate_rotate_data.rotation,
-                                                   new_op.set_translate_rotate_data.rotation);
+                            interpolate_angles(&tmp_vec3s, &old_op.set_translate_rotate_data.rotation,
+                                                           &new_op.set_translate_rotate_data.rotation);
 
                             mtxf_translate_rotate(*gInterpolationMatrix, tmp_vec3f, tmp_vec3s);
                             break;
@@ -587,7 +587,7 @@ struct InterpolateCtx {
                         }
                         case Op::SetApplyMatrixTransformations: {
                             lerp_vec3f(&tmp_vec3f, (Vec3f*)&old_op.matrix_applytransformations.pos, (Vec3f*)&new_op.matrix_applytransformations.pos);
-                            lerp_vec3s(&tmp_vec3s, (int16_t*)&old_op.matrix_applytransformations.rot, (int16_t*)&new_op.matrix_applytransformations.rot);
+                            interpolate_angles(&tmp_vec3s, (Vec3s*) &old_op.matrix_applytransformations.rot, (Vec3s*) &new_op.matrix_applytransformations.rot);
                             lerp_vec3f(&tmp_vec3f2, (Vec3f*)&old_op.matrix_applytransformations.scale, (Vec3f*)&new_op.matrix_applytransformations.scale);
 
                             ApplyMatrixTransformations(*gInterpolationMatrix, *(FVector*)&tmp_vec3f, *(IRotator*)&tmp_vec3s, *(FVector*)&tmp_vec3f2);
