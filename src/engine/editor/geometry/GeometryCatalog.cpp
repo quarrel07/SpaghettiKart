@@ -4,13 +4,60 @@
 
 namespace GeometryEditor {
 
-// Field decode helpers matching Fast3D's interpreter, which reads vertex
-// loads as count = C0(12,8), destination slot = C0(1,7) - count.
-#define GEO_OPCODE(w0) ((uint8_t) (((w0) & 0xFF000000) >> 24))
+// The port compiles with F3DEX_GBI, where classic immediate opcodes (G_ENDDL,
+// G_TRI1, ...) are NEGATIVE constants; every comparison against a uint8_t
+// opcode byte must go through these casts or it can never match.
+static constexpr uint8_t OP_ENDDL = (uint8_t) (G_ENDDL & 0xFF); // 0xB8
+static constexpr uint8_t OP_DL = (uint8_t) (G_DL & 0xFF);       // 0x06
+static constexpr uint8_t OP_VTX = (uint8_t) (G_VTX & 0xFF);     // 0x04
+static constexpr uint8_t OP_TRI1 = (uint8_t) (G_TRI1 & 0xFF);   // 0xBF
+static constexpr uint8_t OP_TRI2 = (uint8_t) (G_TRI2 & 0xFF);   // 0xB1
+static constexpr uint8_t OP_QUAD = (uint8_t) (G_QUAD & 0xFF);   // 0xB5
+
+#define GEO_OPCODE(w0) ((uint8_t) (((w0) >> 24) & 0xFF))
 #define GEO_C0(w0, pos, width) (((uint32_t) (w0) >> (pos)) & ((1U << (width)) - 1U))
-// A first-word value above this is a cached raw pointer, not an offset (the
-// interpreter rewrites the command in place after first execution).
+// A vertex-load first word above this is a cached raw pointer, not an offset
+// (the interpreter rewrites the command in place after first execution).
 #define GEO_PTR_THRESHOLD 0xFFFFFu
+
+// Plausible userland pointer range; matches the interpreter's own guard
+// before it treats a word as a char*/Gfx* (segmented N64 addresses and small
+// integers are excluded).
+static bool PlausiblePointer(uintptr_t v) {
+    return v >= 0x10000 && v < ((uintptr_t) 1 << 48);
+}
+
+// Gfx-word footprint of every command that can appear in course display
+// lists, from the interpreter's handlers (libultraship interpreter.cpp) and
+// the binary loader's two-word set (DisplayListFactory.cpp). Unlisted
+// opcodes are one word.
+static int CommandWords(uint8_t op) {
+    switch (op) {
+        case G_SETTIMG_OTR_HASH:  // 0x20
+        case G_VTX_OTR_FILEPATH:  // 0x24
+        case G_DL_OTR_HASH:       // 0x31
+        case G_VTX_OTR_HASH:      // 0x32
+        case G_MARKER:            // 0x33
+        case G_BRANCH_Z_OTR:      // 0x35
+        case G_MTX_OTR:           // 0x36
+        case 0x38:                // G_FILLWIDERECT
+        case 0x3E:                // G_READFB
+        case 0x3F:                // G_REGBLENDEDTEX
+        case 0x42:                // G_MOVEMEM_OTR
+        case 0x47:                // G_LOADBLOCK_WIDE
+            return 2;
+        case 0x37: // G_TEXRECT_WIDE
+        case 0x3C: // G_IMAGERECT
+        case 0x45: // G_SETTILESIZE_INTERP
+        case 0xE4: // G_TEXRECT
+        case 0xE5: // G_TEXRECTFLIP
+            return 3;
+        case 0x4A: // G_SETTILESIZE_LERP
+            return 5;
+        default:
+            return 1;
+    }
+}
 
 static uint64_t PosKey(const Vtx* v) {
     return ((uint64_t) (uint16_t) v->v.ob[0] << 32) | ((uint64_t) (uint16_t) v->v.ob[1] << 16) |
@@ -19,11 +66,12 @@ static uint64_t PosKey(const Vtx* v) {
 
 void GeometryCatalog::Reset() {
     mBuilt = false;
+    mFailed = false;
     for (auto& m : mMerged) {
         m.clear();
     }
     mLeafOrder.clear();
-    mVisitedLeaves.clear();
+    mLeafSeen.clear();
     mRefIndex.clear();
     mVertices.clear();
     mWeldByPos.clear();
@@ -37,7 +85,7 @@ void GeometryCatalog::Reset() {
 }
 
 Gfx* GeometryCatalog::ResolveWrapper(const char* path) {
-    if (path == nullptr) {
+    if (path == nullptr || !PlausiblePointer((uintptr_t) path)) {
         return nullptr;
     }
     return (Gfx*) ResourceGetDataByName(path);
@@ -46,57 +94,47 @@ Gfx* GeometryCatalog::ResolveWrapper(const char* path) {
 void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount) {
     Reset();
 
-    for (int direction = 0; direction < 4; direction++) {
+    bool ok = sectionCount > 0;
+    for (int direction = 0; direction < 4 && ok; direction++) {
         std::unordered_set<uint64_t> emittedLeaves;
         for (size_t s = 0; s < sectionCount; s++) {
             Gfx* cmds = ResolveWrapper(wrappers[s * 4 + direction]);
-            if (cmds != nullptr) {
-                MergeWrapper(cmds, mMerged[direction], emittedLeaves);
+            if (cmds == nullptr || !MergeWrapper(cmds, mMerged[direction], emittedLeaves)) {
+                ok = false;
+                break;
             }
         }
         Gfx end;
-        end.words.w0 = (uintptr_t) G_ENDDL << 24;
+        end.words.w0 = (uintptr_t) OP_ENDDL << 24;
         end.words.w1 = 0;
         mMerged[direction].push_back(end);
     }
 
-    // Vertex enumeration only needs each leaf once; use the north merged list
-    // as the canonical leaf set, then add leaves unique to other directions.
-    for (int direction = 0; direction < 4; direction++) {
-        const std::vector<Gfx>& dl = mMerged[direction];
-        for (size_t i = 0; i + 1 < dl.size(); i++) {
-            uint8_t op = GEO_OPCODE(dl[i].words.w0);
-            if (op == G_DL_OTR_HASH) {
-                uint64_t hash = ((uint64_t) dl[i + 1].words.w0 << 32) + dl[i + 1].words.w1;
-                Gfx* leaf = (Gfx*) ResourceGetDataByCrc(hash);
-                if (leaf != nullptr && mVisitedLeaves.insert(leaf).second) {
-                    mLeafOrder.push_back(hash);
-                    EnumerateLeaf(leaf, 0);
-                }
-                i++; // skip hash word
-            } else if (op == (uint8_t) G_DL) {
-                Gfx* leaf = (Gfx*) dl[i].words.w1;
-                if (leaf != nullptr && mVisitedLeaves.insert(leaf).second) {
-                    EnumerateLeaf(leaf, 0);
-                }
-            }
-        }
+    if (!ok || mLeafOrder.empty()) {
+        mFailed = true;
+        printf("[GeometryMode] catalog build failed; falling back to stock rendering\n");
+        return;
+    }
+
+    for (uint64_t hash : mLeafOrder) {
+        EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
     }
 
     mBuilt = true;
 }
 
-void GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves) {
+bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves) {
     Gfx* ptr = cmds;
     for (int guard = 0; guard < (1 << 16); guard++) {
         uintptr_t w0 = ptr->words.w0;
         uint8_t op = GEO_OPCODE(w0);
-        // Branch (no-push) display list calls would let the callee's end
-        // command terminate our merged list, so emit them as plain calls.
+        // Branch (no-push) calls would let the callee's end command terminate
+        // our merged list, so they are emitted as plain calls and end the
+        // wrapper (nothing after a branch is reachable anyway).
         bool branch = GEO_C0(w0, 16, 1) != 0;
 
-        if (op == G_ENDDL) {
-            return;
+        if (op == OP_ENDDL) {
+            return true;
         }
         if (op == G_MARKER) {
             ptr += 2;
@@ -109,38 +147,54 @@ void GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
                 call.words.w0 &= ~((uintptr_t) 1 << 16);
                 out.push_back(call);
                 out.push_back(ptr[1]);
+                if (mLeafSeen.insert(hash).second) {
+                    mLeafOrder.push_back(hash);
+                }
+            }
+            if (branch) {
+                return true;
             }
             ptr += 2;
-            if (branch) {
-                return;
-            }
             continue;
         }
-        if (op == (uint8_t) G_DL) {
-            uint64_t key = (uint64_t) ptr->words.w1;
-            if (emittedLeaves.insert(key).second) {
+        if (op == OP_DL) {
+            if (PlausiblePointer(ptr->words.w1) && emittedLeaves.insert((uint64_t) ptr->words.w1).second) {
                 Gfx call = ptr[0];
                 call.words.w0 &= ~((uintptr_t) 1 << 16);
                 out.push_back(call);
             }
-            ptr += 1;
             if (branch) {
-                return;
+                return true;
             }
+            ptr += 1;
             continue;
         }
         if (op == G_DL_OTR_FILEPATH) {
-            uint64_t key = (uint64_t) ptr->words.w1;
-            if (emittedLeaves.insert(key).second) {
-                out.push_back(ptr[0]);
+            if (PlausiblePointer(ptr->words.w1) && emittedLeaves.insert((uint64_t) ptr->words.w1).second) {
+                Gfx call = ptr[0];
+                call.words.w0 &= ~((uintptr_t) 1 << 16);
+                out.push_back(call);
+            }
+            if (branch) {
+                return true;
             }
             ptr += 1;
             continue;
         }
-        // Any other state command: keep it, order-preserved.
-        out.push_back(ptr[0]);
-        ptr += 1;
+        if (op == G_BRANCH_Z_OTR) {
+            // Conditional LOD jump; skipping it keeps the merged list linear
+            // (the fall-through geometry still draws).
+            ptr += 2;
+            continue;
+        }
+        // Any other state command: copy verbatim, full width.
+        int words = CommandWords(op);
+        for (int i = 0; i < words; i++) {
+            out.push_back(ptr[i]);
+        }
+        ptr += words;
     }
+    return false; // guard exhausted: not a well-formed wrapper
 }
 
 void GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
@@ -189,54 +243,67 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
         uintptr_t w1 = ptr->words.w1;
         uint8_t op = GEO_OPCODE(w0);
 
+        if (op == OP_ENDDL) {
+            return;
+        }
+
         switch (op) {
-            case G_ENDDL:
-                return;
-            case G_MARKER:
-                ptr += 2;
-                continue;
             case G_DL_OTR_HASH: {
                 uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
                 EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), depth + 1);
-                ptr += 2;
-                continue;
+                break;
             }
-            case (uint8_t) G_DL:
-                if (GEO_C0(w0, 16, 1) != 0) {
-                    // Branch: control never returns.
+            case OP_DL:
+                if (PlausiblePointer(w1)) {
                     EnumerateLeaf((Gfx*) w1, depth + 1);
-                    return;
                 }
-                EnumerateLeaf((Gfx*) w1, depth + 1);
+                if (GEO_C0(w0, 16, 1) != 0) {
+                    return; // branch: control never returns here
+                }
                 break;
             case G_DL_OTR_FILEPATH:
-                EnumerateLeaf((Gfx*) ResourceGetDataByName((const char*) w1), depth + 1);
+                if (PlausiblePointer(w1)) {
+                    EnumerateLeaf((Gfx*) ResourceGetDataByName((const char*) w1), depth + 1);
+                }
+                if (GEO_C0(w0, 16, 1) != 0) {
+                    return;
+                }
                 break;
+            case G_BRANCH_Z_OTR: {
+                // Enumerate the LOD branch target too; the fall-through path
+                // continues below either way.
+                uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+                EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), depth + 1);
+                break;
+            }
             case G_VTX_OTR_HASH: {
                 uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
                 Vtx* base = (Vtx*) ResourceGetDataByCrc(hash);
                 uint32_t count = GEO_C0(w0, 12, 8);
                 uint32_t dest = GEO_C0(w0, 1, 7) - count;
                 if (base != nullptr) {
-                    // The interpreter rewrites w1 from byte offset to raw
-                    // pointer after first execution; recover either way.
                     uintptr_t byteOff =
                         (w1 > GEO_PTR_THRESHOLD) ? (uintptr_t) ((char*) w1 - (char*) base) : (uintptr_t) w1;
                     int32_t baseIndex = (int32_t) (byteOff / sizeof(Vtx));
                     AddVertexRange(hash, baseIndex, dest, count, (Vtx*) ((char*) base + byteOff));
                 }
-                ptr += 2;
-                continue;
+                break;
             }
             case G_VTX_OTR_FILEPATH: {
-                // Rare form; render-only (no stable crc identity recorded).
                 uint32_t count = (uint32_t) ptr[1].words.w0;
                 uint32_t dest = (uint32_t) (ptr[1].words.w1 >> 16);
                 AddVertexRange(0, -1, dest, count, nullptr);
-                ptr += 2;
-                continue;
+                break;
             }
-            case (uint8_t) G_VTX: {
+            case OP_VTX: {
+                // Raw f3dex vertex load: count and destination use the f3dex
+                // field layout, not the OTR one.
+                uint32_t count = GEO_C0(w0, 10, 6);
+                uint32_t dest = GEO_C0(w0, 17, 7);
+                AddVertexRange(0, -1, dest, count, nullptr);
+                break;
+            }
+            case 0x48: { // G_VTX_WIDE (f3dex2 field layout)
                 uint32_t count = GEO_C0(w0, 12, 8);
                 uint32_t dest = GEO_C0(w0, 1, 7) - count;
                 AddVertexRange(0, -1, dest, count, nullptr);
@@ -257,7 +324,7 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
                 }
                 break;
             }
-            case (uint8_t) G_TRI1: {
+            case OP_TRI1: {
                 uint32_t v1 = ((uint32_t) (w1 & 0x00FF0000) >> 16) / 2;
                 uint32_t v2 = ((uint32_t) (w1 & 0x0000FF00) >> 8) / 2;
                 uint32_t v3 = ((uint32_t) (w1 & 0x000000FF)) / 2;
@@ -266,7 +333,7 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
                 AddRef(mSlots[v3], 0, mSlotData[v3]);
                 break;
             }
-            case (uint8_t) G_TRI2: {
+            case OP_TRI2: {
                 uint32_t v1 = ((uint32_t) (w0 & 0x00FF0000) >> 16) / 2;
                 uint32_t v2 = ((uint32_t) (w0 & 0x0000FF00) >> 8) / 2;
                 uint32_t v3 = ((uint32_t) (w0 & 0x000000FF)) / 2;
@@ -281,10 +348,21 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
                 AddRef(mSlots[v6], 0, mSlotData[v6]);
                 break;
             }
+            case OP_QUAD: {
+                uint32_t v1 = ((uint32_t) (w1 >> 24) & 0xFF) / 2;
+                uint32_t v2 = ((uint32_t) (w1 >> 16) & 0xFF) / 2;
+                uint32_t v3 = ((uint32_t) (w1 >> 8) & 0xFF) / 2;
+                uint32_t v4 = ((uint32_t) w1 & 0xFF) / 2;
+                AddRef(mSlots[v1], 0, mSlotData[v1]);
+                AddRef(mSlots[v2], 0, mSlotData[v2]);
+                AddRef(mSlots[v3], 0, mSlotData[v3]);
+                AddRef(mSlots[v4], 0, mSlotData[v4]);
+                break;
+            }
             default:
                 break;
         }
-        ptr += 1;
+        ptr += CommandWords(op);
     }
 }
 

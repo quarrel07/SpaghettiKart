@@ -77,6 +77,15 @@ void GeometryEditorWindow::DrawElement() {
 
     ImGui::Separator();
 
+    if (!ImGui::GetIO().WantTextInput &&
+        (ImGui::GetIO().KeySuper || ImGui::GetIO().KeyCtrl) && ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
+        if (ImGui::GetIO().KeyShift) {
+            Redo();
+        } else {
+            Undo();
+        }
+    }
+
     if (!info.valid) {
         ImGui::TextWrapped("Click a vertex in the game view to select it.");
         return;
@@ -137,15 +146,7 @@ void GeometryEditorWindow::DrawElement() {
     }
     ImGui::EndDisabled();
     ImGui::SameLine();
-    ImGui::TextDisabled("%zu edits this course (visual until course reload)", EditCount());
-
-    if ((ImGui::GetIO().KeySuper || ImGui::GetIO().KeyCtrl) && ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
-        if (ImGui::GetIO().KeyShift) {
-            Redo();
-        } else {
-            Undo();
-        }
-    }
+    ImGui::TextDisabled("%zu edits this course (visual only; cleared on course reload)", EditCount());
 }
 
 } // namespace GeometryEditor

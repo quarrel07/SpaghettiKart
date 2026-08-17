@@ -17,6 +17,7 @@
 extern "C" {
 #include "main.h"
 #include "code_800029B0.h"
+#include "defines.h"
 }
 
 namespace GeometryEditor {
@@ -24,13 +25,52 @@ namespace GeometryEditor {
 static GeometryCatalog sCatalog;
 static const char* const* sPrimaryTable = nullptr;
 static size_t sSectionCount = 0;
+static const void* sCatalogTrack = nullptr; // Track* the catalog belongs to
+
+// Visibility-table row counts per course, from the course_offsets arrays
+// (entries / 4). The collision sections list can disagree with the table, so
+// the table length is the binding limit. Courses not listed (battle arenas,
+// ceremony, custom tracks) have no table and the mode stays off.
+struct CourseSections {
+    const char* resourceName;
+    size_t sections;
+};
+static const CourseSections kCourseSections[] = {
+    { "mk:mario_raceway", 17 },   { "mk:choco_mountain", 24 }, { "mk:bowsers_castle", 27 },
+    { "mk:banshee_boardwalk", 25 }, { "mk:yoshi_valley", 31 },   { "mk:frappe_snowland", 17 },
+    { "mk:koopa_troopa_beach", 37 }, { "mk:royal_raceway", 33 },  { "mk:luigi_raceway", 30 },
+    { "mk:moo_moo_farm", 23 },    { "mk:toads_turnpike", 20 },  { "mk:kalimari_desert", 20 },
+    { "mk:sherbet_land", 18 },    { "mk:rainbow_road", 12 },    { "mk:wario_stadium", 27 },
+    { "mk:dk_jungle", 26 },
+};
+
+static size_t SectionTableLimit(Track* track) {
+    if (track == nullptr) {
+        return 0;
+    }
+    for (const auto& c : kCourseSections) {
+        if (track->ResourceName == c.resourceName) {
+            return c.sections;
+        }
+    }
+    return 0;
+}
 
 // Selection / edit state
 static int32_t sSelected = -1;             // index into sCatalog.Vertices()
 static std::vector<size_t> sMoveSet;       // selected + weld members (catalog indices)
 static bool sWeld = true;
 static bool sCloud = true;
-static bool sUIWantsMouse = false; // cached from the window's ImGui frame
+
+// Mouse gate that shares the projection's coordinate basis (the game
+// viewport), unlike IsInGameScreen which uses the render dimensions and
+// disagrees below 100% resolution scale.
+static bool MouseInViewport(int mx, int my) {
+    auto viewport = GetInterpreter()->mGameWindowViewport;
+    int w = (int) OTRGetGameViewportWidth();
+    int h = (int) OTRGetGameViewportHeight();
+    return mx >= viewport.x && mx < viewport.x + w && my >= viewport.y && my < viewport.y + h;
+}
 
 struct VertexWrite {
     size_t refIndex;
@@ -53,11 +93,17 @@ static bool ModeActive() {
     if (!CVarGetInteger("gGeometryEditorWindow", 0)) {
         return false;
     }
-    if (gIsMirrorMode != 0) {
+    if (gIsMirrorMode != 0 || gGamestate != RACING) {
         return false;
     }
     Track* track = GetWorld()->GetTrack();
     if (track == nullptr || track->IsMod()) {
+        return false;
+    }
+    // The catalog must belong to the course actually loaded; battle arenas
+    // and the ceremony never parse track sections, so a stale stamp keeps
+    // the mode safely off there.
+    if ((const void*) track != sCatalogTrack) {
         return false;
     }
     return true;
@@ -414,6 +460,25 @@ extern "C" int32_t GeometryMode_IsActive(void) {
 
 extern "C" void GeometryMode_OnTrackSectionsParsed(void* sections) {
     using namespace GeometryEditor;
+
+    // Roll back any outstanding edits from the previous session with this
+    // catalog: resources are process-cached, so without this, moved vertices
+    // would silently survive into the freshly loaded course.
+    if (sDragging) {
+        for (const auto& w : sDragTxn.writes) {
+            ApplyWrite(w, false);
+        }
+        sDragging = false;
+        sDragTxn = Transaction{};
+    }
+    for (auto it = sUndo.rbegin(); it != sUndo.rend(); ++it) {
+        for (auto wit = it->writes.rbegin(); wit != it->writes.rend(); ++wit) {
+            ApplyWrite(*wit, false);
+        }
+    }
+    sUndo.clear();
+    sRedo.clear();
+
     TrackSections* section = (TrackSections*) sections;
     size_t maxSection = 0;
     while (section != nullptr && section->crc != 0) {
@@ -422,23 +487,27 @@ extern "C" void GeometryMode_OnTrackSectionsParsed(void* sections) {
         }
         section++;
     }
-    sSectionCount = maxSection;
+    Track* track = GetWorld()->GetTrack();
+    size_t tableLimit = SectionTableLimit(track);
+    sSectionCount = (maxSection < tableLimit) ? maxSection : tableLimit;
+    sCatalogTrack = (const void*) track;
     sPrimaryTable = nullptr;
     sCatalog.Reset();
     ClearSelection();
-    sUndo.clear();
-    sRedo.clear();
-    sDragging = false;
 }
 
 extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t direction) {
     using namespace GeometryEditor;
-    if (!ModeActive() || sSectionCount == 0) {
+    if (!ModeActive() || sSectionCount == 0 || sCatalog.Failed()) {
         return 0;
     }
     // The first table rendered after a course parse is the primary one;
     // secondary tables (transparency passes) keep the game's section path.
+    // Never latch while the collision-mesh view suppresses the opaque pass.
     if (sPrimaryTable == nullptr) {
+        if (CVarGetInteger("gRenderCollisionMesh", 0)) {
+            return 0;
+        }
         sPrimaryTable = addr;
     }
     if (addr != sPrimaryTable) {
@@ -446,8 +515,14 @@ extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t 
     }
     if (!sCatalog.Built()) {
         sCatalog.Build(addr, sSectionCount);
+        if (sCatalog.Failed()) {
+            return 0;
+        }
         printf("[GeometryMode] catalog: %zu sections, %zu leaves, %zu vertices, %zu weld groups\n", sSectionCount,
                sCatalog.LeafCount(), sCatalog.Vertices().size(), sCatalog.WeldGroupCount());
+    }
+    if ((size_t) (direction & 3) != (size_t) direction) {
+        return 0;
     }
     gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.MergedDL(direction).data());
     return 1;
@@ -470,11 +545,13 @@ extern "C" void GeometryMode_Tick(void) {
     Ship::Coords mouse = wnd->GetMousePos();
     bool isMouseDown = wnd->GetMouseState(Ship::LUS_MOUSE_BTN_LEFT);
 
+    bool uiMouse = ImGui::GetIO().WantCaptureMouse;
+
     if (isMouseDown && !wasMouseDown) {
         startPos = mouse;
         moved = false;
         sDragCandidate = false;
-        if (!sUIWantsMouse && IsInGameScreen() && sSelected >= 0) {
+        if (!uiMouse && MouseInViewport(mouse.x, mouse.y) && sSelected >= 0) {
             ViewProjection vp = BuildViewProjection();
             sDragCandidate = PickVertex(vp, (float) mouse.x, (float) mouse.y, 14.0f, true) == sSelected;
         }
@@ -497,7 +574,7 @@ extern "C" void GeometryMode_Tick(void) {
     if (!isMouseDown && wasMouseDown) {
         if (sDragging) {
             CommitDrag();
-        } else if (!moved && !sUIWantsMouse && IsInGameScreen()) {
+        } else if (!moved && !uiMouse && MouseInViewport(mouse.x, mouse.y)) {
             ViewProjection vp = BuildViewProjection();
             int32_t hit = PickVertex(vp, (float) mouse.x, (float) mouse.y, 12.0f);
             sSelected = hit;
@@ -511,7 +588,6 @@ extern "C" void GeometryMode_Tick(void) {
 namespace GeometryEditor {
 
 void DrawOverlay() {
-    sUIWantsMouse = ImGui::GetIO().WantCaptureMouse;
     if (!ModeActive() || !sCatalog.Built()) {
         return;
     }
@@ -520,7 +596,9 @@ void DrawOverlay() {
         return;
     }
     ImDrawList* draw = ImGui::GetBackgroundDrawList();
-    ImVec2 mouse = ImGui::GetIO().MousePos;
+    // Same mouse source and coordinate basis as Tick's picking.
+    Ship::Coords mouseCoords = GameEngine::Instance->context->GetWindow()->GetMousePos();
+    ImVec2 mouse((float) mouseCoords.x, (float) mouseCoords.y);
     const auto& refs = sCatalog.Vertices();
 
     uint32_t selectedGroup = (sSelected >= 0) ? refs[sSelected].weldGroup : 0xFFFFFFFF;

@@ -30,6 +30,11 @@ class GeometryCatalog {
     bool Built() const {
         return mBuilt;
     }
+    // True when a build attempt found data it could not safely parse; the
+    // mode falls back to stock rendering instead of guessing.
+    bool Failed() const {
+        return mFailed;
+    }
     void Build(const char* const wrappers[], size_t sectionCount);
 
     const std::vector<Gfx>& MergedDL(int direction) const {
@@ -52,15 +57,16 @@ class GeometryCatalog {
     };
 
     Gfx* ResolveWrapper(const char* path);
-    void MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
+    bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
     void AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
 
     bool mBuilt = false;
+    bool mFailed = false;
     std::vector<Gfx> mMerged[4];
     std::vector<uint64_t> mLeafOrder;
-    std::unordered_set<const void*> mVisitedLeaves;
+    std::unordered_set<uint64_t> mLeafSeen;
     SlotRef mSlots[64];
     Vtx* mSlotData[64] = { nullptr };
     std::map<std::pair<uint64_t, uint16_t>, size_t> mRefIndex;
