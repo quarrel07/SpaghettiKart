@@ -11,6 +11,8 @@
 
 extern "C" {
 #include "code_800029B0.h"
+#include "main.h"
+#include "defines.h"
 }
 
 namespace GeometryEditor {
@@ -46,8 +48,11 @@ void GeometryEditorWindow::DrawElement() {
     DrawOverlay();
 
     Track* track = GetWorld()->GetTrack();
-    if (track == nullptr) {
-        ImGui::TextWrapped("Start a race on one of the 20 original courses to edit its geometry.");
+    // The world keeps the last track object alive on the menus; only trust it
+    // during an actual race.
+    if (track == nullptr || gGamestate != RACING) {
+        ImGui::Text("Course: not loaded");
+        ImGui::TextWrapped("Start a race on one of the 16 GP courses to edit its geometry.");
         return;
     }
     if (track->IsMod()) {
