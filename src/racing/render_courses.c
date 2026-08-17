@@ -25,6 +25,7 @@
 #include "port/Game.h"
 #include "engine/Matrix.h"
 #include "engine/tracks/Track.h"
+#include "engine/editor/geometry/GeometryMode.h"
 
 #include "enhancements/collision_viewer.h"
 
@@ -55,6 +56,8 @@ s32 func_80290C20(Camera* camera) {
 
 void parse_track_displaylists(TrackSections* asset) {
     TrackSections* section = (TrackSections*) asset;
+
+    GeometryMode_OnTrackSectionsParsed(asset);
 
     while (section->crc != 0) {
         if (section->clip & 0x8000) {
@@ -87,65 +90,6 @@ void parse_track_displaylists(TrackSections* asset) {
 }
 
 extern u32 isFlycam;
-
-// TEMP (M1 feasibility gate for the geometry editor): draws every track
-// section's visibility list and pulses a cluster of vertices to prove
-// full-track rendering plus live vertex edits. Default ON in this test
-// build; Mario Raceway only. Replaced by the real geometry mode in M2.
-#define GEO_GATE_SECTIONS 17
-#define GEO_GATE_POOL 16384
-#include "geo_gate_blobs.inc"
-static void GeoGate_Draw(const char* addr[], s16 direction) {
-    static u32 sFrames = 0;
-    static s16 sBasePool[GEO_GATE_POOL];
-    static s32 sPoolOff[GEO_GATE_BLOB_COUNT];
-    static u32 sBlobCount[GEO_GATE_BLOB_COUNT];
-    static u32 sPoolUsed = 0;
-    static s32 sInit = 0;
-    u32 b, i, count;
-    s16 s, lift;
-    Vtx* vtx;
-
-    if (!sInit) {
-        for (b = 0; b < GEO_GATE_BLOB_COUNT; b++) {
-            sPoolOff[b] = -1;
-        }
-        sInit = 1;
-    }
-
-    for (s = 0; s < GEO_GATE_SECTIONS; s++) {
-        gSPDisplayList(gDisplayListHead++, addr[(s * 4) + direction]);
-    }
-
-    sFrames++;
-    // Pulse only for the first ~20 seconds of the first load, then settle so
-    // the vanishing-geometry check is readable on a static track.
-    lift = (sFrames < 1200 && ((sFrames / 30) & 1)) ? 80 : 0;
-
-    // Lift every course vertex by a fixed amount, snapping twice a second, so
-    // live vertex mutation is visible from anywhere on the track.
-    for (b = 0; b < GEO_GATE_BLOB_COUNT; b++) {
-        vtx = (Vtx*) ResourceGetDataByName(kGeoGateBlobs[b]);
-        if (vtx == NULL) {
-            continue;
-        }
-        if (sPoolOff[b] < 0) {
-            count = (u32) (ResourceGetSizeByName(kGeoGateBlobs[b]) / sizeof(Vtx));
-            if (count == 0 || sPoolUsed + count > GEO_GATE_POOL) {
-                continue;
-            }
-            sPoolOff[b] = (s32) sPoolUsed;
-            sBlobCount[b] = count;
-            for (i = 0; i < count; i++) {
-                sBasePool[sPoolUsed + i] = vtx[i].v.ob[1];
-            }
-            sPoolUsed += count;
-        }
-        for (i = 0; i < sBlobCount[b]; i++) {
-            vtx[i].v.ob[1] = sBasePool[(u32) sPoolOff[b] + i] + lift;
-        }
-    }
-}
 
 void render_track_sections(const char* addr[], ScreenContext* arg1) {
     Player* player = arg1->player;
@@ -244,9 +188,7 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
 
     arg1->pathCounter = index;
 
-    // TEMP (M1 feasibility gate): see GeoGate_Draw above.
-    if (CVarGetInteger("gGeoGate", 1) && IsMarioRaceway()) {
-        GeoGate_Draw(addr, direction);
+    if (GeometryMode_DrawFullTrack(addr, direction)) {
         return;
     }
 

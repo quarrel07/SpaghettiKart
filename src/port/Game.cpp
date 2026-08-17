@@ -10,6 +10,7 @@
 #include <atomic>
 #include "engine/World.h"
 #include "engine/AllTracks.h"
+#include "engine/editor/geometry/GeometryMode.h"
 
 #include "engine/tracks/PodiumCeremony.h"
 
@@ -325,9 +326,9 @@ void CM_DrawTrack(ScreenContext* screen) {
             case RENDER_FULL_SCENE:
                 if (gModeSelection == BATTLE) {
                     GetWorld()->GetTrack()->Draw(screen);
-                } else if (!CVarGetInteger("gGeoGate", 1)) {
-                    // TEMP (M1 feasibility gate): the gate draws the full track
-                    // itself, so skip the credits DL to avoid double-drawing.
+                } else if (!GeometryMode_IsActive()) {
+                    // Geometry mode draws the full track itself, so skip the
+                    // credits DL to avoid double-drawing it.
                     GetWorld()->GetTrack()->DrawCredits();
                 }
             case RENDER_TRACK_SECTIONS:
