@@ -265,7 +265,14 @@ void WarioStadium::Draw(ScreenContext* arg0) {
 
     D_800DC5DC = 88;
     D_800DC5E0 = 72;
-    if (gActiveScreenMode == SCREEN_MODE_1P) {
+    bool liveJumbotron = gActiveScreenMode == SCREEN_MODE_1P;
+    if (!liveJumbotron && CVarGetInteger("gMultiplayerNoFeatureCuts", 0)) {
+        // @port Live jumbotron in multiplayer, sampling the same screen region the original snapshot uses
+        liveJumbotron = true;
+        D_800DC5DC = (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) ? 0 : 128;
+        D_800DC5E0 = 0;
+    }
+    if (liveJumbotron) {
         prevFrame = (s16) sRenderedFramebuffer - 1;
         if (prevFrame < 0) {
             prevFrame = 2;
