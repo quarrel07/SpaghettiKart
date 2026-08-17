@@ -127,9 +127,36 @@ static void ApplySignSeamFix() {
     vtx[10].v.ob[0] = CVarGetInteger("gEnhancements.Fixes.LuigiRacewaySignSeam", 0) ? -223 : -222;
 }
 
+// Test build: moves the two tables named as sand and grass, plus two tables
+// already proven to move visibly, so "nothing happened" can be told apart from
+// "the code did not run".
+static void ApplyGrassFlickerFix() {
+    s32 offset = CVarGetInteger("gEnhancements.Fixes.LuigiRacewayGrassOffset", 0);
+    if (offset == 0) {
+        return;
+    }
+    const char* tables[] = {
+        d_course_luigi_raceway_vertex_0x04003890, // named as sand
+        d_course_luigi_raceway_vertex_0x04006710, // named as grass
+        d_course_luigi_raceway_vertex_0x040036B0, // control: known to move
+        d_course_luigi_raceway_vertex_0x04003770, // control: known to move
+    };
+    for (int t = 0; t < 4; t++) {
+        Vtx* vtx = (Vtx*) ResourceGetDataByName(tables[t]);
+        if (vtx == NULL) {
+            continue;
+        }
+        size_t count = ResourceGetSizeByName(tables[t]) / sizeof(Vtx);
+        for (size_t i = 0; i < count; i++) {
+            vtx[i].v.ob[1] = (s16) (vtx[i].v.ob[1] + offset);
+        }
+    }
+}
+
 void LuigiRaceway::Load() {
     Track::Load();
     ApplySignSeamFix();
+    ApplyGrassFlickerFix();
     if (gIsMirrorMode != 0) {
         for (size_t i = 0; i < ARRAY_COUNT(luigi_raceway_dls); i++) {
             InvertTriangleWindingByName(luigi_raceway_dls[i]);

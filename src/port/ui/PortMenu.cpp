@@ -386,6 +386,14 @@ void PortMenu::AddEnhancements() {
         .CVar("gEnhancements.Fixes.LuigiRacewaySignSeam")
         .Options(CheckboxOptions().Tooltip(
             "Closes the see-through gap in the 64 sign (takes effect after track reload)."));
+    AddWidget(path, "Luigi Raceway sand height: %d", WIDGET_CVAR_SLIDER_INT)
+        .CVar("gEnhancements.Fixes.LuigiRacewayGrassOffset")
+        .Options(IntSliderOptions()
+                     .Tooltip("Moves the sand up or down relative to the grass it sits level with. "
+                              "Takes effect immediately.")
+                     .Min(-200)
+                     .Max(200)
+                     .DefaultValue(0));
     AddWidget(path, "Far Frustrum", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar("gFarFrustrum")
         .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger("gNoCulling", 0); })
