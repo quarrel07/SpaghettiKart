@@ -88,6 +88,39 @@ void parse_track_displaylists(TrackSections* asset) {
 
 extern u32 isFlycam;
 
+// TEMP (M1 feasibility gate for the geometry editor): draws every track
+// section's visibility list and pulses a cluster of vertices to prove
+// full-track rendering plus live vertex edits. Default ON in this test
+// build; Mario Raceway only. Replaced by the real geometry mode in M2.
+#define GEO_GATE_SECTIONS 17
+static void GeoGate_Draw(const char* addr[], s16 direction) {
+    static u32 sFrames = 0;
+    static s16 sBaseY[16];
+    static s32 sHaveBase = 0;
+    Vtx* vtx;
+    s16 s;
+
+    for (s = 0; s < GEO_GATE_SECTIONS; s++) {
+        gSPDisplayList(gDisplayListHead++, addr[(s * 4) + direction]);
+    }
+
+    vtx = (Vtx*) ResourceGetDataByName(
+        "__OTR__models/tracks/mario_raceway/mario_raceway_vertices/d_course_mario_raceway_vertex_0x04000000");
+    if (vtx == NULL) {
+        return;
+    }
+    if (!sHaveBase) {
+        for (s = 0; s < 16; s++) {
+            sBaseY[s] = vtx[s].v.ob[1];
+        }
+        sHaveBase = 1;
+    }
+    sFrames++;
+    for (s = 0; s < 16; s++) {
+        vtx[s].v.ob[1] = sBaseY[s] + (((sFrames / 30) & 1) ? 400 : 0);
+    }
+}
+
 void render_track_sections(const char* addr[], ScreenContext* arg1) {
     Player* player = arg1->player;
     Camera* camera = arg1->camera;
@@ -184,6 +217,13 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
     }
 
     arg1->pathCounter = index;
+
+    // TEMP (M1 feasibility gate): see GeoGate_Draw above.
+    if (CVarGetInteger("gGeoGate", 1) && IsMarioRaceway()) {
+        GeoGate_Draw(addr, direction);
+        return;
+    }
+
     index = ((index - 1) * 4) + direction;
     gSPDisplayList(gDisplayListHead++, addr[index]);
 

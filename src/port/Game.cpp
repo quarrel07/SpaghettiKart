@@ -325,7 +325,9 @@ void CM_DrawTrack(ScreenContext* screen) {
             case RENDER_FULL_SCENE:
                 if (gModeSelection == BATTLE) {
                     GetWorld()->GetTrack()->Draw(screen);
-                } else {
+                } else if (!CVarGetInteger("gGeoGate", 1)) {
+                    // TEMP (M1 feasibility gate): the gate draws the full track
+                    // itself, so skip the credits DL to avoid double-drawing.
                     GetWorld()->GetTrack()->DrawCredits();
                 }
             case RENDER_TRACK_SECTIONS:
