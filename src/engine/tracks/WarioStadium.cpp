@@ -289,6 +289,8 @@ void WarioStadium::Draw(ScreenContext* arg0) {
          * restrictions It isn't split into six sections anymore
          */
         CopyJumbotron(D_800DC5DC, D_800DC5E0, currentScreenSection, (u16*) gPortFramebuffers[prevFrame]);
+    } else {
+        Jumbotron_ReassertSnapshot();
     }
 }
 

@@ -3,6 +3,7 @@
 #include <libultra/gbi.h>
 #include <mk64.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "skybox_and_splitscreen.h"
 #include "code_800029B0.h"
@@ -823,7 +824,25 @@ void copy_framebuffer(s32 arg0, s32 arg1, s32 width, s32 height, u16* source, u1
     }
 }
 
-void func_802A7728(void) {
+// @port The multiplayer snapshot is kept in a persistent buffer and re-copied into the
+// texture assets every frame (Jumbotron_ReassertSnapshot), matching how the 1P live
+// path rewrites them per frame, so the picture survives any texture reload.
+static u16 sJumbotronSnapshot[6][64 * 32];
+static u8 sJumbotronSnapshotValid = 0;
+
+void Jumbotron_ReassertSnapshot(void) {
+    if (!sJumbotronSnapshotValid) {
+        return;
+    }
+    memcpy(LOAD_ASSET_RAW(gTexture68272C), sJumbotronSnapshot[0], sizeof(sJumbotronSnapshot[0]));
+    memcpy(LOAD_ASSET_RAW(gTexture682928), sJumbotronSnapshot[1], sizeof(sJumbotronSnapshot[1]));
+    memcpy(LOAD_ASSET_RAW(gTexture682B24), sJumbotronSnapshot[2], sizeof(sJumbotronSnapshot[2]));
+    memcpy(LOAD_ASSET_RAW(gTexture682D20), sJumbotronSnapshot[3], sizeof(sJumbotronSnapshot[3]));
+    memcpy(LOAD_ASSET_RAW(gTexture682F1C), sJumbotronSnapshot[4], sizeof(sJumbotronSnapshot[4]));
+    memcpy(LOAD_ASSET_RAW(gTexture683118), sJumbotronSnapshot[5], sizeof(sJumbotronSnapshot[5]));
+}
+
+static void jumbotron_take_snapshot(void) {
     s16 temp_v0;
 
     if (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) {
@@ -842,48 +861,20 @@ void func_802A7728(void) {
     // @port Sample the port's framebuffer copies; the game no longer renders into gPhysicalFramebuffers
     u16* source = gPortFramebuffers[temp_v0];
 
-    copy_framebuffer(D_800DC5DC, D_800DC5E0, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture68272C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682928));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 32, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682B24));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 32, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682D20));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 64, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682F1C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 64, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture683118));
+    copy_framebuffer(D_800DC5DC, D_800DC5E0, 64, 32, source, sJumbotronSnapshot[0]);
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0, 64, 32, source, sJumbotronSnapshot[1]);
+    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 32, 64, 32, source, sJumbotronSnapshot[2]);
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 32, 64, 32, source, sJumbotronSnapshot[3]);
+    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 64, 64, 32, source, sJumbotronSnapshot[4]);
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 64, 64, 32, source, sJumbotronSnapshot[5]);
+    sJumbotronSnapshotValid = 1;
+    Jumbotron_ReassertSnapshot();
+}
+
+void func_802A7728(void) {
+    jumbotron_take_snapshot();
 }
 
 void func_802A7940(void) {
-    s16 temp_v0;
-
-    if (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) {
-        D_800DC5DC = 0;
-    } else {
-        D_800DC5DC = 128;
-    }
-    D_800DC5E0 = 0;
-    temp_v0 = (s16) sRenderedFramebuffer - 1;
-    if (temp_v0 < 0) {
-        temp_v0 = 2;
-    } else if (temp_v0 > 2) {
-        temp_v0 = 0;
-    }
-
-    u16* source = gPortFramebuffers[temp_v0];
-
-    copy_framebuffer(D_800DC5DC, D_800DC5E0, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture68272C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682928));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 32, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682B24));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 32, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682D20));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 64, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture682F1C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 64, 64, 32, source,
-                     (u16*) LOAD_ASSET_RAW(gTexture683118));
+    jumbotron_take_snapshot();
 }
