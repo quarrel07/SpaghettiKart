@@ -663,19 +663,17 @@ void DrawOverlay() {
 
     const float cloudRadius = 96.0f;
 
-    // Wireframe context: edges with an endpoint near the cursor.
-    if (sCloud) {
-        for (const auto& e : sCatalog.Edges()) {
-            const ScreenPt& a = sScreen[e.first];
-            const ScreenPt& b = sScreen[e.second];
-            if (!a.valid || !b.valid) {
-                continue;
-            }
-            if (a.mouseDist > cloudRadius && b.mouseDist > cloudRadius) {
-                continue;
-            }
-            draw->AddLine(ImVec2(a.x, a.y), ImVec2(b.x, b.y), IM_COL32(0, 200, 255, 70), 1.0f);
+    // Wireframe context: always on while the tool is active, fading with
+    // distance so far geometry reads as texture rather than noise.
+    for (const auto& e : sCatalog.Edges()) {
+        const ScreenPt& a = sScreen[e.first];
+        const ScreenPt& b = sScreen[e.second];
+        if (!a.valid || !b.valid) {
+            continue;
         }
+        float avgW = 0.5f * (a.w + b.w);
+        int alpha = 26 + (int) std::min(64.0f, 3000.0f / std::max(avgW, 1.0f));
+        draw->AddLine(ImVec2(a.x, a.y), ImVec2(b.x, b.y), IM_COL32(0, 200, 255, alpha), 1.0f);
     }
 
     uint32_t selectedGroup = (sSelected >= 0) ? refs[sSelected].weldGroup : 0xFFFFFFFF;
