@@ -62,6 +62,11 @@ void GeometryEditorWindow::DrawElement() {
     SelectionInfo info = GetSelection();
 
     ImGui::Text("Course: %s", track->Props.Name);
+    if (info.catalogVertices == 0) {
+        ImGui::TextWrapped("Editor inactive: no vertex catalog for this course yet. Start (or restart) a race on one "
+                           "of the 16 GP courses with this window open.");
+        return;
+    }
     ImGui::TextDisabled("%zu vertices in %zu display lists", info.catalogVertices, info.catalogLeaves);
 
     bool freecam = CVarGetInteger("gFreecam", 0);

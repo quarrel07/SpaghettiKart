@@ -10,6 +10,7 @@
 
 #include "engine/World.h"
 #include "engine/tracks/Track.h"
+#include "engine/AllTracks.h"
 #include "engine/editor/EditorMath.h"
 #include "port/Engine.h"
 #include <fast/interpreter.h>
@@ -29,30 +30,27 @@ static const void* sCatalogTrack = nullptr; // Track* the catalog belongs to
 
 // Visibility-table row counts per course, from the course_offsets arrays
 // (entries / 4). The collision sections list can disagree with the table, so
-// the table length is the binding limit. Courses not listed (battle arenas,
-// ceremony, custom tracks) have no table and the mode stays off.
-struct CourseSections {
-    const char* resourceName;
-    size_t sections;
-};
-static const CourseSections kCourseSections[] = {
-    { "mk:mario_raceway", 17 },   { "mk:choco_mountain", 24 }, { "mk:bowsers_castle", 27 },
-    { "mk:banshee_boardwalk", 25 }, { "mk:yoshi_valley", 31 },   { "mk:frappe_snowland", 17 },
-    { "mk:koopa_troopa_beach", 37 }, { "mk:royal_raceway", 33 },  { "mk:luigi_raceway", 30 },
-    { "mk:moo_moo_farm", 23 },    { "mk:toads_turnpike", 20 },  { "mk:kalimari_desert", 20 },
-    { "mk:sherbet_land", 18 },    { "mk:rainbow_road", 12 },    { "mk:wario_stadium", 27 },
-    { "mk:dk_jungle", 26 },
-};
-
+// the table length is the binding limit. Keyed on the track class, the same
+// way the port's Is<Course>() predicates identify courses (Track::ResourceName
+// is only populated on the track-browser launch path, not the game menus).
+// Courses returning 0 (battle arenas, ceremony, custom) keep the mode off.
 static size_t SectionTableLimit(Track* track) {
-    if (track == nullptr) {
-        return 0;
-    }
-    for (const auto& c : kCourseSections) {
-        if (track->ResourceName == c.resourceName) {
-            return c.sections;
-        }
-    }
+    if (dynamic_cast<MarioRaceway*>(track)) return 17;
+    if (dynamic_cast<ChocoMountain*>(track)) return 24;
+    if (dynamic_cast<BowsersCastle*>(track)) return 27;
+    if (dynamic_cast<BansheeBoardwalk*>(track)) return 25;
+    if (dynamic_cast<YoshiValley*>(track)) return 31;
+    if (dynamic_cast<FrappeSnowland*>(track)) return 17;
+    if (dynamic_cast<KoopaTroopaBeach*>(track)) return 37;
+    if (dynamic_cast<RoyalRaceway*>(track)) return 33;
+    if (dynamic_cast<LuigiRaceway*>(track)) return 30;
+    if (dynamic_cast<MooMooFarm*>(track)) return 23;
+    if (dynamic_cast<ToadsTurnpike*>(track)) return 20;
+    if (dynamic_cast<KalimariDesert*>(track)) return 20;
+    if (dynamic_cast<SherbetLand*>(track)) return 18;
+    if (dynamic_cast<RainbowRoad*>(track)) return 12;
+    if (dynamic_cast<WarioStadium*>(track)) return 27;
+    if (dynamic_cast<DKJungle*>(track)) return 26;
     return 0;
 }
 
