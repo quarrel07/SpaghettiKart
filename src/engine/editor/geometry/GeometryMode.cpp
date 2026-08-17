@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include "engine/World.h"
 #include "engine/tracks/Track.h"
@@ -60,6 +61,25 @@ static std::vector<size_t> sMoveSet;       // selected + weld members (catalog i
 static bool sWeld = true;
 static bool sCloud = true;
 
+static DebugStatus sDebug;
+
+// The game view is itself an ImGui window ("Main Game"), so WantCaptureMouse
+// is true everywhere and cannot serve as a UI gate. Block game-view clicks
+// only when the port menu is open or the cursor is over the editor window's
+// own rectangle.
+bool PointerOverUI(float mx, float my) {
+    if (CVarGetInteger("gOpenMenu", 0) != 0) {
+        return true;
+    }
+    if (ImGuiWindow* editorWindow = ImGui::FindWindowByName("Geometry Editor")) {
+        if (editorWindow->Active && mx >= editorWindow->Pos.x && mx < editorWindow->Pos.x + editorWindow->Size.x &&
+            my >= editorWindow->Pos.y && my < editorWindow->Pos.y + editorWindow->Size.y) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Mouse gate that shares the projection's coordinate basis (the game
 // viewport), unlike IsInGameScreen which uses the render dimensions and
 // disagrees below 100% resolution scale.
@@ -109,6 +129,10 @@ static bool ModeActive() {
 
 bool WindowOpen() {
     return ModeActive();
+}
+
+DebugStatus GetDebugStatus() {
+    return sDebug;
 }
 
 // ---- projection helpers (mirrors ScreenRayTrace's proven conventions) ----
@@ -543,7 +567,7 @@ extern "C" void GeometryMode_Tick(void) {
     Ship::Coords mouse = wnd->GetMousePos();
     bool isMouseDown = wnd->GetMouseState(Ship::LUS_MOUSE_BTN_LEFT);
 
-    bool uiMouse = ImGui::GetIO().WantCaptureMouse;
+    bool uiMouse = GeometryEditor::PointerOverUI((float) mouse.x, (float) mouse.y);
 
     if (isMouseDown && !wasMouseDown) {
         startPos = mouse;
@@ -593,11 +617,25 @@ void DrawOverlay() {
     if (!vp.valid) {
         return;
     }
-    ImDrawList* draw = ImGui::GetBackgroundDrawList();
+    // The game image lives in the "Main Game" ImGui window, so the
+    // background draw list would render BEHIND it; foreground is the only
+    // layer guaranteed above the game view.
+    ImDrawList* draw = ImGui::GetForegroundDrawList();
     // Same mouse source and coordinate basis as Tick's picking.
     Ship::Coords mouseCoords = GameEngine::Instance->context->GetWindow()->GetMousePos();
     ImVec2 mouse((float) mouseCoords.x, (float) mouseCoords.y);
     const auto& refs = sCatalog.Vertices();
+
+    auto viewport = GetInterpreter()->mGameWindowViewport;
+    sDebug.mouseX = mouse.x;
+    sDebug.mouseY = mouse.y;
+    sDebug.vpX = viewport.x;
+    sDebug.vpY = viewport.y;
+    sDebug.vpW = (int) OTRGetGameViewportWidth();
+    sDebug.vpH = (int) OTRGetGameViewportHeight();
+    sDebug.inViewport = MouseInViewport(mouseCoords.x, mouseCoords.y);
+    sDebug.overUI = PointerOverUI(mouse.x, mouse.y);
+    sDebug.nearestPx = -1.0f;
 
     uint32_t selectedGroup = (sSelected >= 0) ? refs[sSelected].weldGroup : 0xFFFFFFFF;
 
@@ -606,6 +644,12 @@ void DrawOverlay() {
         int16_t pos[3] = { refs[i].live->v.ob[0], refs[i].live->v.ob[1], refs[i].live->v.ob[2] };
         if (!ProjectToScreen(vp, pos, px, py, cw)) {
             continue;
+        }
+        float ddx = px - mouse.x;
+        float ddy = py - mouse.y;
+        float distPx = std::sqrt(ddx * ddx + ddy * ddy);
+        if (sDebug.nearestPx < 0.0f || distPx < sDebug.nearestPx) {
+            sDebug.nearestPx = distPx;
         }
         bool isSelected = (int32_t) i == sSelected;
         bool isWeldMate = !isSelected && refs[i].weldGroup == selectedGroup;

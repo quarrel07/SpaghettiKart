@@ -54,9 +54,21 @@ bool CanRedo();
 void Undo();
 void Redo();
 size_t EditCount();
-// Draws vertex markers into the ImGui background draw list; call from the
+// Draws vertex markers into the ImGui foreground draw list; call from the
 // editor window's DrawElement (inside the ImGui frame).
 void DrawOverlay();
+
+// Live input diagnostics so one screenshot shows why clicks or dots
+// misbehave: cursor position, game-viewport rectangle, distance to the
+// nearest projected vertex, and the click-gate states.
+struct DebugStatus {
+    float mouseX = 0, mouseY = 0;
+    int vpX = 0, vpY = 0, vpW = 0, vpH = 0;
+    float nearestPx = -1;
+    bool overUI = false;
+    bool inViewport = false;
+};
+DebugStatus GetDebugStatus();
 
 } // namespace GeometryEditor
 #endif
