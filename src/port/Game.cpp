@@ -554,6 +554,7 @@ void CM_DrawObjects(s32 cameraId) {
 
 void CM_TickEditor() {
     gEditor.Tick();
+    GeometryMode_Tick();
 }
 
 void CM_DrawEditor() {

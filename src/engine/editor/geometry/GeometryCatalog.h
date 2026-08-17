@@ -18,6 +18,7 @@ struct VertexRef {
     uint16_t index;
     int16_t pos[3]; // position at catalog build (pre-edit baseline)
     uint32_t weldGroup;
+    Vtx* live; // resolved pointer into the loaded resource (process-cached)
 };
 
 // Built once per course from the primary visibility table: the deduplicated
@@ -53,15 +54,15 @@ class GeometryCatalog {
     Gfx* ResolveWrapper(const char* path);
     void MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
     void EnumerateLeaf(Gfx* cmds, int depth);
-    void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, const Vtx* data);
-    void AddRef(const SlotRef& slot, uint32_t offset, const Vtx* v);
+    void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
+    void AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
 
     bool mBuilt = false;
     std::vector<Gfx> mMerged[4];
     std::vector<uint64_t> mLeafOrder;
     std::unordered_set<const void*> mVisitedLeaves;
     SlotRef mSlots[64];
-    const Vtx* mSlotData[64] = { nullptr };
+    Vtx* mSlotData[64] = { nullptr };
     std::map<std::pair<uint64_t, uint16_t>, size_t> mRefIndex;
     std::vector<VertexRef> mVertices;
     std::unordered_map<uint64_t, uint32_t> mWeldByPos;

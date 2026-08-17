@@ -143,7 +143,7 @@ void GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
     }
 }
 
-void GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, const Vtx* v) {
+void GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
     if (slot.baseIndex < 0 || v == nullptr) {
         return;
     }
@@ -158,6 +158,7 @@ void GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, const Vtx* v)
     ref.pos[0] = v->v.ob[0];
     ref.pos[1] = v->v.ob[1];
     ref.pos[2] = v->v.ob[2];
+    ref.live = v;
     uint64_t pk = PosKey(v);
     auto weld = mWeldByPos.find(pk);
     if (weld == mWeldByPos.end()) {
@@ -170,7 +171,7 @@ void GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, const Vtx* v)
     mVertices.push_back(ref);
 }
 
-void GeometryCatalog::AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, const Vtx* data) {
+void GeometryCatalog::AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data) {
     for (uint32_t i = 0; i < count && dest + i < 64; i++) {
         mSlots[dest + i].resCrc = crc;
         mSlots[dest + i].baseIndex = (baseIndex < 0) ? -1 : baseIndex + (int32_t) i;
