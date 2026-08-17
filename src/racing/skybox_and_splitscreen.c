@@ -839,23 +839,20 @@ void func_802A7728(void) {
         temp_v0 = 0;
     }
 
-    if (NULL == gPhysicalFramebuffers[temp_v0]) {
-        return;
-    }
+    // @port Sample the port's framebuffer copies; the game no longer renders into gPhysicalFramebuffers
+    u16* source = gPortFramebuffers[temp_v0];
 
-    copy_framebuffer(D_800DC5DC, D_800DC5E0, 64, 32, (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC, D_800DC5E0, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture68272C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0, 64, 32, (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682928));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 32, 64, 32, (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 32, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682B24));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 32, 64, 32,
-                     (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 32, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682D20));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 64, 64, 32, (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 64, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682F1C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 64, 64, 32,
-                     (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 64, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture683118));
 }
 
@@ -875,25 +872,18 @@ void func_802A7940(void) {
         temp_v0 = 0;
     }
 
-    if (gPhysicalFramebuffers[temp_v0] == NULL) {
-        return;
-    }
+    u16* source = gPortFramebuffers[temp_v0];
 
-    copy_framebuffer(D_800DC5DC, D_800DC5E0, 64, 32, (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC, D_800DC5E0, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture68272C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0, 64, 32,
-                     (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682928));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 32, 64, 32,
-                     (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 32, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682B24));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 32, 64, 32,
-                     (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 32, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682D20));
-    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 64, 64, 32,
-                     (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC, D_800DC5E0 + 64, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture682F1C));
-    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 64, 64, 32,
-                     (u16*) PHYSICAL_TO_VIRTUAL(gPhysicalFramebuffers[temp_v0]),
+    copy_framebuffer(D_800DC5DC + 64, D_800DC5E0 + 64, 64, 32, source,
                      (u16*) LOAD_ASSET_RAW(gTexture683118));
 }
