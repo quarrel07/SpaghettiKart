@@ -67,6 +67,8 @@ struct DebugStatus {
     float nearestPx = -1;
     bool overUI = false;
     bool inViewport = false;
+    unsigned int tickCount = 0; // increments every input tick; 0 = tick never ran
+    bool mouseDown = false;     // left button as the input tick sees it
 };
 DebugStatus GetDebugStatus();
 

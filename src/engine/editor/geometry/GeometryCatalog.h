@@ -43,6 +43,11 @@ class GeometryCatalog {
     const std::vector<VertexRef>& Vertices() const {
         return mVertices;
     }
+    // Unique triangle edges as index pairs into Vertices(), for wireframe
+    // context in the overlay.
+    const std::vector<std::pair<uint32_t, uint32_t>>& Edges() const {
+        return mEdges;
+    }
     size_t LeafCount() const {
         return mLeafOrder.size();
     }
@@ -60,7 +65,8 @@ class GeometryCatalog {
     bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
-    void AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
+    int32_t AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
+    void AddTriangleEdges(int32_t a, int32_t b, int32_t c);
 
     bool mBuilt = false;
     bool mFailed = false;
@@ -71,6 +77,8 @@ class GeometryCatalog {
     Vtx* mSlotData[64] = { nullptr };
     std::map<std::pair<uint64_t, uint16_t>, size_t> mRefIndex;
     std::vector<VertexRef> mVertices;
+    std::vector<std::pair<uint32_t, uint32_t>> mEdges;
+    std::unordered_set<uint64_t> mEdgeSeen;
     std::unordered_map<uint64_t, uint32_t> mWeldByPos;
     uint32_t mWeldGroups = 0;
 };

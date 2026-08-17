@@ -69,9 +69,10 @@ void GeometryEditorWindow::DrawElement() {
     }
     ImGui::TextDisabled("%zu vertices in %zu display lists", info.catalogVertices, info.catalogLeaves);
     DebugStatus dbg = GetDebugStatus();
-    ImGui::TextDisabled("dbg: mouse %.0f,%.0f | view %d,%d %dx%d %s | nearest vtx %.0f px | %s", dbg.mouseX,
-                        dbg.mouseY, dbg.vpX, dbg.vpY, dbg.vpW, dbg.vpH, dbg.inViewport ? "in" : "OUT",
-                        dbg.nearestPx, dbg.overUI ? "clicks blocked: over UI" : "clicks live");
+    ImGui::TextDisabled("dbg: tick %u btn %s | mouse %.0f,%.0f | view %d,%d %dx%d %s | nearest %.0f px | %s",
+                        dbg.tickCount, dbg.mouseDown ? "DOWN" : "up", dbg.mouseX, dbg.mouseY, dbg.vpX, dbg.vpY,
+                        dbg.vpW, dbg.vpH, dbg.inViewport ? "in" : "OUT", dbg.nearestPx,
+                        dbg.overUI ? "clicks blocked: over UI" : "clicks live");
 
     bool freecam = CVarGetInteger("gFreecam", 0);
     if (ImGui::Button(freecam ? "Switch to Kart Camera" : "Switch to Freecam")) {

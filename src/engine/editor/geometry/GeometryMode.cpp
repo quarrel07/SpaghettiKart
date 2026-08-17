@@ -557,15 +557,21 @@ extern "C" void GeometryMode_Tick(void) {
     static bool moved = false;
     static Ship::Coords startPos = { 0, 0 };
 
+    sDebug.tickCount++;
+
     if (!ModeActive() || !sCatalog.Built() || gScreenOneCtx == nullptr || gScreenOneCtx->camera == nullptr) {
         sDragging = false;
         wasMouseDown = false;
         return;
     }
 
-    auto wnd = GameEngine::Instance->context->GetWindow();
-    Ship::Coords mouse = wnd->GetMousePos();
-    bool isMouseDown = wnd->GetMouseState(Ship::LUS_MOUSE_BTN_LEFT);
+    // ImGui's input state is the one mouse path proven working on every
+    // backend here (all UI interaction runs on it); the window-manager mouse
+    // API is not exercised anywhere verified on macOS Metal.
+    ImVec2 mousePos = ImGui::GetIO().MousePos;
+    Ship::Coords mouse = { (int32_t) mousePos.x, (int32_t) mousePos.y };
+    bool isMouseDown = ImGui::GetIO().MouseDown[0];
+    sDebug.mouseDown = isMouseDown;
 
     bool uiMouse = GeometryEditor::PointerOverUI((float) mouse.x, (float) mouse.y);
 
@@ -617,13 +623,8 @@ void DrawOverlay() {
     if (!vp.valid) {
         return;
     }
-    // The game image lives in the "Main Game" ImGui window, so the
-    // background draw list would render BEHIND it; foreground is the only
-    // layer guaranteed above the game view.
     ImDrawList* draw = ImGui::GetForegroundDrawList();
-    // Same mouse source and coordinate basis as Tick's picking.
-    Ship::Coords mouseCoords = GameEngine::Instance->context->GetWindow()->GetMousePos();
-    ImVec2 mouse((float) mouseCoords.x, (float) mouseCoords.y);
+    ImVec2 mouse = ImGui::GetIO().MousePos;
     const auto& refs = sCatalog.Vertices();
 
     auto viewport = GetInterpreter()->mGameWindowViewport;
@@ -633,39 +634,69 @@ void DrawOverlay() {
     sDebug.vpY = viewport.y;
     sDebug.vpW = (int) OTRGetGameViewportWidth();
     sDebug.vpH = (int) OTRGetGameViewportHeight();
-    sDebug.inViewport = MouseInViewport(mouseCoords.x, mouseCoords.y);
+    sDebug.inViewport = MouseInViewport((int) mouse.x, (int) mouse.y);
     sDebug.overUI = PointerOverUI(mouse.x, mouse.y);
     sDebug.nearestPx = -1.0f;
+
+    // One projection pass shared by dots and wireframe edges.
+    struct ScreenPt {
+        float x, y, w;
+        bool valid;
+        float mouseDist;
+    };
+    static std::vector<ScreenPt> sScreen;
+    sScreen.assign(refs.size(), ScreenPt{ 0, 0, 0, false, 0 });
+    for (size_t i = 0; i < refs.size(); i++) {
+        int16_t pos[3] = { refs[i].live->v.ob[0], refs[i].live->v.ob[1], refs[i].live->v.ob[2] };
+        ScreenPt& sp = sScreen[i];
+        sp.valid = ProjectToScreen(vp, pos, sp.x, sp.y, sp.w);
+        if (!sp.valid) {
+            continue;
+        }
+        float dx = sp.x - mouse.x;
+        float dy = sp.y - mouse.y;
+        sp.mouseDist = std::sqrt(dx * dx + dy * dy);
+        if (sDebug.nearestPx < 0.0f || sp.mouseDist < sDebug.nearestPx) {
+            sDebug.nearestPx = sp.mouseDist;
+        }
+    }
+
+    const float cloudRadius = 96.0f;
+
+    // Wireframe context: edges with an endpoint near the cursor.
+    if (sCloud) {
+        for (const auto& e : sCatalog.Edges()) {
+            const ScreenPt& a = sScreen[e.first];
+            const ScreenPt& b = sScreen[e.second];
+            if (!a.valid || !b.valid) {
+                continue;
+            }
+            if (a.mouseDist > cloudRadius && b.mouseDist > cloudRadius) {
+                continue;
+            }
+            draw->AddLine(ImVec2(a.x, a.y), ImVec2(b.x, b.y), IM_COL32(0, 200, 255, 70), 1.0f);
+        }
+    }
 
     uint32_t selectedGroup = (sSelected >= 0) ? refs[sSelected].weldGroup : 0xFFFFFFFF;
 
     for (size_t i = 0; i < refs.size(); i++) {
-        float px, py, cw;
-        int16_t pos[3] = { refs[i].live->v.ob[0], refs[i].live->v.ob[1], refs[i].live->v.ob[2] };
-        if (!ProjectToScreen(vp, pos, px, py, cw)) {
+        const ScreenPt& sp = sScreen[i];
+        if (!sp.valid) {
             continue;
-        }
-        float ddx = px - mouse.x;
-        float ddy = py - mouse.y;
-        float distPx = std::sqrt(ddx * ddx + ddy * ddy);
-        if (sDebug.nearestPx < 0.0f || distPx < sDebug.nearestPx) {
-            sDebug.nearestPx = distPx;
         }
         bool isSelected = (int32_t) i == sSelected;
         bool isWeldMate = !isSelected && refs[i].weldGroup == selectedGroup;
+        // Perspective size cue: nearer vertices get bigger markers.
+        float depthR = std::min(5.0f, std::max(1.2f, 1400.0f / std::max(sp.w, 1.0f)));
         if (isSelected) {
-            draw->AddCircleFilled(ImVec2(px, py), 5.0f, IM_COL32(255, 200, 0, 255));
-            draw->AddCircle(ImVec2(px, py), 8.0f, IM_COL32(255, 200, 0, 200), 0, 2.0f);
+            draw->AddCircleFilled(ImVec2(sp.x, sp.y), depthR + 3.0f, IM_COL32(255, 200, 0, 255));
+            draw->AddCircle(ImVec2(sp.x, sp.y), depthR + 6.0f, IM_COL32(255, 200, 0, 200), 0, 2.0f);
         } else if (isWeldMate) {
-            draw->AddCircle(ImVec2(px, py), 6.0f, IM_COL32(255, 120, 0, 220), 0, 2.0f);
-        } else if (sCloud) {
-            float dx = px - mouse.x;
-            float dy = py - mouse.y;
-            if (dx * dx + dy * dy < 96.0f * 96.0f) {
-                float alpha = std::min(1.0f, 2200.0f / std::max(cw, 1.0f));
-                draw->AddCircleFilled(ImVec2(px, py), 2.0f,
-                                      IM_COL32(0, 220, 255, (int) (80.0f + 175.0f * alpha)));
-            }
+            draw->AddCircle(ImVec2(sp.x, sp.y), depthR + 4.0f, IM_COL32(255, 120, 0, 220), 0, 2.0f);
+        } else if (sCloud && sp.mouseDist < cloudRadius) {
+            float alpha = std::min(1.0f, 2200.0f / std::max(sp.w, 1.0f));
+            draw->AddCircleFilled(ImVec2(sp.x, sp.y), depthR, IM_COL32(0, 220, 255, (int) (80.0f + 175.0f * alpha)));
         }
     }
 }

@@ -1,5 +1,6 @@
 #include "GeometryCatalog.h"
 
+#include <algorithm>
 #include <cstdio>
 
 namespace GeometryEditor {
@@ -74,6 +75,8 @@ void GeometryCatalog::Reset() {
     mLeafSeen.clear();
     mRefIndex.clear();
     mVertices.clear();
+    mEdges.clear();
+    mEdgeSeen.clear();
     mWeldByPos.clear();
     mWeldGroups = 0;
     for (auto& s : mSlots) {
@@ -197,14 +200,14 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
     return false; // guard exhausted: not a well-formed wrapper
 }
 
-void GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
+int32_t GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
     if (slot.baseIndex < 0 || v == nullptr) {
-        return;
+        return -1;
     }
     std::pair<uint64_t, uint16_t> key(slot.resCrc, (uint16_t) (slot.baseIndex + offset));
     auto it = mRefIndex.find(key);
     if (it != mRefIndex.end()) {
-        return;
+        return (int32_t) it->second;
     }
     VertexRef ref;
     ref.resCrc = key.first;
@@ -223,6 +226,21 @@ void GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
     }
     mRefIndex.emplace(key, mVertices.size());
     mVertices.push_back(ref);
+    return (int32_t) (mVertices.size() - 1);
+}
+
+void GeometryCatalog::AddTriangleEdges(int32_t a, int32_t b, int32_t c) {
+    const int32_t idx[3][2] = { { a, b }, { b, c }, { c, a } };
+    for (const auto& e : idx) {
+        if (e[0] < 0 || e[1] < 0 || e[0] == e[1]) {
+            continue;
+        }
+        uint32_t lo = (uint32_t) std::min(e[0], e[1]);
+        uint32_t hi = (uint32_t) std::max(e[0], e[1]);
+        if (mEdgeSeen.insert(((uint64_t) lo << 32) | hi).second) {
+            mEdges.emplace_back(lo, hi);
+        }
+    }
 }
 
 void GeometryCatalog::AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data) {
@@ -313,24 +331,18 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
                 uint32_t v1 = (uint32_t) (w0 & 0xFFFF);
                 uint32_t v2 = (uint32_t) (w1 >> 16) & 0xFFFF;
                 uint32_t v3 = (uint32_t) (w1 & 0xFFFF);
-                if (v1 < 64) {
-                    AddRef(mSlots[v1], 0, mSlotData[v1]);
-                }
-                if (v2 < 64) {
-                    AddRef(mSlots[v2], 0, mSlotData[v2]);
-                }
-                if (v3 < 64) {
-                    AddRef(mSlots[v3], 0, mSlotData[v3]);
-                }
+                int32_t r1 = (v1 < 64) ? AddRef(mSlots[v1], 0, mSlotData[v1]) : -1;
+                int32_t r2 = (v2 < 64) ? AddRef(mSlots[v2], 0, mSlotData[v2]) : -1;
+                int32_t r3 = (v3 < 64) ? AddRef(mSlots[v3], 0, mSlotData[v3]) : -1;
+                AddTriangleEdges(r1, r2, r3);
                 break;
             }
             case OP_TRI1: {
                 uint32_t v1 = ((uint32_t) (w1 & 0x00FF0000) >> 16) / 2;
                 uint32_t v2 = ((uint32_t) (w1 & 0x0000FF00) >> 8) / 2;
                 uint32_t v3 = ((uint32_t) (w1 & 0x000000FF)) / 2;
-                AddRef(mSlots[v1], 0, mSlotData[v1]);
-                AddRef(mSlots[v2], 0, mSlotData[v2]);
-                AddRef(mSlots[v3], 0, mSlotData[v3]);
+                AddTriangleEdges(AddRef(mSlots[v1], 0, mSlotData[v1]), AddRef(mSlots[v2], 0, mSlotData[v2]),
+                                 AddRef(mSlots[v3], 0, mSlotData[v3]));
                 break;
             }
             case OP_TRI2: {
@@ -340,12 +352,10 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
                 uint32_t v4 = ((uint32_t) (w1 & 0x00FF0000) >> 16) / 2;
                 uint32_t v5 = ((uint32_t) (w1 & 0x0000FF00) >> 8) / 2;
                 uint32_t v6 = ((uint32_t) (w1 & 0x000000FF)) / 2;
-                AddRef(mSlots[v1], 0, mSlotData[v1]);
-                AddRef(mSlots[v2], 0, mSlotData[v2]);
-                AddRef(mSlots[v3], 0, mSlotData[v3]);
-                AddRef(mSlots[v4], 0, mSlotData[v4]);
-                AddRef(mSlots[v5], 0, mSlotData[v5]);
-                AddRef(mSlots[v6], 0, mSlotData[v6]);
+                AddTriangleEdges(AddRef(mSlots[v1], 0, mSlotData[v1]), AddRef(mSlots[v2], 0, mSlotData[v2]),
+                                 AddRef(mSlots[v3], 0, mSlotData[v3]));
+                AddTriangleEdges(AddRef(mSlots[v4], 0, mSlotData[v4]), AddRef(mSlots[v5], 0, mSlotData[v5]),
+                                 AddRef(mSlots[v6], 0, mSlotData[v6]));
                 break;
             }
             case OP_QUAD: {
@@ -353,10 +363,14 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
                 uint32_t v2 = ((uint32_t) (w1 >> 16) & 0xFF) / 2;
                 uint32_t v3 = ((uint32_t) (w1 >> 8) & 0xFF) / 2;
                 uint32_t v4 = ((uint32_t) w1 & 0xFF) / 2;
-                AddRef(mSlots[v1], 0, mSlotData[v1]);
-                AddRef(mSlots[v2], 0, mSlotData[v2]);
-                AddRef(mSlots[v3], 0, mSlotData[v3]);
-                AddRef(mSlots[v4], 0, mSlotData[v4]);
+                {
+                    int32_t r1 = AddRef(mSlots[v1], 0, mSlotData[v1]);
+                    int32_t r2 = AddRef(mSlots[v2], 0, mSlotData[v2]);
+                    int32_t r3 = AddRef(mSlots[v3], 0, mSlotData[v3]);
+                    int32_t r4 = AddRef(mSlots[v4], 0, mSlotData[v4]);
+                    AddTriangleEdges(r1, r2, r3);
+                    AddTriangleEdges(r1, r3, r4);
+                }
                 break;
             }
             default:
