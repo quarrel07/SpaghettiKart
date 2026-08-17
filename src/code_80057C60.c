@@ -5858,9 +5858,13 @@ void clear_all_player_balloons(UNUSED Player* player, s8 playerIndex) {
 
 void pop_player_balloon(Player* player, s8 playerIndex) {
     if (gPlayerBalloonCount[playerIndex] >= 0) {
-        gPlayerBalloonStatus[playerIndex][gPlayerBalloonCount[playerIndex]] &= ~1;
-        gPlayerBalloonStatus[playerIndex][gPlayerBalloonCount[playerIndex]] |= 2;
-        gPlayerBalloonCount[playerIndex]--;
+        // TEST RIG — NEVER MERGE: one hit removes every balloon for players
+        // other than P1, so knockout -> bomb -> Retry reproduces in seconds.
+        do {
+            gPlayerBalloonStatus[playerIndex][gPlayerBalloonCount[playerIndex]] &= ~1;
+            gPlayerBalloonStatus[playerIndex][gPlayerBalloonCount[playerIndex]] |= 2;
+            gPlayerBalloonCount[playerIndex]--;
+        } while ((playerIndex != 0) && (gPlayerBalloonCount[playerIndex] >= 0));
         func_800C9060(playerIndex, SOUND_ARG_LOAD(0x19, 0x00, 0x90, 0x51));
         if (gPlayerBalloonCount[playerIndex] < 0) {
             func_8008FD4C(player, playerIndex);
