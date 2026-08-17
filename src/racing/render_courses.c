@@ -118,7 +118,9 @@ static void GeoGate_Draw(const char* addr[], s16 direction) {
     }
 
     sFrames++;
-    lift = ((sFrames / 30) & 1) ? 80 : 0;
+    // Pulse only for the first ~20 seconds of the first load, then settle so
+    // the vanishing-geometry check is readable on a static track.
+    lift = (sFrames < 1200 && ((sFrames / 30) & 1)) ? 80 : 0;
 
     // Lift every course vertex by a fixed amount, snapping twice a second, so
     // live vertex mutation is visible from anywhere on the track.
