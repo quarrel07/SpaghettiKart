@@ -841,6 +841,7 @@ extern int gfx_create_framebuffer(uint32_t width, uint32_t height, uint32_t nati
 extern void gfx_register_fb_texture(const void* cpuAddr, int fbId);
 extern void gfx_unregister_fb_texture(const void* cpuAddr);
 extern s32 gReusableFrameBuffer;
+extern s32 gN64ResFrameBuffer;
 
 static s32 sJumboTileFB[6] = { -1, -1, -1, -1, -1, -1 };
 static s32 sJumboCropFB = -1;
@@ -893,12 +894,6 @@ void Jumbotron_EndOfFrameUpdate(void) {
     s32 i;
     s32 ox;
     s32 oy;
-    s32 renderW;
-    s32 renderH;
-    s32 s0;
-    s32 t0;
-    s32 s1;
-    s32 t1;
 
     if (gActiveScreenMode == SCREEN_MODE_1P) {
         return;
@@ -912,17 +907,7 @@ void Jumbotron_EndOfFrameUpdate(void) {
 
     Jumbotron_LiveRegister();
 
-    renderW = OTRGetGameRenderWidth();
-    renderH = OTRGetGameRenderHeight();
-
     Jumbotron_GetSampleOrigin(&ox, &oy);
-
-    // The viewports stretch the game's 320x240 coordinate space linearly across the
-    // whole framebuffer, so sample with the same linear mapping
-    s0 = (ox * renderW) / SCREEN_WIDTH;
-    t0 = (oy * renderH) / SCREEN_HEIGHT;
-    s1 = ((ox + 128) * renderW) / SCREEN_WIDTH;
-    t1 = ((oy + 96) * renderH) / SCREEN_HEIGHT;
 
     gSPMatrix(gDisplayListHead++, &gIdentityMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gDPSetOtherMode(gDisplayListHead++,
@@ -935,12 +920,15 @@ void Jumbotron_EndOfFrameUpdate(void) {
     gDPSetCombineLERP(gDisplayListHead++, TEXEL0, 0, ENVIRONMENT, 0, 0, 0, 0, ENVIRONMENT, TEXEL0, 0, ENVIRONMENT, 0,
                       0, 0, 0, ENVIRONMENT);
 
-    // Stage 1: the whole sampled window in one scaled draw
+    // Stage 1: the whole sampled window in one 1:1 draw from the port's 320x240
+    // capture, which FB_WriteFramebufferSliceToCPU refreshed just before this runs.
+    // Every framebuffer in this chain has identical logical and pixel dimensions, so
+    // no coordinate convention can misread the regions.
     gsSPSetFB(gDisplayListHead++, sJumboCropFB);
     gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, 128, 96);
-    gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, gReusableFrameBuffer);
-    gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, s0, t0, 128 << 2, 96 << 2, s1, t1, G_TX_RENDERTILE, renderW,
-                      renderH);
+    gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, gN64ResFrameBuffer);
+    gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, ox, oy, 128 << 2, 96 << 2, ox + 128, oy + 96,
+                      G_TX_RENDERTILE, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // Stage 2: split 1:1 into the six tiles the course geometry samples
     for (i = 0; i < 6; i++) {
