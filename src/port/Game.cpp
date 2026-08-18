@@ -770,11 +770,14 @@ void CM_DeleteActor(size_t index) {
     }
 }
 
+extern "C" void Jumbotron_Reset(void);
+
 /**
  * Clean up actors and other game objects.
  */
 void CM_CleanWorld(void) {
     GetWorld()->CleanWorld();
+    Jumbotron_Reset();
 }
 
 void CM_CleanCameras(void) {

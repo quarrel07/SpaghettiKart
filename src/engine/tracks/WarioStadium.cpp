@@ -238,6 +238,15 @@ void WarioStadium::Draw(ScreenContext* arg0) {
         sLastJumboUpdateFrame = (s16) sRenderedFramebuffer;
     }
 
+    // @port Live multiplayer jumbotron renders through GPU framebuffers; emitted before
+    // the course state setup below so everything it touches gets re-established
+    bool liveMultiplayerJumbo =
+        (gActiveScreenMode != SCREEN_MODE_1P) && CVarGetInteger("gMultiplayerNoFeatureCuts", 0);
+    if (firstPassThisFrame && liveMultiplayerJumbo) {
+        Jumbotron_LiveRegister();
+        Jumbotron_EmitLiveBlits(arg0);
+    }
+
     gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     gSPSetGeometryMode(gDisplayListHead++, G_SHADING_SMOOTH);
     gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
@@ -278,14 +287,10 @@ void WarioStadium::Draw(ScreenContext* arg0) {
 
     // @port Center the sampled window in player one's viewport for the current mode
     Jumbotron_GetSampleOrigin(&D_800DC5DC, &D_800DC5E0);
-    bool liveJumbotron = gActiveScreenMode == SCREEN_MODE_1P;
-    if (!liveJumbotron && CVarGetInteger("gMultiplayerNoFeatureCuts", 0)) {
-        liveJumbotron = true;
-    }
-    // @port Copy once per frame on the frame's first pass; per-viewport copies let
-    // later viewports catch the tiles mid-rewrite and show a different image
-    if (firstPassThisFrame) {
-        if (liveJumbotron) {
+    // @port One update per frame; the multiplayer live feed was emitted at the top of
+    // this function through the GPU framebuffer path
+    if (firstPassThisFrame && !liveMultiplayerJumbo) {
+        if (gActiveScreenMode == SCREEN_MODE_1P) {
             prevFrame = (s16) sRenderedFramebuffer - 1;
             if (prevFrame < 0) {
                 prevFrame = 2;

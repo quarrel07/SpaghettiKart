@@ -20,6 +20,7 @@
 #include "main.h"
 #include "menus.h"
 #include "port/Engine.h"
+#include "port/interpolation/matrix.h"
 #include "engine/Matrix.h"
 #include "engine/tracks/Track.h"
 #include "engine/editor/Editor.h"
@@ -829,6 +830,107 @@ void copy_framebuffer(s32 arg0, s32 arg1, s32 width, s32 height, u16* source, u1
 // path rewrites them per frame, so the picture survives any texture reload.
 static u16 sJumbotronSnapshot[6][64 * 32];
 static u8 sJumbotronSnapshotValid = 0;
+
+// @port Live multiplayer jumbotron: the six screen tiles are backed by small GPU
+// framebuffers. Each frame the renderer copies the sampled screen region into them
+// (GPU to GPU, ordered inside the display list), and the tile textures are registered
+// as framebuffer mirrors so the untouched course geometry samples the framebuffers.
+// No CPU copies or readbacks are involved, so there is nothing to race.
+extern int gfx_create_framebuffer(uint32_t width, uint32_t height, uint32_t native_width, uint32_t native_height,
+                                  uint8_t resize);
+extern void gfx_register_fb_texture(const void* cpuAddr, int fbId);
+extern void gfx_unregister_fb_texture(const void* cpuAddr);
+extern s32 gReusableFrameBuffer;
+
+static s32 sJumboTileFB[6] = { -1, -1, -1, -1, -1, -1 };
+static u8 sJumboLiveRegistered = 0;
+static const char* const sJumboTileTextures[6] = {
+    gTexture68272C, gTexture682928, gTexture682B24, gTexture682D20, gTexture682F1C, gTexture683118,
+};
+
+void Jumbotron_LiveRegister(void) {
+    s32 i;
+
+    if (sJumboLiveRegistered) {
+        return;
+    }
+    for (i = 0; i < 6; i++) {
+        if (sJumboTileFB[i] == -1) {
+            sJumboTileFB[i] = gfx_create_framebuffer(64, 32, 64, 32, false);
+        }
+        gfx_register_fb_texture(LOAD_ASSET_RAW(sJumboTileTextures[i]), sJumboTileFB[i]);
+    }
+    sJumboLiveRegistered = 1;
+}
+
+void Jumbotron_LiveUnregister(void) {
+    s32 i;
+
+    if (!sJumboLiveRegistered) {
+        return;
+    }
+    for (i = 0; i < 6; i++) {
+        gfx_unregister_fb_texture(LOAD_ASSET_RAW(sJumboTileTextures[i]));
+    }
+    sJumboLiveRegistered = 0;
+}
+
+// Called on world teardown so the next track starts from the stock texture path
+void Jumbotron_Reset(void) {
+    Jumbotron_LiveUnregister();
+    sJumbotronSnapshotValid = 0;
+}
+
+void Jumbotron_EmitLiveBlits(ScreenContext* screen) {
+    s32 i;
+    s32 ox;
+    s32 oy;
+    s32 renderW = OTRGetGameRenderWidth();
+    s32 renderH = OTRGetGameRenderHeight();
+    float aspect = OTRGetAspectRatio();
+    float fourByThree = 4.0f / 3.0f;
+    s32 sliceW = renderW;
+    s32 sliceX = 0;
+
+    // Match the center 4:3 slice mapping used by FB_WriteFramebufferSliceToCPU so the
+    // 320x240 sample origins land on the same screen content
+    if (aspect > fourByThree) {
+        sliceW = (s32) (renderW / (aspect / fourByThree));
+        sliceX = (renderW - sliceW) / 2;
+    }
+
+    Jumbotron_GetSampleOrigin(&ox, &oy);
+
+    gSPMatrix(gDisplayListHead++, &gIdentityMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+    gDPSetOtherMode(gDisplayListHead++,
+                    G_AD_DISABLE | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE |
+                        G_TD_CLAMP | G_TP_NONE | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
+                    G_AC_NONE | G_ZS_PRIM | G_RM_OPA_SURF | G_RM_OPA_SURF2);
+    gSPClearGeometryMode(gDisplayListHead++, G_FOG | G_LIGHTING | G_TEXTURE_GEN | G_TEXTURE_GEN_LINEAR);
+    gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
+    gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, 255);
+    gDPSetCombineLERP(gDisplayListHead++, TEXEL0, 0, ENVIRONMENT, 0, 0, 0, 0, ENVIRONMENT, TEXEL0, 0, ENVIRONMENT, 0,
+                      0, 0, 0, ENVIRONMENT);
+
+    for (i = 0; i < 6; i++) {
+        s32 dx = (i % 2) * 64;
+        s32 dy = (i / 2) * 32;
+        s32 s0 = sliceX + ((ox + dx) * sliceW) / SCREEN_WIDTH;
+        s32 t0 = ((oy + dy) * renderH) / SCREEN_HEIGHT;
+        s32 s1 = sliceX + ((ox + dx + 64) * sliceW) / SCREEN_WIDTH;
+        s32 t1 = ((oy + dy + 32) * renderH) / SCREEN_HEIGHT;
+
+        gsSPSetFB(gDisplayListHead++, sJumboTileFB[i]);
+        gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, 64, 32);
+        gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, gReusableFrameBuffer);
+        gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, s0, t0, 64 << 2, 32 << 2, s1, t1, G_TX_RENDERTILE,
+                          renderW, renderH);
+        gsSPResetFB(gDisplayListHead++);
+    }
+
+    // Restore this screen's viewport and scissor for the course rendering that follows
+    race_set_viewport(screen);
+}
 
 // @port Center the 128x96 sampled window within player one's viewport for the current
 // screen mode, the same framing the 1P jumbotron has always used for the full screen
