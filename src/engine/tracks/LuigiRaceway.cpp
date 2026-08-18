@@ -292,28 +292,32 @@ void LuigiRaceway::Draw(ScreenContext* arg0) {
         D_800DC5DC = (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) ? 0 : 128;
         D_800DC5E0 = 0;
     }
-    if (liveJumbotron) {
+    // @port Copy once per frame on the first viewport's pass; per-viewport copies let
+    // later viewports catch the tiles mid-rewrite and show a different image
+    if (arg0->camera->cameraId == 0) {
+        if (liveJumbotron) {
 
-        prevFrame = (s16) sRenderedFramebuffer - 1;
+            prevFrame = (s16) sRenderedFramebuffer - 1;
 
-        if (prevFrame < 0) {
-            prevFrame = 2;
-        } else if (prevFrame >= 3) {
-            prevFrame = 0;
+            if (prevFrame < 0) {
+                prevFrame = 2;
+            } else if (prevFrame >= 3) {
+                prevFrame = 0;
+            }
+            currentScreenSection++;
+            if (currentScreenSection >= 6) {
+                currentScreenSection = 0;
+            }
+
+            /**
+             * The jumbo television screen used to be split into six sections to fit into the n64's texture size
+             * restrictions It isn't split into six sections anymore
+             */
+            CopyJumbotron(D_800DC5DC, D_800DC5E0, currentScreenSection,
+                                                (u16*) gPortFramebuffers[prevFrame]);
+        } else {
+            Jumbotron_ReassertSnapshot();
         }
-        currentScreenSection++;
-        if (currentScreenSection >= 6) {
-            currentScreenSection = 0;
-        }
-
-        /**
-         * The jumbo television screen used to be split into six sections to fit into the n64's texture size
-         * restrictions It isn't split into six sections anymore
-         */
-        CopyJumbotron(D_800DC5DC, D_800DC5E0, currentScreenSection,
-                                            (u16*) gPortFramebuffers[prevFrame]);
-    } else {
-        Jumbotron_ReassertSnapshot();
     }
 }
 
