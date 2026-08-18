@@ -37,7 +37,7 @@ void Jumbotron_GetSampleOrigin(s32* ulx, s32* uly);
 void Jumbotron_LiveRegister(void);
 void Jumbotron_LiveUnregister(void);
 void Jumbotron_Reset(void);
-void Jumbotron_EmitLiveBlits(ScreenContext* screen);
+void Jumbotron_EndOfFrameUpdate(void);
 void func_802A7940(void);
 
 extern Vp D_802B8880[];

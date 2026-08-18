@@ -805,6 +805,9 @@ void race_logic_loop(void) {
     // This means things like jumbotron will have the pause menu rendered in it.
     // To avoid that, this line can be moved above func_800591B4.
     FB_WriteFramebufferSliceToCPU(&gDisplayListHead, gPortFramebuffers[sRenderingFramebuffer], true);
+    // @port Refresh the live multiplayer jumbotron framebuffers while the frame is
+    // complete and no viewport state is in flight
+    Jumbotron_EndOfFrameUpdate();
     gDPFullSync(gDisplayListHead++);
     gSPEndDisplayList(gDisplayListHead++);
 

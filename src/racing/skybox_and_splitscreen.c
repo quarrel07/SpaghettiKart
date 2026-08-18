@@ -843,6 +843,7 @@ extern void gfx_unregister_fb_texture(const void* cpuAddr);
 extern s32 gReusableFrameBuffer;
 
 static s32 sJumboTileFB[6] = { -1, -1, -1, -1, -1, -1 };
+static s32 sJumboCropFB = -1;
 static u8 sJumboLiveRegistered = 0;
 static const char* const sJumboTileTextures[6] = {
     gTexture68272C, gTexture682928, gTexture682B24, gTexture682D20, gTexture682F1C, gTexture683118,
@@ -853,6 +854,9 @@ void Jumbotron_LiveRegister(void) {
 
     if (sJumboLiveRegistered) {
         return;
+    }
+    if (sJumboCropFB == -1) {
+        sJumboCropFB = gfx_create_framebuffer(128, 96, 128, 96, false);
     }
     for (i = 0; i < 6; i++) {
         if (sJumboTileFB[i] == -1) {
@@ -881,16 +885,42 @@ void Jumbotron_Reset(void) {
     sJumbotronSnapshotValid = 0;
 }
 
-void Jumbotron_EmitLiveBlits(ScreenContext* screen) {
+// Emitted at the end of the frame, after the port has captured the framebuffer and
+// after all viewport rendering, so no in-frame state needs preserving. Two stages:
+// the whole sampled window scales into one 128x96 framebuffer (continuous filtering,
+// no seams), then splits 1:1 into the six tile framebuffers the course samples.
+void Jumbotron_EndOfFrameUpdate(void) {
     s32 i;
     s32 ox;
     s32 oy;
-    s32 renderW = OTRGetGameRenderWidth();
-    s32 renderH = OTRGetGameRenderHeight();
-    float aspect = OTRGetAspectRatio();
+    s32 renderW;
+    s32 renderH;
+    float aspect;
     float fourByThree = 4.0f / 3.0f;
-    s32 sliceW = renderW;
-    s32 sliceX = 0;
+    s32 sliceW;
+    s32 sliceX;
+    s32 s0;
+    s32 t0;
+    s32 s1;
+    s32 t1;
+
+    if (gActiveScreenMode == SCREEN_MODE_1P) {
+        return;
+    }
+    if (!CVarGetInteger("gMultiplayerNoFeatureCuts", 0)) {
+        return;
+    }
+    if (!IsLuigiRaceway() && !IsWarioStadium()) {
+        return;
+    }
+
+    Jumbotron_LiveRegister();
+
+    renderW = OTRGetGameRenderWidth();
+    renderH = OTRGetGameRenderHeight();
+    aspect = OTRGetAspectRatio();
+    sliceW = renderW;
+    sliceX = 0;
 
     // Match the center 4:3 slice mapping used by FB_WriteFramebufferSliceToCPU so the
     // 320x240 sample origins land on the same screen content
@@ -900,6 +930,11 @@ void Jumbotron_EmitLiveBlits(ScreenContext* screen) {
     }
 
     Jumbotron_GetSampleOrigin(&ox, &oy);
+
+    s0 = sliceX + (ox * sliceW) / SCREEN_WIDTH;
+    t0 = (oy * renderH) / SCREEN_HEIGHT;
+    s1 = sliceX + ((ox + 128) * sliceW) / SCREEN_WIDTH;
+    t1 = ((oy + 96) * renderH) / SCREEN_HEIGHT;
 
     gSPMatrix(gDisplayListHead++, &gIdentityMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gDPSetOtherMode(gDisplayListHead++,
@@ -912,24 +947,27 @@ void Jumbotron_EmitLiveBlits(ScreenContext* screen) {
     gDPSetCombineLERP(gDisplayListHead++, TEXEL0, 0, ENVIRONMENT, 0, 0, 0, 0, ENVIRONMENT, TEXEL0, 0, ENVIRONMENT, 0,
                       0, 0, 0, ENVIRONMENT);
 
+    // Stage 1: the whole sampled window in one scaled draw
+    gsSPSetFB(gDisplayListHead++, sJumboCropFB);
+    gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, 128, 96);
+    gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, gReusableFrameBuffer);
+    gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, s0, t0, 128 << 2, 96 << 2, s1, t1, G_TX_RENDERTILE, renderW,
+                      renderH);
+
+    // Stage 2: split 1:1 into the six tiles the course geometry samples
     for (i = 0; i < 6; i++) {
         s32 dx = (i % 2) * 64;
         s32 dy = (i / 2) * 32;
-        s32 s0 = sliceX + ((ox + dx) * sliceW) / SCREEN_WIDTH;
-        s32 t0 = ((oy + dy) * renderH) / SCREEN_HEIGHT;
-        s32 s1 = sliceX + ((ox + dx + 64) * sliceW) / SCREEN_WIDTH;
-        s32 t1 = ((oy + dy + 32) * renderH) / SCREEN_HEIGHT;
 
         gsSPSetFB(gDisplayListHead++, sJumboTileFB[i]);
         gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, 64, 32);
-        gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, gReusableFrameBuffer);
-        gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, s0, t0, 64 << 2, 32 << 2, s1, t1, G_TX_RENDERTILE,
-                          renderW, renderH);
-        gsSPResetFB(gDisplayListHead++);
+        gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, sJumboCropFB);
+        gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, dx, dy, 64 << 2, 32 << 2, dx + 64, dy + 32,
+                          G_TX_RENDERTILE, 128, 96);
     }
 
-    // Restore this screen's viewport and scissor for the course rendering that follows
-    race_set_viewport(screen);
+    gsSPResetFB(gDisplayListHead++);
+    gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
 // @port Center the 128x96 sampled window within player one's viewport for the current

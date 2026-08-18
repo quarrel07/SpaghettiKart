@@ -238,14 +238,11 @@ void WarioStadium::Draw(ScreenContext* arg0) {
         sLastJumboUpdateFrame = (s16) sRenderedFramebuffer;
     }
 
-    // @port Live multiplayer jumbotron renders through GPU framebuffers; emitted before
-    // the course state setup below so everything it touches gets re-established
+    // @port The live multiplayer jumbotron renders through GPU framebuffers, updated at
+    // the end of the frame in Jumbotron_EndOfFrameUpdate; here it only needs the CPU
+    // texture paths skipped
     bool liveMultiplayerJumbo =
         (gActiveScreenMode != SCREEN_MODE_1P) && CVarGetInteger("gMultiplayerNoFeatureCuts", 0);
-    if (firstPassThisFrame && liveMultiplayerJumbo) {
-        Jumbotron_LiveRegister();
-        Jumbotron_EmitLiveBlits(arg0);
-    }
 
     gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     gSPSetGeometryMode(gDisplayListHead++, G_SHADING_SMOOTH);
