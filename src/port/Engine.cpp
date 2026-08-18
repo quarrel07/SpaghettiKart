@@ -1,6 +1,8 @@
 #include "Engine.h"
 
 #include <cstdlib>
+#include <chrono>  // TEST DIAGNOSTIC NEVER MERGE
+#include <climits> // TEST DIAGNOSTIC NEVER MERGE
 #include "ship/utils/StringHelper.h"
 #include "ship/window/gui/Gui.h"
 #include "GameExtractor.h"
@@ -577,6 +579,13 @@ void GameEngine::HandleAudioThread() {
         }
         std::unique_lock<std::mutex> Lock(audio.mutex);
 
+        // Audio production is tied to the game tick (two audio frames per tick),
+        // so any sustained tick-rate drop starves the audio player and the music
+        // slows and gaps. After the normal batch, top the player buffer back up
+        // with at most two extra batches so production keeps pace with the
+        // speakers regardless of the game tick rate.
+        for (int batch = 0; batch < 3; batch++) {
+
         int samples_left = AudioPlayerBuffered();
         u32 num_audio_samples = samples_left < AudioPlayerGetDesiredBuffered() ? SAMPLES_HIGH : SAMPLES_LOW;
 
@@ -597,6 +606,54 @@ void GameEngine::HandleAudioThread() {
         }
 
         AudioPlayerPlayFrame((u8*) mix_buffer, 2 * (size_t) num_audio_samples * 4);
+
+        // TEST DIAGNOSTIC NEVER MERGE: once per second, log game tick rate, audio
+        // production, and player buffer fill to ~/Desktop/sk-audio-diag.log.
+        // Healthy: ticks/s ~30, produced ~26880/s vs the 26800/s the speakers drain.
+        {
+            static FILE* sDiagFile = NULL;
+            static bool sDiagOpened = false;
+            if (!sDiagOpened) {
+                sDiagOpened = true;
+                char diagPath[512];
+                snprintf(diagPath, sizeof(diagPath), "%s/Desktop/sk-audio-diag.log",
+                         getenv("HOME") != NULL ? getenv("HOME") : "/tmp");
+                sDiagFile = fopen(diagPath, "w");
+            }
+            static auto sDiagStart = std::chrono::steady_clock::now();
+            static auto sDiagLast = sDiagStart;
+            static int sDiagTicks = 0;
+            static long long sDiagProduced = 0;
+            static int sDiagBufMin = INT_MAX;
+            static int sDiagBufMax = 0;
+            if (batch == 0) {
+                sDiagTicks++;
+            }
+            sDiagProduced += (long long) num_audio_samples * NUM_AUDIO_CHANNELS;
+            sDiagBufMin = samples_left < sDiagBufMin ? samples_left : sDiagBufMin;
+            sDiagBufMax = samples_left > sDiagBufMax ? samples_left : sDiagBufMax;
+            auto diagNow = std::chrono::steady_clock::now();
+            if (diagNow - sDiagLast >= std::chrono::seconds(1)) {
+                if (sDiagFile != NULL) {
+                    fprintf(sDiagFile, "t=%llds ticks/s=%d produced/s=%lld buffered_min=%d buffered_max=%d\n",
+                            (long long) std::chrono::duration_cast<std::chrono::seconds>(diagNow - sDiagStart).count(),
+                            sDiagTicks, sDiagProduced, sDiagBufMin, sDiagBufMax);
+                    fflush(sDiagFile);
+                }
+                sDiagLast = diagNow;
+                sDiagTicks = 0;
+                sDiagProduced = 0;
+                sDiagBufMin = INT_MAX;
+                sDiagBufMax = 0;
+            }
+        }
+
+        // Stop catching up once the player buffer is back at its target.
+        if (AudioPlayerBuffered() >= AudioPlayerGetDesiredBuffered()) {
+            break;
+        }
+
+        } // end catch-up batch loop
 
         audio.processing = false;
         audio.cv_from_thread.notify_one();
