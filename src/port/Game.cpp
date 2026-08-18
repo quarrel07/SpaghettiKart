@@ -985,14 +985,67 @@ static void ApplyPendingReset() {
     gFadeModeSelection = FADE_MODE_LOGO;
 }
 
+// TEST DIAGNOSTIC NEVER MERGE: per-second tick phase profile to
+// ~/Desktop/sk-perf-diag.log. gPerfGameMs/gPerfSubmitMs come from
+// thread5_iteration (game logic + DL build vs renderer submit/backpressure).
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+extern "C" {
+extern double gPerfGameMs;
+extern double gPerfSubmitMs;
+}
+
 void push_frame() {
     ApplyPendingReset();
+    static FILE* sPerfFile = NULL;
+    static bool sPerfOpened = false;
+    if (!sPerfOpened) {
+        sPerfOpened = true;
+        char perfPath[512];
+        snprintf(perfPath, sizeof(perfPath), "%s/Desktop/sk-perf-diag.log",
+                 getenv("HOME") != NULL ? getenv("HOME") : "/tmp");
+        sPerfFile = fopen(perfPath, "w");
+    }
+    static auto sPerfStart = std::chrono::steady_clock::now();
+    static auto sPerfLast = sPerfStart;
+    static int sPerfTicks = 0;
+    static double sSumStartFrame = 0.0, sSumThread5 = 0.0, sSumAudioWait = 0.0;
+    static double sSumGame = 0.0, sSumSubmit = 0.0;
+
+    auto p0 = std::chrono::steady_clock::now();
     GameEngine::StartAudioFrame();
     GameEngine::Instance->StartFrame();
+    auto p1 = std::chrono::steady_clock::now();
     thread5_iteration();
+    auto p2 = std::chrono::steady_clock::now();
     GameEngine::EndAudioFrame();
+    auto p3 = std::chrono::steady_clock::now();
     // thread5_game_loop();
     // Graphics_ThreadUpdate();w
+
+    auto ms = [](std::chrono::steady_clock::duration d) {
+        return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(d).count();
+    };
+    sPerfTicks++;
+    sSumStartFrame += ms(p1 - p0);
+    sSumThread5 += ms(p2 - p1);
+    sSumAudioWait += ms(p3 - p2);
+    sSumGame += gPerfGameMs;
+    sSumSubmit += gPerfSubmitMs;
+    if (p3 - sPerfLast >= std::chrono::seconds(1)) {
+        if (sPerfFile != NULL && sPerfTicks > 0) {
+            fprintf(sPerfFile,
+                    "t=%llds ticks/s=%d startframe=%.2fms game=%.2fms submit=%.2fms audiowait=%.2fms total=%.2fms\n",
+                    (long long) std::chrono::duration_cast<std::chrono::seconds>(p3 - sPerfStart).count(), sPerfTicks,
+                    sSumStartFrame / sPerfTicks, sSumGame / sPerfTicks, sSumSubmit / sPerfTicks,
+                    sSumAudioWait / sPerfTicks, (sSumStartFrame + sSumThread5 + sSumAudioWait) / sPerfTicks);
+            fflush(sPerfFile);
+        }
+        sPerfLast = p3;
+        sPerfTicks = 0;
+        sSumStartFrame = sSumThread5 = sSumAudioWait = sSumGame = sSumSubmit = 0.0;
+    }
 }
 
 void CM_ThrowRuntimeError(const char* fmt, ...) {

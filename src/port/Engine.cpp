@@ -584,7 +584,7 @@ void GameEngine::HandleAudioThread() {
         // slows and gaps. After the normal batch, top the player buffer back up
         // with at most two extra batches so production keeps pace with the
         // speakers regardless of the game tick rate.
-        for (int batch = 0; batch < 3; batch++) {
+        for (int batch = 0; batch < 1; batch++) { // perf build: STOCK audio, no catch-up
 
         int samples_left = AudioPlayerBuffered();
         u32 num_audio_samples = samples_left < AudioPlayerGetDesiredBuffered() ? SAMPLES_HIGH : SAMPLES_LOW;

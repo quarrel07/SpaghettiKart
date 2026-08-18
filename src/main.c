@@ -1168,7 +1168,21 @@ void thread5_game_loop(void) {
     func_800C5CB8();
 }
 
+// TEST DIAGNOSTIC NEVER MERGE: per-phase tick timing, read by push_frame's logger.
+// gPerfGameMs = game logic + display list build; gPerfSubmitMs = display_and_vsync
+// (submit to the renderer, including any backpressure wait).
+#include <time.h>
+double gPerfGameMs = 0.0;
+double gPerfSubmitMs = 0.0;
+static double perf_now_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
+}
+
 void thread5_iteration(void) {
+    double perfT0;
+    double perfT1;
     func_800CB2C4();
     calculate_delta_time();
 #ifdef TARGET_N64
@@ -1186,6 +1200,7 @@ void thread5_iteration(void) {
         update_gamestate();
     }
     profiler_log_thread5_time(THREAD5_START);
+    perfT0 = perf_now_ms();
     config_gfx_pool();
     read_controllers();
     FB_CreateFramebuffers();
@@ -1195,7 +1210,10 @@ void thread5_iteration(void) {
     // call_render_hook();
 
     end_master_display_list();
+    perfT1 = perf_now_ms();
     display_and_vsync();
+    gPerfGameMs = perfT1 - perfT0;
+    gPerfSubmitMs = perf_now_ms() - perfT1;
 }
 
 /**
