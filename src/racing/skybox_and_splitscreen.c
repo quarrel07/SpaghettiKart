@@ -864,6 +864,8 @@ void Jumbotron_LiveRegister(void) {
             sJumboTileFB[i] = gfx_create_framebuffer(64, 32, 64, 32, false);
         }
         gfx_register_fb_texture(LOAD_ASSET_RAW(sJumboTileTextures[i]), sJumboTileFB[i]);
+        LUSLOG_WARN("JUMBODIAG registered tile %d name=%s addr=%p fb=%d", i, sJumboTileTextures[i],
+                    LOAD_ASSET_RAW(sJumboTileTextures[i]), sJumboTileFB[i]);
     }
     sJumboLiveRegistered = 1;
 }
@@ -908,6 +910,15 @@ void Jumbotron_EndOfFrameUpdate(void) {
     Jumbotron_LiveRegister();
 
     Jumbotron_GetSampleOrigin(&ox, &oy);
+
+    {
+        static s32 sDiagLogs = 0;
+        if (sDiagLogs < 5) {
+            LUSLOG_WARN("JUMBODIAG EndOfFrameUpdate emitting: origin=(%d,%d) cropFB=%d tileFB0=%d n64resFB=%d", ox, oy,
+                        sJumboCropFB, sJumboTileFB[0], gN64ResFrameBuffer);
+            sDiagLogs++;
+        }
+    }
 
     gSPMatrix(gDisplayListHead++, &gIdentityMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
     gDPSetOtherMode(gDisplayListHead++,
