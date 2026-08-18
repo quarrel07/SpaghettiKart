@@ -48,6 +48,8 @@ bool CloudEnabled();
 void SetCloudEnabled(bool enabled);
 bool HideBackfacesEnabled();
 void SetHideBackfaces(bool enabled);
+bool XrayEnabled();
+void SetXray(bool enabled);
 // axis: 0 = X (left/right), 1 = Y (down/up), 2 = Z (back/forward)
 void Nudge(int axis, int amount);
 void SetAxisValue(int axis, int value);

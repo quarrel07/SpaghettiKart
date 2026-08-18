@@ -99,6 +99,14 @@ void GeometryEditorWindow::DrawElement() {
     if (ImGui::Checkbox("Hide back-facing", &hideBack)) {
         SetHideBackfaces(hideBack);
     }
+    ImGui::SameLine();
+    bool xray = XrayEnabled();
+    if (ImGui::Checkbox("X-ray", &xray)) {
+        SetXray(xray);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Show vertices and wireframe through geometry (screen overlay) instead of depth-tested in-scene rendering");
+    }
 
     ImGui::Separator();
 

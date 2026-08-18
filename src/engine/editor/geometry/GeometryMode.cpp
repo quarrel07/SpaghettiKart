@@ -20,7 +20,9 @@ extern "C" {
 #include "main.h"
 #include "code_800029B0.h"
 #include "defines.h"
+#include "racing/math_util.h"
 }
+#include "engine/Matrix.h"
 
 namespace GeometryEditor {
 
@@ -61,6 +63,7 @@ static std::vector<size_t> sMoveSet;       // selected + weld members (catalog i
 static bool sWeld = true;
 static bool sCloud = true;
 static bool sHideBackfaces = true;
+static bool sXray = false;
 
 // Front-facing test from accumulated face normals; vertices with no faces
 // (never triangulated) count as visible.
@@ -346,6 +349,12 @@ bool HideBackfacesEnabled() {
 void SetHideBackfaces(bool enabled) {
     sHideBackfaces = enabled;
 }
+bool XrayEnabled() {
+    return sXray;
+}
+void SetXray(bool enabled) {
+    sXray = enabled;
+}
 
 static void MoveSelectionBy(const float delta[3]) {
     if (sSelected < 0 || sMoveSet.empty()) {
@@ -414,6 +423,180 @@ void Redo() {
         ApplyWrite(w, true);
     }
     sUndo.push_back(std::move(txn));
+}
+
+
+// ---- in-scene overlay (default mode) ----
+// Markers and wireframe emitted as real z-tested geometry right after the
+// merged course DL, so the depth buffer occludes them exactly like the track
+// itself, and they render underneath all UI.
+
+static std::vector<Vtx> sSceneVtx[2];
+static std::vector<Gfx> sSceneDL[2];
+static int sSceneParity = 0;
+
+static void ScenePushQuad(std::vector<Vtx>& vtx, const float c[4][3], uint8_t r, uint8_t g, uint8_t b) {
+    for (int i = 0; i < 4; i++) {
+        Vtx v;
+        v.v.ob[0] = (int16_t) c[i][0];
+        v.v.ob[1] = (int16_t) c[i][1];
+        v.v.ob[2] = (int16_t) c[i][2];
+        v.v.flag = 0;
+        v.v.tc[0] = 0;
+        v.v.tc[1] = 0;
+        v.v.cn[0] = r;
+        v.v.cn[1] = g;
+        v.v.cn[2] = b;
+        v.v.cn[3] = 255;
+        vtx.push_back(v);
+    }
+}
+
+static void EmitSceneOverlay() {
+    Camera* camera = gScreenOneCtx->camera;
+    const auto& refs = sCatalog.Vertices();
+    float camPos[3] = { camera->pos[0], camera->pos[1], camera->pos[2] };
+    float fwd[3] = { camera->lookAt[0] - camPos[0], camera->lookAt[1] - camPos[1], camera->lookAt[2] - camPos[2] };
+    float fl = std::sqrt(fwd[0] * fwd[0] + fwd[1] * fwd[1] + fwd[2] * fwd[2]);
+    if (fl < 1e-5f) {
+        return;
+    }
+    for (auto& c : fwd) {
+        c /= fl;
+    }
+    float upw[3] = { camera->up[0], camera->up[1], camera->up[2] };
+    float right[3] = { fwd[1] * upw[2] - fwd[2] * upw[1], fwd[2] * upw[0] - fwd[0] * upw[2],
+                       fwd[0] * upw[1] - fwd[1] * upw[0] };
+    float rl = std::sqrt(right[0] * right[0] + right[1] * right[1] + right[2] * right[2]);
+    if (rl < 1e-5f) {
+        return;
+    }
+    for (auto& c : right) {
+        c /= rl;
+    }
+    float upv[3] = { right[1] * fwd[2] - right[2] * fwd[1], right[2] * fwd[0] - right[0] * fwd[2],
+                     right[0] * fwd[1] - right[1] * fwd[0] };
+
+    sSceneParity ^= 1;
+    std::vector<Vtx>& vtx = sSceneVtx[sSceneParity];
+    std::vector<Gfx>& dl = sSceneDL[sSceneParity];
+    vtx.clear();
+    dl.clear();
+    vtx.reserve(20000);
+
+    ViewProjection vp = BuildViewProjection();
+    ImVec2 mouse(0, 0);
+    if (ImGui::GetCurrentContext() != nullptr) {
+        mouse = ImGui::GetIO().MousePos;
+    }
+    sDebug.nearestPx = -1.0f;
+
+    const float kEdgeMaxDist2 = 7000.0f * 7000.0f;
+    const size_t kMaxQuads = 12000;
+    size_t quads = 0;
+
+    // Wireframe edges as thin camera-aligned ribbons.
+    for (const auto& e : sCatalog.Edges()) {
+        if (quads >= kMaxQuads) {
+            break;
+        }
+        const VertexRef& a = refs[e.first];
+        const VertexRef& b = refs[e.second];
+        if (!RefVisible(a, camPos) && !RefVisible(b, camPos)) {
+            continue;
+        }
+        float ax = a.live->v.ob[0], ay = a.live->v.ob[1], az = a.live->v.ob[2];
+        float bx = b.live->v.ob[0], by = b.live->v.ob[1], bz = b.live->v.ob[2];
+        float mx = (ax + bx) * 0.5f - camPos[0];
+        float my = (ay + by) * 0.5f - camPos[1];
+        float mz = (az + bz) * 0.5f - camPos[2];
+        if (mx * mx + my * my + mz * mz > kEdgeMaxDist2) {
+            continue;
+        }
+        float dir[3] = { bx - ax, by - ay, bz - az };
+        float side[3] = { dir[1] * fwd[2] - dir[2] * fwd[1], dir[2] * fwd[0] - dir[0] * fwd[2],
+                          dir[0] * fwd[1] - dir[1] * fwd[0] };
+        float sl = std::sqrt(side[0] * side[0] + side[1] * side[1] + side[2] * side[2]);
+        if (sl < 1e-4f) {
+            continue;
+        }
+        float half = 0.9f;
+        for (auto& c : side) {
+            c = c / sl * half;
+        }
+        float corners[4][3] = { { ax - side[0], ay - side[1], az - side[2] },
+                                { ax + side[0], ay + side[1], az + side[2] },
+                                { bx + side[0], by + side[1], bz + side[2] },
+                                { bx - side[0], by - side[1], bz - side[2] } };
+        ScenePushQuad(vtx, corners, 0, 170, 220);
+        quads++;
+    }
+
+    // Vertex dot billboards: cursor-local cloud plus the selection set.
+    uint32_t selectedGroup = (sSelected >= 0) ? refs[sSelected].weldGroup : 0xFFFFFFFF;
+    for (size_t i = 0; i < refs.size() && quads < kMaxQuads; i++) {
+        const VertexRef& ref = refs[i];
+        bool isSelected = (int32_t) i == sSelected;
+        bool isWeldMate = !isSelected && ref.weldGroup == selectedGroup;
+        bool nearCursor = false;
+        if (!RefVisible(ref, camPos) && !isSelected && !isWeldMate) {
+            continue;
+        }
+        float px, py, cw;
+        int16_t pos[3] = { ref.live->v.ob[0], ref.live->v.ob[1], ref.live->v.ob[2] };
+        if (vp.valid && ProjectToScreen(vp, pos, px, py, cw)) {
+            float dx = px - mouse.x;
+            float dy = py - mouse.y;
+            float dist = std::sqrt(dx * dx + dy * dy);
+            if (sDebug.nearestPx < 0.0f || dist < sDebug.nearestPx) {
+                sDebug.nearestPx = dist;
+            }
+            nearCursor = sCloud && dist < 96.0f;
+        }
+        if (!isSelected && !isWeldMate && !nearCursor) {
+            continue;
+        }
+        float radius = isSelected ? 5.0f : (isWeldMate ? 4.0f : 2.5f);
+        uint8_t r = isSelected ? 255 : (isWeldMate ? 255 : 0);
+        uint8_t g = isSelected ? 200 : (isWeldMate ? 120 : 220);
+        uint8_t b = isSelected ? 0 : (isWeldMate ? 0 : 255);
+        float rx[3] = { right[0] * radius, right[1] * radius, right[2] * radius };
+        float uy[3] = { upv[0] * radius, upv[1] * radius, upv[2] * radius };
+        float cx = (float) pos[0], cy = (float) pos[1], cz = (float) pos[2];
+        float corners[4][3] = { { cx - rx[0] - uy[0], cy - rx[1] - uy[1], cz - rx[2] - uy[2] },
+                                { cx + rx[0] - uy[0], cy + rx[1] - uy[1], cz + rx[2] - uy[2] },
+                                { cx + rx[0] + uy[0], cy + rx[1] + uy[1], cz + rx[2] + uy[2] },
+                                { cx - rx[0] + uy[0], cy - rx[1] + uy[1], cz - rx[2] + uy[2] } };
+        ScenePushQuad(vtx, corners, r, g, b);
+        quads++;
+    }
+
+    if (quads == 0) {
+        return;
+    }
+
+    // State block mirrors the collision viewer's proven z-tested setup.
+    Mat4 matrix;
+    gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
+    gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
+    gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK);
+    gDPPipeSync(gDisplayListHead++);
+    gDPSetOtherMode(gDisplayListHead++,
+                    G_AD_NOTPATTERN | G_CD_MAGICSQ | G_CK_NONE | G_TC_FILT | G_TF_BILERP | G_TT_NONE | G_TL_TILE |
+                        G_TD_CLAMP | G_TP_PERSP | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
+                    G_AC_NONE | G_ZS_PIXEL | G_RM_AA_ZB_OPA_SURF | G_RM_AA_ZB_OPA_SURF2);
+    gDPSetCombineMode(gDisplayListHead++, G_CC_SHADE, G_CC_SHADE);
+    mtxf_identity(matrix);
+    AddObjectMatrix(matrix, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
+
+    for (size_t base = 0; base < quads * 4; base += 32) {
+        size_t n = std::min<size_t>(32, quads * 4 - base);
+        gSPVertex(gDisplayListHead++, (uintptr_t) &vtx[base], n, 0);
+        for (size_t q = 0; q + 3 < n; q += 4) {
+            gSP2Triangles(gDisplayListHead++, q, q + 1, q + 2, 0, q, q + 2, q + 3, 0);
+        }
+    }
+    gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
 }
 
 // ---- drag ----
@@ -571,6 +754,9 @@ extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t 
         return 0;
     }
     gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.MergedDL(direction).data());
+    if (!sXray) {
+        EmitSceneOverlay();
+    }
     return 1;
 }
 
@@ -646,6 +832,20 @@ static int sLastOverlayFrame = -1;
 
 void DrawOverlay() {
     if (!ModeActive() || !sCatalog.Built()) {
+        return;
+    }
+    if (!sXray) {
+        // Native mode renders in-scene; only refresh the input diagnostics.
+        ImVec2 m = ImGui::GetIO().MousePos;
+        sDebug.mouseX = m.x;
+        sDebug.mouseY = m.y;
+        auto vprect = GetInterpreter()->mGameWindowViewport;
+        sDebug.vpX = vprect.x;
+        sDebug.vpY = vprect.y;
+        sDebug.vpW = (int) OTRGetGameViewportWidth();
+        sDebug.vpH = (int) OTRGetGameViewportHeight();
+        sDebug.inViewport = MouseInViewport((int) m.x, (int) m.y);
+        sDebug.overUI = PointerOverUI(m.x, m.y);
         return;
     }
     // Runs from both the UI panels and the input tick; draw once per frame,
