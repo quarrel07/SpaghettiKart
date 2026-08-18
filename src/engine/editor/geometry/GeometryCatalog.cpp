@@ -241,6 +241,23 @@ void GeometryCatalog::AddTriangleEdges(int32_t a, int32_t b, int32_t c) {
             mEdges.emplace_back(lo, hi);
         }
     }
+    // Accumulate the face normal on each corner for back-face filtering.
+    if (a >= 0 && b >= 0 && c >= 0) {
+        VertexRef& va = mVertices[a];
+        VertexRef& vb = mVertices[b];
+        VertexRef& vc = mVertices[c];
+        float e1[3] = { (float) (vb.pos[0] - va.pos[0]), (float) (vb.pos[1] - va.pos[1]),
+                        (float) (vb.pos[2] - va.pos[2]) };
+        float e2[3] = { (float) (vc.pos[0] - va.pos[0]), (float) (vc.pos[1] - va.pos[1]),
+                        (float) (vc.pos[2] - va.pos[2]) };
+        float n[3] = { e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2],
+                       e1[0] * e2[1] - e1[1] * e2[0] };
+        for (VertexRef* v : { &va, &vb, &vc }) {
+            v->nrm[0] += n[0];
+            v->nrm[1] += n[1];
+            v->nrm[2] += n[2];
+        }
+    }
 }
 
 void GeometryCatalog::AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data) {
@@ -287,13 +304,11 @@ void GeometryCatalog::EnumerateLeaf(Gfx* cmds, int depth) {
                     return;
                 }
                 break;
-            case G_BRANCH_Z_OTR: {
-                // Enumerate the LOD branch target too; the fall-through path
-                // continues below either way.
-                uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
-                EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), depth + 1);
+            case G_BRANCH_Z_OTR:
+                // The merged render path never takes the LOD branch, so its
+                // target geometry would only produce phantom floating
+                // vertices; skip it.
                 break;
-            }
             case G_VTX_OTR_HASH: {
                 uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
                 Vtx* base = (Vtx*) ResourceGetDataByCrc(hash);

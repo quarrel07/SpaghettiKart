@@ -19,6 +19,7 @@ struct VertexRef {
     int16_t pos[3]; // position at catalog build (pre-edit baseline)
     uint32_t weldGroup;
     Vtx* live; // resolved pointer into the loaded resource (process-cached)
+    float nrm[3] = { 0, 0, 0 }; // accumulated face normal (unnormalized)
 };
 
 // Built once per course from the primary visibility table: the deduplicated

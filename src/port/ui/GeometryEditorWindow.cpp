@@ -44,8 +44,13 @@ static void DrawNudgeRow(const char* label, int axis) {
 }
 
 void GeometryEditorWindow::DrawElement() {
-    // The overlay also caches WantCaptureMouse for the input tick.
     DrawOverlay();
+
+    if (!CVarGetInteger("gGeometryEditorEnabled", 0)) {
+        ImGui::TextWrapped(
+            "The Geometry Editor is off. Turn on \"Enable Geometry Editor\" (Developer > Geometry) to use it.");
+        return;
+    }
 
     Track* track = GetWorld()->GetTrack();
     // The world keeps the last track object alive on the menus; only trust it
@@ -69,7 +74,7 @@ void GeometryEditorWindow::DrawElement() {
     ImGui::Text("Course: %s", track->Props.Name);
     if (info.catalogVertices == 0) {
         ImGui::TextWrapped("Editor inactive: no vertex catalog for this course yet. Start (or restart) a race on one "
-                           "of the 16 GP courses with this window open.");
+                           "of the 16 GP courses with the editor enabled.");
         return;
     }
     ImGui::TextDisabled("%zu vertices in %zu display lists", info.catalogVertices, info.catalogLeaves);
@@ -88,6 +93,11 @@ void GeometryEditorWindow::DrawElement() {
     bool cloud = CloudEnabled();
     if (ImGui::Checkbox("Vertex dots near cursor", &cloud)) {
         SetCloudEnabled(cloud);
+    }
+    ImGui::SameLine();
+    bool hideBack = HideBackfacesEnabled();
+    if (ImGui::Checkbox("Hide back-facing", &hideBack)) {
+        SetHideBackfaces(hideBack);
     }
 
     ImGui::Separator();
@@ -172,6 +182,11 @@ extern std::shared_ptr<PortMenu> mPortMenu;
 static void RegisterGeometryEditorWidgets() {
     mPortMenu->AddSidebarEntry("Developer", "Geometry", 1);
     WidgetPath path = { "Developer", "Geometry", SECTION_COLUMN_1 };
+
+    mPortMenu->AddWidget(path, "Enable Geometry Editor", WIDGET_CVAR_CHECKBOX)
+        .CVar("gGeometryEditorEnabled")
+        .Options(UIWidgets::CheckboxOptions().Tooltip(
+            "Master switch for the track geometry editor: full-course rendering, wireframe, and vertex editing"));
 
     mPortMenu->AddWidget(path, "Popout Geometry Editor", WIDGET_WINDOW_BUTTON)
         .CVar("gGeometryEditorWindow")

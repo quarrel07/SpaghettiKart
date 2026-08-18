@@ -60,6 +60,19 @@ static int32_t sSelected = -1;             // index into sCatalog.Vertices()
 static std::vector<size_t> sMoveSet;       // selected + weld members (catalog indices)
 static bool sWeld = true;
 static bool sCloud = true;
+static bool sHideBackfaces = true;
+
+// Front-facing test from accumulated face normals; vertices with no faces
+// (never triangulated) count as visible.
+static bool RefVisible(const VertexRef& ref, const float camPos[3]) {
+    if (!sHideBackfaces) {
+        return true;
+    }
+    float toCam[3] = { camPos[0] - (float) ref.live->v.ob[0], camPos[1] - (float) ref.live->v.ob[1],
+                       camPos[2] - (float) ref.live->v.ob[2] };
+    float d = ref.nrm[0] * toCam[0] + ref.nrm[1] * toCam[1] + ref.nrm[2] * toCam[2];
+    return d >= 0.0f || (ref.nrm[0] == 0.0f && ref.nrm[1] == 0.0f && ref.nrm[2] == 0.0f);
+}
 
 static DebugStatus sDebug;
 
@@ -108,7 +121,7 @@ static float sDragStartHit[3];
 static Transaction sDragTxn;
 
 static bool ModeActive() {
-    if (!CVarGetInteger("gGeometryEditorWindow", 0)) {
+    if (!CVarGetInteger("gGeometryEditorEnabled", 0)) {
         return false;
     }
     if (gIsMirrorMode != 0 || gGamestate != RACING) {
@@ -188,8 +201,13 @@ static int32_t PickVertex(ViewProjection& vp, float mouseX, float mouseY, float 
     float bestDist = radiusPx * radiusPx;
     float bestW = 1e30f;
     int32_t best = -1;
+    Camera* cam = gScreenOneCtx->camera;
+    float camPos[3] = { cam->pos[0], cam->pos[1], cam->pos[2] };
     for (size_t i = 0; i < refs.size(); i++) {
         if (selectedOnly && (int32_t) i != sSelected) {
+            continue;
+        }
+        if (!RefVisible(refs[i], camPos)) {
             continue;
         }
         float px, py, cw;
@@ -321,6 +339,12 @@ bool CloudEnabled() {
 }
 void SetCloudEnabled(bool enabled) {
     sCloud = enabled;
+}
+bool HideBackfacesEnabled() {
+    return sHideBackfaces;
+}
+void SetHideBackfaces(bool enabled) {
+    sHideBackfaces = enabled;
 }
 
 static void MoveSelectionBy(const float delta[3]) {
@@ -611,21 +635,41 @@ extern "C" void GeometryMode_Tick(void) {
     }
 
     wasMouseDown = isMouseDown;
+
+    // Keep the overlay alive even when no editor panel is on screen.
+    GeometryEditor::DrawOverlay();
 }
 
 namespace GeometryEditor {
+
+static int sLastOverlayFrame = -1;
 
 void DrawOverlay() {
     if (!ModeActive() || !sCatalog.Built()) {
         return;
     }
+    // Runs from both the UI panels and the input tick; draw once per frame,
+    // and only while ImGui is inside a frame.
+    ImGuiContext* ctx = ImGui::GetCurrentContext();
+    if (ctx == nullptr || !ctx->WithinFrameScope || sLastOverlayFrame == ImGui::GetFrameCount()) {
+        return;
+    }
+    sLastOverlayFrame = ImGui::GetFrameCount();
     ViewProjection vp = BuildViewProjection();
     if (!vp.valid) {
         return;
     }
+    // Draw into the game view's own window list so markers stay underneath
+    // the editor windows and menu; foreground only as a fallback.
     ImDrawList* draw = ImGui::GetForegroundDrawList();
+    ImGuiWindow* gameWindow = ImGui::FindWindowByName("Main Game");
+    if (gameWindow != nullptr && gameWindow->Active) {
+        draw = gameWindow->DrawList;
+    }
     ImVec2 mouse = ImGui::GetIO().MousePos;
     const auto& refs = sCatalog.Vertices();
+    Camera* overlayCam = gScreenOneCtx->camera;
+    float camPos[3] = { overlayCam->pos[0], overlayCam->pos[1], overlayCam->pos[2] };
 
     auto viewport = GetInterpreter()->mGameWindowViewport;
     sDebug.mouseX = mouse.x;
@@ -644,12 +688,14 @@ void DrawOverlay() {
         bool valid;
         float mouseDist;
     };
+    draw->PushClipRect(ImVec2((float) sDebug.vpX, (float) sDebug.vpY),
+                       ImVec2((float) (sDebug.vpX + sDebug.vpW), (float) (sDebug.vpY + sDebug.vpH)), false);
     static std::vector<ScreenPt> sScreen;
     sScreen.assign(refs.size(), ScreenPt{ 0, 0, 0, false, 0 });
     for (size_t i = 0; i < refs.size(); i++) {
         int16_t pos[3] = { refs[i].live->v.ob[0], refs[i].live->v.ob[1], refs[i].live->v.ob[2] };
         ScreenPt& sp = sScreen[i];
-        sp.valid = ProjectToScreen(vp, pos, sp.x, sp.y, sp.w);
+        sp.valid = ProjectToScreen(vp, pos, sp.x, sp.y, sp.w) && RefVisible(refs[i], camPos);
         if (!sp.valid) {
             continue;
         }
@@ -697,6 +743,7 @@ void DrawOverlay() {
             draw->AddCircleFilled(ImVec2(sp.x, sp.y), depthR, IM_COL32(0, 220, 255, (int) (80.0f + 175.0f * alpha)));
         }
     }
+    draw->PopClipRect();
 }
 
 } // namespace GeometryEditor
