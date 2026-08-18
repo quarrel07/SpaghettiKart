@@ -33,6 +33,7 @@ void func_802A74BC(void);
 void copy_framebuffer(s32, s32, s32, s32, u16*, u16*);
 void func_802A7728(void);
 void Jumbotron_ReassertSnapshot(void);
+void Jumbotron_GetSampleOrigin(s32* ulx, s32* uly);
 void func_802A7940(void);
 
 extern Vp D_802B8880[];

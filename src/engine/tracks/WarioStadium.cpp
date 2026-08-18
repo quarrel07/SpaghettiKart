@@ -276,14 +276,11 @@ void WarioStadium::Draw(ScreenContext* arg0) {
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_wario_stadium_packed_dl_A88);
     gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
 
-    D_800DC5DC = 88;
-    D_800DC5E0 = 72;
+    // @port Center the sampled window in player one's viewport for the current mode
+    Jumbotron_GetSampleOrigin(&D_800DC5DC, &D_800DC5E0);
     bool liveJumbotron = gActiveScreenMode == SCREEN_MODE_1P;
     if (!liveJumbotron && CVarGetInteger("gMultiplayerNoFeatureCuts", 0)) {
-        // @port Live jumbotron in multiplayer, sampling the same screen region the original snapshot uses
         liveJumbotron = true;
-        D_800DC5DC = (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) ? 0 : 128;
-        D_800DC5E0 = 0;
     }
     // @port Copy once per frame on the frame's first pass; per-viewport copies let
     // later viewports catch the tiles mid-rewrite and show a different image

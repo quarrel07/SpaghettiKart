@@ -830,6 +830,29 @@ void copy_framebuffer(s32 arg0, s32 arg1, s32 width, s32 height, u16* source, u1
 static u16 sJumbotronSnapshot[6][64 * 32];
 static u8 sJumbotronSnapshotValid = 0;
 
+// @port Center the 128x96 sampled window within player one's viewport for the current
+// screen mode, the same framing the 1P jumbotron has always used for the full screen
+void Jumbotron_GetSampleOrigin(s32* ulx, s32* uly) {
+    switch (gActiveScreenMode) {
+        case SCREEN_MODE_2P_SPLITSCREEN_HORIZONTAL:
+            *ulx = 88;
+            *uly = 12;
+            break;
+        case SCREEN_MODE_2P_SPLITSCREEN_VERTICAL:
+            *ulx = 16;
+            *uly = 72;
+            break;
+        case SCREEN_MODE_3P_4P_SPLITSCREEN:
+            *ulx = 16;
+            *uly = 12;
+            break;
+        default:
+            *ulx = 88;
+            *uly = 72;
+            break;
+    }
+}
+
 void Jumbotron_ReassertSnapshot(void) {
     if (!sJumbotronSnapshotValid) {
         return;
@@ -845,12 +868,7 @@ void Jumbotron_ReassertSnapshot(void) {
 static void jumbotron_take_snapshot(void) {
     s16 temp_v0;
 
-    if (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) {
-        D_800DC5DC = 0;
-    } else {
-        D_800DC5DC = 128;
-    }
-    D_800DC5E0 = 0;
+    Jumbotron_GetSampleOrigin(&D_800DC5DC, &D_800DC5E0);
     temp_v0 = (s16) sRenderedFramebuffer - 1;
     if (temp_v0 < 0) {
         temp_v0 = 2;
