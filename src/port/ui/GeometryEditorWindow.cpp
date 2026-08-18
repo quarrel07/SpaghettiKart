@@ -83,6 +83,7 @@ void GeometryEditorWindow::DrawElement() {
                         dbg.tickCount, dbg.mouseDown ? "DOWN" : "up", dbg.mouseX, dbg.mouseY, dbg.vpX, dbg.vpY,
                         dbg.vpW, dbg.vpH, dbg.inViewport ? "in" : "OUT", dbg.nearestPx,
                         dbg.overUI ? "clicks blocked: over UI" : "clicks live");
+    ImGui::TextDisabled("last click: %s", dbg.lastClick);
 
     bool freecam = CVarGetInteger("gFreecam", 0);
     if (ImGui::Button(freecam ? "Switch to Kart Camera" : "Switch to Freecam")) {

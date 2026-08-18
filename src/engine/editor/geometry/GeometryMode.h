@@ -73,6 +73,7 @@ struct DebugStatus {
     bool inViewport = false;
     unsigned int tickCount = 0; // increments every input tick; 0 = tick never ran
     bool mouseDown = false;     // left button as the input tick sees it
+    char lastClick[48] = "none yet"; // outcome of the most recent click
 };
 DebugStatus GetDebugStatus();
 

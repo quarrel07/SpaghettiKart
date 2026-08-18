@@ -157,6 +157,7 @@ struct ViewProjection {
     bool valid = false;
     Mat4 view;
     Mat4 persp;
+    float xAdj = 1.0f; // replicates the interpreter's per-vertex aspect fix
     float vpX, vpY, vpW, vpH;
 };
 
@@ -166,11 +167,22 @@ static ViewProjection BuildViewProjection() {
         return vp;
     }
     Camera* camera = gScreenOneCtx->camera;
-    u16 perspNorm;
-    guPerspectiveF(vp.persp, &perspNorm, camera->fieldOfView, OTRGetAspectRatio(), CM_GetProps()->NearPersp,
-                   CM_GetProps()->FarPersp, 1.0f);
-    guLookAtF(vp.view, camera->pos[0], camera->pos[1], camera->pos[2], camera->lookAt[0], camera->lookAt[1],
-              camera->lookAt[2], camera->up[0], camera->up[1], camera->up[2]);
+    if (camera->perspectiveMatrix != nullptr && camera->lookAtMatrix != nullptr) {
+        // Use the exact matrices the renderer consumed (float Mtx on PC), so
+        // picking agrees with the picture instead of re-deriving the camera.
+        // These were built with the 4:3 aspect; the interpreter widens X per
+        // vertex, so replicate that here.
+        guMtxL2F(vp.persp, camera->perspectiveMatrix);
+        guMtxL2F(vp.view, camera->lookAtMatrix);
+        vp.xAdj = (4.0f / 3.0f) / OTRGetAspectRatio();
+    } else {
+        u16 perspNorm;
+        guPerspectiveF(vp.persp, &perspNorm, camera->fieldOfView, OTRGetAspectRatio(), CM_GetProps()->NearPersp,
+                       CM_GetProps()->FarPersp, 1.0f);
+        guLookAtF(vp.view, camera->pos[0], camera->pos[1], camera->pos[2], camera->lookAt[0], camera->lookAt[1],
+                  camera->lookAt[2], camera->up[0], camera->up[1], camera->up[2]);
+        vp.xAdj = 1.0f;
+    }
     auto viewport = GetInterpreter()->mGameWindowViewport;
     vp.vpX = (float) viewport.x;
     vp.vpY = (float) viewport.y;
@@ -188,7 +200,7 @@ static bool ProjectToScreen(ViewProjection& vp, const int16_t pos[3], float& px,
     if (clip.w < 0.001f) {
         return false;
     }
-    float ndcX = clip.x / clip.w;
+    float ndcX = clip.x * vp.xAdj / clip.w;
     float ndcY = clip.y / clip.w;
     px = vp.vpX + (ndcX * 0.5f + 0.5f) * vp.vpW;
     py = vp.vpY + (0.5f - ndcY * 0.5f) * vp.vpH;
@@ -196,11 +208,13 @@ static bool ProjectToScreen(ViewProjection& vp, const int16_t pos[3], float& px,
     return true;
 }
 
-static int32_t PickVertex(ViewProjection& vp, float mouseX, float mouseY, float radiusPx, bool selectedOnly = false) {
+static int32_t PickVertex(ViewProjection& vp, float mouseX, float mouseY, float radiusPx, bool selectedOnly = false,
+                          float* outBestPx = nullptr) {
     if (!vp.valid || !sCatalog.Built()) {
         return -1;
     }
     const auto& refs = sCatalog.Vertices();
+    float bestAny = 1e30f;
     float bestDist = radiusPx * radiusPx;
     float bestW = 1e30f;
     int32_t best = -1;
@@ -221,11 +235,17 @@ static int32_t PickVertex(ViewProjection& vp, float mouseX, float mouseY, float 
         float dx = px - mouseX;
         float dy = py - mouseY;
         float d2 = dx * dx + dy * dy;
+        if (d2 < bestAny) {
+            bestAny = d2;
+        }
         if (d2 < bestDist || (d2 == bestDist && cw < bestW)) {
             bestDist = d2;
             bestW = cw;
             best = (int32_t) i;
         }
+    }
+    if (outBestPx != nullptr) {
+        *outBestPx = (bestAny < 1e30f) ? std::sqrt(bestAny) : -1.0f;
     }
     return best;
 }
@@ -560,15 +580,27 @@ static void EmitSceneOverlay() {
         uint8_t r = isSelected ? 255 : (isWeldMate ? 255 : 0);
         uint8_t g = isSelected ? 200 : (isWeldMate ? 120 : 220);
         uint8_t b = isSelected ? 0 : (isWeldMate ? 0 : 255);
-        float rx[3] = { right[0] * radius, right[1] * radius, right[2] * radius };
-        float uy[3] = { upv[0] * radius, upv[1] * radius, upv[2] * radius };
         float cx = (float) pos[0], cy = (float) pos[1], cz = (float) pos[2];
-        float corners[4][3] = { { cx - rx[0] - uy[0], cy - rx[1] - uy[1], cz - rx[2] - uy[2] },
-                                { cx + rx[0] - uy[0], cy + rx[1] - uy[1], cz + rx[2] - uy[2] },
-                                { cx + rx[0] + uy[0], cy + rx[1] + uy[1], cz + rx[2] + uy[2] },
-                                { cx - rx[0] + uy[0], cy - rx[1] + uy[1], cz - rx[2] + uy[2] } };
-        ScenePushQuad(vtx, corners, r, g, b);
-        quads++;
+        // Two quads rotated 45 degrees read as a round marker.
+        for (int pass = 0; pass < 2 && quads < kMaxQuads; pass++) {
+            float k = (pass == 0) ? 1.0f : 0.7071f;
+            float rx[3], uy[3];
+            for (int c = 0; c < 3; c++) {
+                if (pass == 0) {
+                    rx[c] = right[c] * radius;
+                    uy[c] = upv[c] * radius;
+                } else {
+                    rx[c] = (right[c] + upv[c]) * radius * k;
+                    uy[c] = (upv[c] - right[c]) * radius * k;
+                }
+            }
+            float corners[4][3] = { { cx - rx[0] - uy[0], cy - rx[1] - uy[1], cz - rx[2] - uy[2] },
+                                    { cx + rx[0] - uy[0], cy + rx[1] - uy[1], cz + rx[2] - uy[2] },
+                                    { cx + rx[0] + uy[0], cy + rx[1] + uy[1], cz + rx[2] + uy[2] },
+                                    { cx - rx[0] + uy[0], cy - rx[1] + uy[1], cz - rx[2] + uy[2] } };
+            ScenePushQuad(vtx, corners, r, g, b);
+            quads++;
+        }
     }
 
     if (quads == 0) {
@@ -812,11 +844,23 @@ extern "C" void GeometryMode_Tick(void) {
     if (!isMouseDown && wasMouseDown) {
         if (sDragging) {
             CommitDrag();
-        } else if (!moved && !uiMouse && MouseInViewport(mouse.x, mouse.y)) {
-            ViewProjection vp = BuildViewProjection();
-            int32_t hit = PickVertex(vp, (float) mouse.x, (float) mouse.y, 12.0f);
-            sSelected = hit;
-            RebuildMoveSet();
+        } else if (!moved) {
+            if (uiMouse) {
+                snprintf(sDebug.lastClick, sizeof(sDebug.lastClick), "blocked: over UI");
+            } else if (!MouseInViewport(mouse.x, mouse.y)) {
+                snprintf(sDebug.lastClick, sizeof(sDebug.lastClick), "blocked: outside view");
+            } else {
+                ViewProjection vp = BuildViewProjection();
+                float bestPx = -1.0f;
+                int32_t hit = PickVertex(vp, (float) mouse.x, (float) mouse.y, 18.0f, false, &bestPx);
+                if (hit >= 0) {
+                    snprintf(sDebug.lastClick, sizeof(sDebug.lastClick), "hit #%d (%.0f px)", hit, bestPx);
+                } else {
+                    snprintf(sDebug.lastClick, sizeof(sDebug.lastClick), "miss (nearest %.0f px)", bestPx);
+                }
+                sSelected = hit;
+                RebuildMoveSet();
+            }
         }
     }
 
