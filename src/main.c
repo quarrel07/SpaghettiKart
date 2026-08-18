@@ -1179,11 +1179,13 @@ void thread5_iteration(void) {
     config_gfx_pool();
     read_controllers();
     FB_CreateFramebuffers();
+    Jumbotron_CreateFramebuffers();
     clear_framebuffer(0); // Clear the framebuffer
     game_state_handler();
 
     // call_render_hook();
 
+    Jumbotron_SelfTest(); // TEMPORARY DIAGNOSTIC
     end_master_display_list();
     display_and_vsync();
 }

@@ -21,6 +21,7 @@
 #include "menus.h"
 #include "port/Engine.h"
 #include "port/interpolation/matrix.h"
+#include "racing/framebuffer_effects.h"
 #include "engine/Matrix.h"
 #include "engine/tracks/Track.h"
 #include "engine/editor/Editor.h"
@@ -850,19 +851,26 @@ static const char* const sJumboTileTextures[6] = {
     gTexture68272C, gTexture682928, gTexture682B24, gTexture682D20, gTexture682F1C, gTexture683118,
 };
 
+// Called every frame alongside FB_CreateFramebuffers; framebuffers only work when
+// created at boot before rendering begins, so these are made up front like the port's own
+void Jumbotron_CreateFramebuffers(void) {
+    s32 i;
+
+    if (sJumboCropFB == -1) {
+        sJumboCropFB = gfx_create_framebuffer(128, 96, 128, 96, false);
+        for (i = 0; i < 6; i++) {
+            sJumboTileFB[i] = gfx_create_framebuffer(64, 32, 64, 32, false);
+        }
+    }
+}
+
 void Jumbotron_LiveRegister(void) {
     s32 i;
 
     if (sJumboLiveRegistered) {
         return;
     }
-    if (sJumboCropFB == -1) {
-        sJumboCropFB = gfx_create_framebuffer(128, 96, 128, 96, false);
-    }
     for (i = 0; i < 6; i++) {
-        if (sJumboTileFB[i] == -1) {
-            sJumboTileFB[i] = gfx_create_framebuffer(64, 32, 64, 32, false);
-        }
         gfx_register_fb_texture(LOAD_ASSET_RAW(sJumboTileTextures[i]), sJumboTileFB[i]);
         LUSLOG_WARN("JUMBODIAG registered tile %d name=%s addr=%p fb=%d", i, sJumboTileTextures[i],
                     LOAD_ASSET_RAW(sJumboTileTextures[i]), sJumboTileFB[i]);
@@ -886,6 +894,69 @@ void Jumbotron_LiveUnregister(void) {
 void Jumbotron_Reset(void) {
     Jumbotron_LiveUnregister();
     sJumbotronSnapshotValid = 0;
+}
+
+// TEMPORARY DIAGNOSTIC — self-test of the blit mechanics, runs once at the menus.
+// Blits a region of the 320x240 capture into a 64x32 framebuffer, reads it back,
+// and logs how many nonblack pixels landed in each quadrant of the target.
+static u16 sJumboProbeA[SCREEN_WIDTH * SCREEN_HEIGHT];
+static u16 sJumboProbeSrc[SCREEN_WIDTH * SCREEN_HEIGHT];
+static u16 sJumboProbeDst[SCREEN_WIDTH * SCREEN_HEIGHT];
+
+static s32 jumbotest_count(const u16* buf, s32 w, s32 h) {
+    s32 n = 0;
+    s32 i;
+    for (i = 0; i < w * h; i++) {
+        if (buf[i] != 0) {
+            n++;
+        }
+    }
+    return n;
+}
+
+void Jumbotron_SelfTest(void) {
+    static s32 sFrame = 0;
+
+    sFrame++;
+    // Probe A: the port's own proven capture path, at the menus
+    if (sFrame == 200) {
+        FB_WriteFramebufferSliceToCPU(&gDisplayListHead, sJumboProbeA, 0);
+    } else if (sFrame == 215) {
+        LUSLOG_WARN("JUMBOTEST probeA slice-capture nonzero=%d (max %d)",
+                    jumbotest_count(sJumboProbeA, SCREEN_WIDTH, SCREEN_HEIGHT), SCREEN_WIDTH * SCREEN_HEIGHT);
+    }
+    // Probe B: run the actual production chain with real content. Probe A populated
+    // the 320x240 capture framebuffer from the menu screen; copy a region of it into
+    // the crop framebuffer, split into tile 0, and read both back.
+    if (sFrame == 232) {
+        gSPMatrix(gDisplayListHead++, &gIdentityMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
+        gDPSetOtherMode(gDisplayListHead++,
+                        G_AD_DISABLE | G_CD_DISABLE | G_CK_NONE | G_TC_FILT | G_TF_POINT | G_TT_NONE | G_TL_TILE |
+                            G_TD_CLAMP | G_TP_NONE | G_CYC_1CYCLE | G_PM_NPRIMITIVE,
+                        G_AC_NONE | G_ZS_PRIM | G_RM_OPA_SURF | G_RM_OPA_SURF2);
+        gSPClearGeometryMode(gDisplayListHead++, G_FOG | G_LIGHTING | G_TEXTURE_GEN | G_TEXTURE_GEN_LINEAR);
+        gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
+        gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, 255);
+        gDPSetCombineLERP(gDisplayListHead++, TEXEL0, 0, ENVIRONMENT, 0, 0, 0, 0, ENVIRONMENT, TEXEL0, 0, ENVIRONMENT,
+                          0, 0, 0, 0, ENVIRONMENT);
+        gsSPSetFB(gDisplayListHead++, sJumboCropFB);
+        gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, 128, 96);
+        gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, gN64ResFrameBuffer);
+        gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, 88, 72, 128 << 2, 96 << 2, 216, 168, G_TX_RENDERTILE,
+                          SCREEN_WIDTH, SCREEN_HEIGHT);
+        gsSPSetFB(gDisplayListHead++, sJumboTileFB[0]);
+        gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, 64, 32);
+        gDPSetTextureImageFB(gDisplayListHead++, 0, 0, 0, sJumboCropFB);
+        gDPImageRectangle(gDisplayListHead++, 0 << 2, 0 << 2, 0, 0, 64 << 2, 32 << 2, 64, 32, G_TX_RENDERTILE, 128,
+                          96);
+        gsSPResetFB(gDisplayListHead++);
+    } else if (sFrame == 235) {
+        gDPReadFB(gDisplayListHead++, sJumboCropFB, sJumboProbeSrc, 0, 0, 128, 96, 0);
+        gDPReadFB(gDisplayListHead++, sJumboTileFB[0], sJumboProbeDst, 0, 0, 64, 32, 0);
+    } else if (sFrame == 245) {
+        LUSLOG_WARN("JUMBOTEST probeB crop=%d (max %d) tile0=%d (max %d)", jumbotest_count(sJumboProbeSrc, 128, 96),
+                    128 * 96, jumbotest_count(sJumboProbeDst, 64, 32), 64 * 32);
+    }
 }
 
 // Emitted at the end of the frame, after the port has captured the framebuffer and

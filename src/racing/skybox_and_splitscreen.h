@@ -38,6 +38,8 @@ void Jumbotron_LiveRegister(void);
 void Jumbotron_LiveUnregister(void);
 void Jumbotron_Reset(void);
 void Jumbotron_EndOfFrameUpdate(void);
+void Jumbotron_SelfTest(void);
+void Jumbotron_CreateFramebuffers(void);
 void func_802A7940(void);
 
 extern Vp D_802B8880[];
