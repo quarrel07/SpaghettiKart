@@ -500,8 +500,10 @@ static void EmitSceneOverlay() {
     sSceneParity ^= 1;
     std::vector<Vtx>& vtx = sSceneVtx[sSceneParity];
     std::vector<Gfx>& dl = sSceneDL[sSceneParity];
+    static std::vector<size_t> sDiscBases;
     vtx.clear();
     dl.clear();
+    sDiscBases.clear();
     vtx.reserve(20000);
 
     ViewProjection vp = BuildViewProjection();
@@ -552,6 +554,8 @@ static void EmitSceneOverlay() {
         quads++;
     }
 
+    size_t edgeVerts = vtx.size();
+
     // Vertex dot billboards: cursor-local cloud plus the selection set.
     uint32_t selectedGroup = (sSelected >= 0) ? refs[sSelected].weldGroup : 0xFFFFFFFF;
     for (size_t i = 0; i < refs.size() && quads < kMaxQuads; i++) {
@@ -581,26 +585,32 @@ static void EmitSceneOverlay() {
         uint8_t g = isSelected ? 200 : (isWeldMate ? 120 : 220);
         uint8_t b = isSelected ? 0 : (isWeldMate ? 0 : 255);
         float cx = (float) pos[0], cy = (float) pos[1], cz = (float) pos[2];
-        // Two quads rotated 45 degrees read as a round marker.
-        for (int pass = 0; pass < 2 && quads < kMaxQuads; pass++) {
-            float k = (pass == 0) ? 1.0f : 0.7071f;
-            float rx[3], uy[3];
-            for (int c = 0; c < 3; c++) {
-                if (pass == 0) {
-                    rx[c] = right[c] * radius;
-                    uy[c] = upv[c] * radius;
-                } else {
-                    rx[c] = (right[c] + upv[c]) * radius * k;
-                    uy[c] = (upv[c] - right[c]) * radius * k;
-                }
-            }
-            float corners[4][3] = { { cx - rx[0] - uy[0], cy - rx[1] - uy[1], cz - rx[2] - uy[2] },
-                                    { cx + rx[0] - uy[0], cy + rx[1] - uy[1], cz + rx[2] - uy[2] },
-                                    { cx + rx[0] + uy[0], cy + rx[1] + uy[1], cz + rx[2] + uy[2] },
-                                    { cx - rx[0] + uy[0], cy - rx[1] + uy[1], cz - rx[2] + uy[2] } };
-            ScenePushQuad(vtx, corners, r, g, b);
-            quads++;
+        // Billboarded 12-segment disc, matching the X-ray circles.
+        size_t discBase = vtx.size();
+        Vtx center;
+        center.v.ob[0] = (int16_t) cx;
+        center.v.ob[1] = (int16_t) cy;
+        center.v.ob[2] = (int16_t) cz;
+        center.v.flag = 0;
+        center.v.tc[0] = 0;
+        center.v.tc[1] = 0;
+        center.v.cn[0] = r;
+        center.v.cn[1] = g;
+        center.v.cn[2] = b;
+        center.v.cn[3] = 255;
+        vtx.push_back(center);
+        for (int seg = 0; seg < 12; seg++) {
+            float ang = (float) seg * (2.0f * (float) M_PI / 12.0f);
+            float ca = std::cos(ang) * radius;
+            float sa = std::sin(ang) * radius;
+            Vtx v = center;
+            v.v.ob[0] = (int16_t) (cx + right[0] * ca + upv[0] * sa);
+            v.v.ob[1] = (int16_t) (cy + right[1] * ca + upv[1] * sa);
+            v.v.ob[2] = (int16_t) (cz + right[2] * ca + upv[2] * sa);
+            vtx.push_back(v);
         }
+        sDiscBases.push_back(discBase);
+        quads++; // budget bookkeeping
     }
 
     if (quads == 0) {
@@ -621,11 +631,19 @@ static void EmitSceneOverlay() {
     mtxf_identity(matrix);
     AddObjectMatrix(matrix, G_MTX_MODELVIEW | G_MTX_LOAD | G_MTX_NOPUSH);
 
-    for (size_t base = 0; base < quads * 4; base += 32) {
-        size_t n = std::min<size_t>(32, quads * 4 - base);
+    for (size_t base = 0; base < edgeVerts; base += 32) {
+        size_t n = std::min<size_t>(32, edgeVerts - base);
         gSPVertex(gDisplayListHead++, (uintptr_t) &vtx[base], n, 0);
         for (size_t q = 0; q + 3 < n; q += 4) {
             gSP2Triangles(gDisplayListHead++, q, q + 1, q + 2, 0, q, q + 2, q + 3, 0);
+        }
+    }
+    for (size_t base : sDiscBases) {
+        gSPVertex(gDisplayListHead++, (uintptr_t) &vtx[base], 13, 0);
+        for (int i = 1; i <= 11; i += 2) {
+            int j = (i % 12) + 1;
+            int k = ((i + 1) % 12) + 1;
+            gSP2Triangles(gDisplayListHead++, 0, i, j, 0, 0, j, k, 0);
         }
     }
     gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
