@@ -895,10 +895,6 @@ void Jumbotron_EndOfFrameUpdate(void) {
     s32 oy;
     s32 renderW;
     s32 renderH;
-    float aspect;
-    float fourByThree = 4.0f / 3.0f;
-    s32 sliceW;
-    s32 sliceX;
     s32 s0;
     s32 t0;
     s32 s1;
@@ -918,22 +914,14 @@ void Jumbotron_EndOfFrameUpdate(void) {
 
     renderW = OTRGetGameRenderWidth();
     renderH = OTRGetGameRenderHeight();
-    aspect = OTRGetAspectRatio();
-    sliceW = renderW;
-    sliceX = 0;
-
-    // Match the center 4:3 slice mapping used by FB_WriteFramebufferSliceToCPU so the
-    // 320x240 sample origins land on the same screen content
-    if (aspect > fourByThree) {
-        sliceW = (s32) (renderW / (aspect / fourByThree));
-        sliceX = (renderW - sliceW) / 2;
-    }
 
     Jumbotron_GetSampleOrigin(&ox, &oy);
 
-    s0 = sliceX + (ox * sliceW) / SCREEN_WIDTH;
+    // The viewports stretch the game's 320x240 coordinate space linearly across the
+    // whole framebuffer, so sample with the same linear mapping
+    s0 = (ox * renderW) / SCREEN_WIDTH;
     t0 = (oy * renderH) / SCREEN_HEIGHT;
-    s1 = sliceX + ((ox + 128) * sliceW) / SCREEN_WIDTH;
+    s1 = ((ox + 128) * renderW) / SCREEN_WIDTH;
     t1 = ((oy + 96) * renderH) / SCREEN_HEIGHT;
 
     gSPMatrix(gDisplayListHead++, &gIdentityMatrix, G_MTX_NOPUSH | G_MTX_LOAD | G_MTX_MODELVIEW);
