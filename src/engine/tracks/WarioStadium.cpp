@@ -229,6 +229,15 @@ void WarioStadium::CopyJumbotron(s32 ulx, s32 uly, s16 portionToDraw, u16* sourc
 void WarioStadium::Draw(ScreenContext* arg0) {
     s16 prevFrame;
 
+    // @port One jumbotron update per frame, on whichever viewport draws first; the
+    // viewport render order changes with mode and winning player, so never assume
+    // a particular camera comes first
+    static s16 sLastJumboUpdateFrame = -1;
+    bool firstPassThisFrame = sLastJumboUpdateFrame != (s16) sRenderedFramebuffer;
+    if (firstPassThisFrame) {
+        sLastJumboUpdateFrame = (s16) sRenderedFramebuffer;
+    }
+
     gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
     gSPSetGeometryMode(gDisplayListHead++, G_SHADING_SMOOTH);
     gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
@@ -236,12 +245,16 @@ void WarioStadium::Draw(ScreenContext* arg0) {
     // Invalidate Jumbotron textures so they update each frame
     // This could be more efficient if we exposed the non-opcode based invalidation to be called
     // inside copy_framebuffers_port
-    gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture68272C);
-    gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682928);
-    gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682B24);
-    gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682D20);
-    gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682F1C);
-    gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture683118);
+    // @port Only on the frame's first pass: one reload per frame means every
+    // viewport draws the same uploaded picture instead of racing a second reload
+    if (firstPassThisFrame) {
+        gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture68272C);
+        gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682928);
+        gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682B24);
+        gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682D20);
+        gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture682F1C);
+        gSPInvalidateTexCache(gDisplayListHead++, (uintptr_t) gTexture683118);
+    }
 
     if (func_80290C20(arg0->camera) == 1) {
         gDPSetCombineMode(gDisplayListHead++, G_CC_SHADE, G_CC_SHADE);
@@ -272,9 +285,9 @@ void WarioStadium::Draw(ScreenContext* arg0) {
         D_800DC5DC = (gActiveScreenMode == SCREEN_MODE_3P_4P_SPLITSCREEN) ? 0 : 128;
         D_800DC5E0 = 0;
     }
-    // @port Copy once per frame on the first viewport's pass; per-viewport copies let
+    // @port Copy once per frame on the frame's first pass; per-viewport copies let
     // later viewports catch the tiles mid-rewrite and show a different image
-    if (arg0->camera->cameraId == 0) {
+    if (firstPassThisFrame) {
         if (liveJumbotron) {
             prevFrame = (s16) sRenderedFramebuffer - 1;
             if (prevFrame < 0) {
