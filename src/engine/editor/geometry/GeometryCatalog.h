@@ -64,6 +64,7 @@ class GeometryCatalog {
 
     Gfx* ResolveWrapper(const char* path);
     bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
+    void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
     int32_t AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);

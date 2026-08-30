@@ -153,6 +153,12 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
                 if (mLeafSeen.insert(hash).second) {
                     mLeafOrder.push_back(hash);
                 }
+            } else {
+                // Course pieces inherit texture state from their in-list
+                // predecessors, so a dropped duplicate must still contribute
+                // its state commands (just not its triangles) or the next
+                // piece draws with whatever texture happens to be loaded.
+                EmitLeafStateOnly((Gfx*) ResourceGetDataByCrc(hash), out, 0);
             }
             if (branch) {
                 return true;
@@ -161,10 +167,14 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
             continue;
         }
         if (op == OP_DL) {
-            if (PlausiblePointer(ptr->words.w1) && emittedLeaves.insert((uint64_t) ptr->words.w1).second) {
-                Gfx call = ptr[0];
-                call.words.w0 &= ~((uintptr_t) 1 << 16);
-                out.push_back(call);
+            if (PlausiblePointer(ptr->words.w1)) {
+                if (emittedLeaves.insert((uint64_t) ptr->words.w1).second) {
+                    Gfx call = ptr[0];
+                    call.words.w0 &= ~((uintptr_t) 1 << 16);
+                    out.push_back(call);
+                } else {
+                    EmitLeafStateOnly((Gfx*) ptr->words.w1, out, 0);
+                }
             }
             if (branch) {
                 return true;
@@ -198,6 +208,71 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
         ptr += words;
     }
     return false; // guard exhausted: not a well-formed wrapper
+}
+
+// Copies a dropped leaf's non-drawing commands (texture loads, tile setup,
+// modes) into the merged list so later pieces inherit the state their
+// authored order relies on. Triangles and vertex loads are skipped.
+void GeometryCatalog::EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth) {
+    if (cmds == nullptr || depth > 8) {
+        return;
+    }
+    Gfx* ptr = cmds;
+    for (int guard = 0; guard < (1 << 18); guard++) {
+        uintptr_t w0 = ptr->words.w0;
+        uintptr_t w1 = ptr->words.w1;
+        uint8_t op = GEO_OPCODE(w0);
+
+        if (op == OP_ENDDL) {
+            return;
+        }
+        switch (op) {
+            case G_MARKER:
+            case G_BRANCH_Z_OTR:
+                break; // skip, no state contribution we replay
+            case G_DL_OTR_HASH: {
+                uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+                EmitLeafStateOnly((Gfx*) ResourceGetDataByCrc(hash), out, depth + 1);
+                if (GEO_C0(w0, 16, 1) != 0) {
+                    return;
+                }
+                break;
+            }
+            case OP_DL:
+                if (PlausiblePointer(w1)) {
+                    EmitLeafStateOnly((Gfx*) w1, out, depth + 1);
+                }
+                if (GEO_C0(w0, 16, 1) != 0) {
+                    return;
+                }
+                break;
+            case G_DL_OTR_FILEPATH:
+                if (PlausiblePointer(w1)) {
+                    EmitLeafStateOnly((Gfx*) ResourceGetDataByName((const char*) w1), out, depth + 1);
+                }
+                if (GEO_C0(w0, 16, 1) != 0) {
+                    return;
+                }
+                break;
+            case G_VTX_OTR_HASH:
+            case G_VTX_OTR_FILEPATH:
+            case 0x48: // G_VTX_WIDE
+            case OP_VTX:
+            case G_TRI1_OTR:
+            case OP_TRI1:
+            case OP_TRI2:
+            case OP_QUAD:
+                break; // drawing commands: dropped
+            default: {
+                int words = CommandWords(op);
+                for (int i = 0; i < words; i++) {
+                    out.push_back(ptr[i]);
+                }
+                break;
+            }
+        }
+        ptr += CommandWords(op);
+    }
 }
 
 int32_t GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
