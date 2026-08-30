@@ -34,6 +34,7 @@ struct SelectionInfo {
     int16_t uv[2] = { 0, 0 };
     uint8_t color[4] = { 0, 0, 0, 0 };
     int weldCount = 0;
+    bool drawnInRace = false; // racing also draws this vertex
     size_t catalogVertices = 0;
     size_t catalogLeaves = 0;
 };

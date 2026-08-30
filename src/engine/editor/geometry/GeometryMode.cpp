@@ -370,6 +370,7 @@ SelectionInfo GetSelection() {
         }
     }
     info.weldCount = weldCount;
+    info.drawnInRace = ref.drawnInRace;
     return info;
 }
 

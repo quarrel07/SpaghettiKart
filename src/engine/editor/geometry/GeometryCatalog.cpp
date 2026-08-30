@@ -121,9 +121,20 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
 
     if (creditsRoot != nullptr) {
         EnumerateLeaf(creditsRoot, 0);
+        // Second pass: flag which catalog vertices the racing lists also
+        // reference, so the inspector can warn before an edit that races
+        // will never show.
+        mMarkOnly = true;
+        for (uint64_t hash : mLeafOrder) {
+            EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
+        }
+        mMarkOnly = false;
     } else {
         for (uint64_t hash : mLeafOrder) {
             EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
+        }
+        for (auto& r : mVertices) {
+            r.drawnInRace = true;
         }
     }
     if (mVertices.empty()) {
@@ -291,7 +302,13 @@ int32_t GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
     std::pair<uint64_t, uint16_t> key(slot.resCrc, (uint16_t) (slot.baseIndex + offset));
     auto it = mRefIndex.find(key);
     if (it != mRefIndex.end()) {
+        if (mMarkOnly) {
+            mVertices[it->second].drawnInRace = true;
+        }
         return (int32_t) it->second;
+    }
+    if (mMarkOnly) {
+        return -1; // marking pass never creates refs
     }
     VertexRef ref;
     ref.resCrc = key.first;

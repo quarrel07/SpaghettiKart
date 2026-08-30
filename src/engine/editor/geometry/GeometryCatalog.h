@@ -20,6 +20,7 @@ struct VertexRef {
     uint32_t weldGroup;
     Vtx* live; // resolved pointer into the loaded resource (process-cached)
     float nrm[3] = { 0, 0, 0 }; // accumulated face normal (unnormalized)
+    bool drawnInRace = false; // also referenced by the racing section lists
 };
 
 // Built once per course from the primary visibility table: the deduplicated
@@ -67,6 +68,7 @@ class GeometryCatalog {
     };
 
     Gfx* ResolveWrapper(const char* path);
+    bool mMarkOnly = false; // enumeration pass flags existing refs instead of creating
     bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
     void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
     void EnumerateLeaf(Gfx* cmds, int depth);

@@ -144,6 +144,12 @@ void GeometryEditorWindow::DrawElement() {
     }
 
     ImGui::Text("Vertex: %s [%u]", ShortResName(info.resName), info.index);
+    if (info.drawnInRace) {
+        ImGui::TextDisabled("Drawn in: races + credits view");
+    } else {
+        ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.3f, 1.0f),
+                           "Credits view only: real races draw another version of this surface");
+    }
     if (info.resName != nullptr && ImGui::IsItemHovered()) {
         ImGui::SetTooltip("%s", info.resName);
     }
