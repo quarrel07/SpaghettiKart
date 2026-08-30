@@ -50,6 +50,7 @@ extern "C" {
 #include "update_objects.h"
 #include "spawn_players.h"
 #include "src/enhancements/collision_viewer.h"
+#include "src/enhancements/freecam/freecam_engine.h"
 #include "code_800029B0.h"
 #include "code_80057C60.h"
 // #include "engine/wasm.h"
@@ -514,6 +515,9 @@ void CM_SetFreeCamera(bool state) {
     for (auto& cam : GetWorld()->Cameras) {
         if (cam->Get() == gScreenOneCtx->freeCamera) {
             if (state) {
+                // Continue from the current view instead of the freecam's
+                // last resting spot.
+                freecam_start_from(gScreenOneCtx->freeCamera, gScreenOneCtx->camera);
                 gScreenOneCtx->pendingCamera = gScreenOneCtx->freeCamera;
                 cam->SetActive(true);
             } else {

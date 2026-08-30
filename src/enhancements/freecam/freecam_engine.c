@@ -62,6 +62,43 @@ void freecam_calculate_forward_vector_allow_rotation(Camera* camera, Vec3f forwa
     forwardVector[2] = cosf(yaw);
 }
 
+void freecam_start_from(Camera* freecamCamera, Camera* source) {
+    f32 dx, dy, dz, hlen, yaw, sp, pitch;
+    s32 i;
+
+    if (freecamCamera == NULL || source == NULL || freecamCamera == source) {
+        return;
+    }
+    for (i = 0; i < 3; i++) {
+        freecamCamera->pos[i] = source->pos[i];
+        freecamCamera->lookAt[i] = source->lookAt[i];
+        freecamCamera->up[i] = source->up[i];
+        freeCam.velocity[i] = 0.0f;
+        freeCam.rotVelocity[i] = 0.0f;
+    }
+    dx = source->lookAt[0] - source->pos[0];
+    dy = source->lookAt[1] - source->pos[1];
+    dz = source->lookAt[2] - source->pos[2];
+    hlen = sqrtf(dx * dx + dz * dz);
+    if (hlen > 0.001f) {
+        // Inverse of freecam_calculate_forward_vector_allow_rotation:
+        // forward = (sin(yaw), -sin(pitch), cos(yaw)) with unit XZ.
+        yaw = atan2f(dx, dz);
+        if (yaw < 0.0f) {
+            yaw += 2.0f * M_PI;
+        }
+        sp = -dy / hlen;
+        if (sp > 1.0f) {
+            sp = 1.0f;
+        } else if (sp < -1.0f) {
+            sp = -1.0f;
+        }
+        pitch = asinf(sp);
+        freecamCamera->rot[1] = (s16) (u16) (yaw / (2.0f * M_PI) * 65535.0f);
+        freecamCamera->rot[2] = (s16) (s32) (pitch / (2.0f * M_PI) * 65535.0f);
+    }
+}
+
 f32 gFreecamFollowFactor = 0.7;
 
 void freecam_target_player(Camera* camera, Vec3f forwardVector) {
