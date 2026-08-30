@@ -696,6 +696,63 @@ static void EmitSceneOverlay() {
     gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
 }
 
+// ---- TEMP frame dump diagnostic ----
+
+static bool sDumpRequested = false;
+static int sDumpCounter = 0;
+
+void RequestFrameDump() {
+    sDumpRequested = true;
+}
+
+static void DumpGfx(FILE* f, Gfx* ptr, int depth) {
+    if (ptr == nullptr || depth > 12) {
+        return;
+    }
+    for (int guard = 0; guard < (1 << 20); guard++) {
+        uintptr_t w0 = ptr->words.w0;
+        uintptr_t w1 = ptr->words.w1;
+        uint8_t op = (uint8_t) ((w0 >> 24) & 0xFF);
+        fprintf(f, "%*s%02X %08X %08X", depth * 2, "", op, (uint32_t) w0, (uint32_t) w1);
+        if (op == 0x31 || op == 0x32 || op == 0x33 || op == 0x20 || op == 0x35 || op == 0x36 || op == 0x42) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            const char* n = ResourceGetNameByCrc(hash);
+            fprintf(f, "  %s", n != nullptr ? n : "(unresolved)");
+        }
+        fprintf(f, "\n");
+        if (op == (uint8_t) (G_ENDDL & 0xFF)) {
+            return;
+        }
+        if (op == 0x31) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            DumpGfx(f, (Gfx*) ResourceGetDataByCrc(hash), depth + 1);
+            ptr += 2;
+            continue;
+        }
+        if (op == (uint8_t) (G_DL & 0xFF)) {
+            if (w1 >= 0x10000 && w1 < ((uintptr_t) 1 << 48)) {
+                DumpGfx(f, (Gfx*) w1, depth + 1);
+            }
+            if (((w0 >> 16) & 1) != 0) {
+                return;
+            }
+            ptr += 1;
+            continue;
+        }
+        switch (op) {
+            case 0x20: case 0x24: case 0x32: case 0x33: case 0x35: case 0x36:
+            case 0x38: case 0x3E: case 0x3F: case 0x42: case 0x47:
+                ptr += 2; break;
+            case 0x37: case 0x3C: case 0x45: case 0xE4: case 0xE5:
+                ptr += 3; break;
+            case 0x4A:
+                ptr += 5; break;
+            default:
+                ptr += 1; break;
+        }
+    }
+}
+
 // ---- drag ----
 
 static bool MouseRayPlaneHit(float outHit[3]) {
@@ -779,6 +836,26 @@ static void CommitDrag() {
 } // namespace GeometryEditor
 
 // ---- C bridge ----
+
+extern "C" void GeometryMode_DumpFrame(void* pool) {
+    using namespace GeometryEditor;
+    if (!sDumpRequested || pool == nullptr) {
+        return;
+    }
+    sDumpRequested = false;
+    char path[512];
+    snprintf(path, sizeof(path),
+             "/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/framedump_%d.txt",
+             sDumpCounter++);
+    FILE* f = fopen(path, "w");
+    if (f == nullptr) {
+        return;
+    }
+    fprintf(f, "# frame dump, freecam=%d gamestate=%d\n", CVarGetInteger("gFreecam", 0), gGamestate);
+    DumpGfx(f, (Gfx*) pool, 0);
+    fclose(f);
+    printf("[GeometryMode] frame dumped to %s\n", path);
+}
 
 extern "C" int32_t GeometryMode_IsActive(void) {
     return GeometryEditor::ModeActive() ? 1 : 0;

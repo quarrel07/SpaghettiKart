@@ -84,6 +84,10 @@ void GeometryEditorWindow::DrawElement() {
                         dbg.vpW, dbg.vpH, dbg.inViewport ? "in" : "OUT", dbg.nearestPx,
                         dbg.overUI ? "clicks blocked: over UI" : "clicks live");
     ImGui::TextDisabled("last click: %s", dbg.lastClick);
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Dump frame")) {
+        RequestFrameDump();
+    }
 
     bool freecam = CVarGetInteger("gFreecam", 0);
     if (ImGui::Button(freecam ? "Switch to Kart Camera" : "Switch to Freecam")) {
@@ -105,6 +109,10 @@ void GeometryEditorWindow::DrawElement() {
     if (ImGui::Checkbox("X-ray", &xray)) {
         SetXray(xray);
     }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(
+            "Show vertices and wireframe through geometry (screen overlay) instead of depth-tested in-scene rendering");
+    }
     int view = CourseView();
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Course assembly:");
@@ -122,9 +130,6 @@ void GeometryEditorWindow::DrawElement() {
         ImGui::SetTooltip("Credits (default) = the authored one-of-each course; stable, and what the wireframe and "
                           "vertices now follow.\nRace = the raw union of the racing section lists; detail variants "
                           "overlap and shimmer there, which makes it a diagnostic view for spotting them.");
-    }
-    if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Show vertices and wireframe through geometry (screen overlay) instead of depth-tested in-scene rendering");
     }
 
     ImGui::Separator();

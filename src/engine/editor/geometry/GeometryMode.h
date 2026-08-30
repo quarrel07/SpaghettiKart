@@ -10,6 +10,9 @@ extern "C" {
 #endif
 
 int32_t GeometryMode_IsActive(void);
+// TEMP diagnostic: walks the completed frame command stream into a text file
+// when a dump was requested from the editor window.
+void GeometryMode_DumpFrame(void* pool);
 // Returns 1 if it drew the course (caller must return without the normal
 // section draw); 0 to fall through to the game's own path.
 int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t direction);
@@ -66,6 +69,7 @@ size_t EditCount();
 // Draws vertex markers into the ImGui foreground draw list; call from the
 // editor window's DrawElement (inside the ImGui frame).
 void DrawOverlay();
+void RequestFrameDump();
 
 // Live input diagnostics so one screenshot shows why clicks or dots
 // misbehave: cursor position, game-viewport rectangle, distance to the

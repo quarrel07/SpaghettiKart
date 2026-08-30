@@ -57,6 +57,7 @@ extern "C" {
 }
 
 extern "C" void Graphics_PushFrame(Gfx* pool) {
+    GeometryMode_DumpFrame(pool);
     GameEngine::ProcessGfxCommands(pool);
 }
 
