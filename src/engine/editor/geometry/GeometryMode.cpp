@@ -64,6 +64,7 @@ static bool sWeld = true;
 static bool sCloud = true;
 static bool sHideBackfaces = true;
 static bool sXray = false;
+static int sCourseView = 0; // 0 = race assembly, 1 = credits assembly
 
 // Front-facing test from accumulated face normals; vertices with no faces
 // (never triangulated) count as visible.
@@ -374,6 +375,12 @@ bool XrayEnabled() {
 }
 void SetXray(bool enabled) {
     sXray = enabled;
+}
+int CourseView() {
+    return sCourseView;
+}
+void SetCourseView(int view) {
+    sCourseView = view;
 }
 
 static void MoveSelectionBy(const float delta[3]) {
@@ -803,7 +810,14 @@ extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t 
     if ((size_t) (direction & 3) != (size_t) direction) {
         return 0;
     }
-    gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.MergedDL(direction).data());
+    if (sCourseView == 1) {
+        // Credits assembly, with the race-union overlay kept on top: any
+        // mismatch shows as wireframe without a surface (race-only piece)
+        // or surface without wireframe (credits-only piece).
+        GetWorld()->GetTrack()->DrawCredits();
+    } else {
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.MergedDL(direction).data());
+    }
     if (!sXray) {
         EmitSceneOverlay();
     }

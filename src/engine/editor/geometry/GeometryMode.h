@@ -50,6 +50,10 @@ bool HideBackfacesEnabled();
 void SetHideBackfaces(bool enabled);
 bool XrayEnabled();
 void SetXray(bool enabled);
+// 0 = race assembly (merged union of the racing visibility lists),
+// 1 = credits assembly (the authored full-course credits list).
+int CourseView();
+void SetCourseView(int view);
 // axis: 0 = X (left/right), 1 = Y (down/up), 2 = Z (back/forward)
 void Nudge(int axis, int amount);
 void SetAxisValue(int axis, int value);

@@ -105,6 +105,24 @@ void GeometryEditorWindow::DrawElement() {
     if (ImGui::Checkbox("X-ray", &xray)) {
         SetXray(xray);
     }
+    int view = CourseView();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Course assembly:");
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Race", view == 0)) {
+        SetCourseView(0);
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Credits", view == 1)) {
+        SetCourseView(1);
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Race = the union of what racing actually draws (what you edit).\nCredits = the authored "
+                          "full-course list freecam uses when the editor is off.\nFlip between them from one spot to "
+                          "see any differences; the wireframe always shows the race assembly.");
+    }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Show vertices and wireframe through geometry (screen overlay) instead of depth-tested in-scene rendering");
     }
