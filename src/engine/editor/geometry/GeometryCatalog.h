@@ -23,6 +23,20 @@ struct VertexRef {
     bool drawnInRace = false; // also referenced by the racing section lists
 };
 
+// A course section's physical location, from the TrackSections asset.
+struct SectionCentroid {
+    int sectionId;
+    float pos[3];
+};
+
+// One racing leaf's LOD classification.
+enum class LeafClass : uint8_t {
+    Near,     // its home section's own lists draw it: the up-close version
+    Far,      // only distant sections draw it and a Near leaf overlaps it
+    Unique,   // no overlapping sibling; kept in both Force modes
+    Unplaced, // no vertex data to place it with; kept in both Force modes
+};
+
 // Built once per course from the primary visibility table: the deduplicated
 // leaf set, four merged per-direction display lists, and every referenced
 // vertex with weld grouping by identical position.
@@ -41,7 +55,21 @@ class GeometryCatalog {
     // vertices/edges are enumerated from it so the catalog matches what the
     // stable credits assembly actually draws. Without it, enumeration falls
     // back to the merged union.
-    void Build(const char* const wrappers[], size_t sectionCount, Gfx* creditsRoot);
+    void Build(const char* const wrappers[], size_t sectionCount, Gfx* creditsRoot,
+               const std::vector<SectionCentroid>& sectionCentroids);
+
+    struct LeafInfo {
+        uint64_t hash = 0;
+        float boxMin[3] = { 0, 0, 0 };
+        float boxMax[3] = { 0, 0, 0 };
+        bool hasBox = false;
+        int homeSection = -1;
+        bool inHomeList = false;
+        LeafClass cls = LeafClass::Unplaced;
+    };
+    const std::vector<LeafInfo>& Leaves() const {
+        return mLeafInfo;
+    }
 
     const std::vector<Gfx>& MergedDL(int direction) const {
         return mMerged[direction & 3];
@@ -70,6 +98,7 @@ class GeometryCatalog {
     Gfx* ResolveWrapper(const char* path);
     bool mMarkOnly = false; // enumeration pass flags existing refs instead of creating
     bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
+    void ClassifyLeaves(const std::vector<SectionCentroid>& sectionCentroids);
     void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
@@ -81,6 +110,11 @@ class GeometryCatalog {
     std::vector<Gfx> mMerged[4];
     std::vector<uint64_t> mLeafOrder;
     std::unordered_set<uint64_t> mLeafSeen;
+    std::unordered_map<uint64_t, std::unordered_set<int>> mLeafSections; // leaf -> section ids listing it
+    std::vector<LeafInfo> mLeafInfo;
+    std::unordered_map<uint64_t, size_t> mLeafInfoIndex;
+    uint64_t mCurrentLeaf = 0; // attribution target during enumeration
+    int mMergeSection = -1;    // section id during wrapper merging
     SlotRef mSlots[64];
     Vtx* mSlotData[64] = { nullptr };
     std::map<std::pair<uint64_t, uint16_t>, size_t> mRefIndex;

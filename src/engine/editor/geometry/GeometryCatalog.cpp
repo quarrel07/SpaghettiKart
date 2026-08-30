@@ -73,6 +73,11 @@ void GeometryCatalog::Reset() {
     }
     mLeafOrder.clear();
     mLeafSeen.clear();
+    mLeafSections.clear();
+    mLeafInfo.clear();
+    mLeafInfoIndex.clear();
+    mCurrentLeaf = 0;
+    mMergeSection = -1;
     mRefIndex.clear();
     mVertices.clear();
     mEdges.clear();
@@ -94,13 +99,15 @@ Gfx* GeometryCatalog::ResolveWrapper(const char* path) {
     return (Gfx*) ResourceGetDataByName(path);
 }
 
-void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, Gfx* creditsRoot) {
+void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, Gfx* creditsRoot,
+                            const std::vector<SectionCentroid>& sectionCentroids) {
     Reset();
 
     bool ok = sectionCount > 0;
     for (int direction = 0; direction < 4 && ok; direction++) {
         std::unordered_set<uint64_t> emittedLeaves;
         for (size_t s = 0; s < sectionCount; s++) {
+            mMergeSection = (int) s + 1;
             Gfx* cmds = ResolveWrapper(wrappers[s * 4 + direction]);
             if (cmds == nullptr || !MergeWrapper(cmds, mMerged[direction], emittedLeaves)) {
                 ok = false;
@@ -120,15 +127,23 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
     }
 
     if (creditsRoot != nullptr) {
+        mCurrentLeaf = 0;
         EnumerateLeaf(creditsRoot, 0);
         // Second pass: flag which catalog vertices the racing lists also
-        // reference, so the inspector can warn before an edit that races
-        // will never show.
+        // reference (for the inspector warning) and attribute a bounding box
+        // to every racing leaf for LOD classification.
         mMarkOnly = true;
         for (uint64_t hash : mLeafOrder) {
+            mCurrentLeaf = hash;
+            LeafInfo info;
+            info.hash = hash;
+            mLeafInfoIndex.emplace(hash, mLeafInfo.size());
+            mLeafInfo.push_back(info);
             EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
         }
         mMarkOnly = false;
+        mCurrentLeaf = 0;
+        ClassifyLeaves(sectionCentroids);
     } else {
         for (uint64_t hash : mLeafOrder) {
             EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
@@ -165,6 +180,9 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
         }
         if (op == G_DL_OTR_HASH) {
             uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            if (mMergeSection > 0) {
+                mLeafSections[hash].insert(mMergeSection);
+            }
             if (emittedLeaves.insert(hash).second) {
                 Gfx call = ptr[0];
                 call.words.w0 &= ~((uintptr_t) 1 << 16);
@@ -228,6 +246,72 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
         ptr += words;
     }
     return false; // guard exhausted: not a well-formed wrapper
+}
+
+// Assigns each racing leaf a home section by proximity and classifies it:
+// drawn by its home section's own lists = the up-close (Near) version; not,
+// but spatially overlapped by a Near leaf = a Far stand-in; otherwise Unique.
+void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& sectionCentroids) {
+    if (sectionCentroids.empty()) {
+        return;
+    }
+    for (auto& li : mLeafInfo) {
+        if (!li.hasBox) {
+            li.cls = LeafClass::Unplaced;
+            continue;
+        }
+        float c[3] = { (li.boxMin[0] + li.boxMax[0]) * 0.5f, (li.boxMin[1] + li.boxMax[1]) * 0.5f,
+                       (li.boxMin[2] + li.boxMax[2]) * 0.5f };
+        float best = 1e30f;
+        for (const auto& sc : sectionCentroids) {
+            float dx = c[0] - sc.pos[0], dy = c[1] - sc.pos[1], dz = c[2] - sc.pos[2];
+            float d = dx * dx + dy * dy + dz * dz;
+            if (d < best) {
+                best = d;
+                li.homeSection = sc.sectionId;
+            }
+        }
+        auto it = mLeafSections.find(li.hash);
+        li.inHomeList = it != mLeafSections.end() && it->second.count(li.homeSection) != 0;
+        li.cls = li.inHomeList ? LeafClass::Near : LeafClass::Unique; // Unique pending overlap check
+    }
+    // Second pass: a not-at-home leaf overlapped by a Near leaf is a Far
+    // stand-in; without such a sibling it is unique scenery and stays.
+    const float m = 30.0f; // overlap margin in course units
+    for (auto& li : mLeafInfo) {
+        if (li.cls != LeafClass::Unique || !li.hasBox) {
+            continue;
+        }
+        for (const auto& other : mLeafInfo) {
+            if (other.cls != LeafClass::Near || !other.hasBox) {
+                continue;
+            }
+            bool overlap = li.boxMin[0] - m <= other.boxMax[0] && li.boxMax[0] + m >= other.boxMin[0] &&
+                           li.boxMin[1] - m <= other.boxMax[1] && li.boxMax[1] + m >= other.boxMin[1] &&
+                           li.boxMin[2] - m <= other.boxMax[2] && li.boxMax[2] + m >= other.boxMin[2];
+            if (overlap) {
+                li.cls = LeafClass::Far;
+                break;
+            }
+        }
+    }
+    size_t nNear = 0, nFar = 0, nUnique = 0, nUnplaced = 0;
+    for (const auto& li : mLeafInfo) {
+        switch (li.cls) {
+            case LeafClass::Near: nNear++; break;
+            case LeafClass::Far: nFar++; break;
+            case LeafClass::Unique: nUnique++; break;
+            case LeafClass::Unplaced: nUnplaced++; break;
+        }
+    }
+    printf("[GeometryMode] LOD classification: %zu near, %zu far stand-ins, %zu unique, %zu unplaced\n", nNear, nFar,
+           nUnique, nUnplaced);
+    for (const auto& li : mLeafInfo) {
+        if (li.cls == LeafClass::Far) {
+            const char* n = ResourceGetNameByCrc(li.hash);
+            printf("[GeometryMode]   far: %s (home section %d)\n", n != nullptr ? n : "?", li.homeSection);
+        }
+    }
 }
 
 // Copies a dropped leaf's non-drawing commands (texture loads, tile setup,
@@ -298,6 +382,24 @@ void GeometryCatalog::EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int de
 int32_t GeometryCatalog::AddRef(const SlotRef& slot, uint32_t offset, Vtx* v) {
     if (slot.baseIndex < 0 || v == nullptr) {
         return -1;
+    }
+    if (mCurrentLeaf != 0) {
+        auto it = mLeafInfoIndex.find(mCurrentLeaf);
+        if (it != mLeafInfoIndex.end()) {
+            LeafInfo& li = mLeafInfo[it->second];
+            float p[3] = { (float) v->v.ob[0], (float) v->v.ob[1], (float) v->v.ob[2] };
+            if (!li.hasBox) {
+                for (int i = 0; i < 3; i++) {
+                    li.boxMin[i] = li.boxMax[i] = p[i];
+                }
+                li.hasBox = true;
+            } else {
+                for (int i = 0; i < 3; i++) {
+                    li.boxMin[i] = std::min(li.boxMin[i], p[i]);
+                    li.boxMax[i] = std::max(li.boxMax[i], p[i]);
+                }
+            }
+        }
     }
     std::pair<uint64_t, uint16_t> key(slot.resCrc, (uint16_t) (slot.baseIndex + offset));
     auto it = mRefIndex.find(key);

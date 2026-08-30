@@ -2,7 +2,9 @@
 #include "GeometryCatalog.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <map>
 #include <cstdio>
 #include <vector>
 
@@ -46,6 +48,7 @@ static GeometryCatalog sCatalog;
 static const char* const* sPrimaryTable = nullptr;
 static size_t sSectionCount = 0;
 static const void* sCatalogTrack = nullptr; // Track* the catalog belongs to
+static std::vector<SectionCentroid> sSectionCentroids;
 
 // Visibility-table row counts per course, from the course_offsets arrays
 // (entries / 4). The collision sections list can disagree with the table, so
@@ -884,11 +887,24 @@ extern "C" void GeometryMode_OnTrackSectionsParsed(void* sections) {
 
     TrackSections* section = (TrackSections*) sections;
     size_t maxSection = 0;
+    std::map<int, std::array<double, 4>> acc; // sectionId -> sum xyz + count
     while (section != nullptr && section->crc != 0) {
         if (section->sectionId > maxSection) {
             maxSection = section->sectionId;
         }
+        auto& a = acc[section->sectionId];
+        a[0] += section->location[0];
+        a[1] += section->location[1];
+        a[2] += section->location[2];
+        a[3] += 1.0;
         section++;
+    }
+    sSectionCentroids.clear();
+    for (const auto& [id, a] : acc) {
+        if (a[3] > 0) {
+            sSectionCentroids.push_back(
+                { id, { (float) (a[0] / a[3]), (float) (a[1] / a[3]), (float) (a[2] / a[3]) } });
+        }
     }
     Track* track = GetWorld()->GetTrack();
     size_t tableLimit = SectionTableLimit(track);
@@ -941,7 +957,7 @@ extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t 
     if (!sCatalog.Built()) {
         const char* creditsPath = CreditsRootFor(GetWorld()->GetTrack());
         Gfx* creditsRoot = (creditsPath != nullptr) ? (Gfx*) ResourceGetDataByName(creditsPath) : nullptr;
-        sCatalog.Build(addr, sSectionCount, creditsRoot);
+        sCatalog.Build(addr, sSectionCount, creditsRoot, sSectionCentroids);
         if (sCatalog.Failed()) {
             return 0;
         }
