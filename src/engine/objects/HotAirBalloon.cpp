@@ -89,6 +89,10 @@ void OHotAirBalloon::func_80055CCC(s32 objectIndex, s32 cameraId) {
         FrameInterpolation_RecordCloseChild();
         if (is_obj_index_flag_status_inactive(objectIndex, 0x00100000) != 0) {
             FrameInterpolation_RecordOpenChild("hot_air_balloon2", (_objectIndex << 5) | cameraId);
+            // The balloon display lists load their own texture and lights but
+            // inherit the lighting geometry mode; without this it renders
+            // unshaded (white) whenever the previous draw left lighting off.
+            gSPSetGeometryMode(gDisplayListHead++, G_SHADE | G_LIGHTING | G_SHADING_SMOOTH);
             func_80043328(gObjectList[objectIndex].pos, (u16*) gObjectList[objectIndex].direction_angle,
                           gObjectList[objectIndex].sizeScaling, (Gfx*)d_course_luigi_raceway_dl_F960);
             gSPDisplayList(gDisplayListHead++, (Gfx*)d_course_luigi_raceway_dl_F650);
@@ -100,6 +104,7 @@ void OHotAirBalloon::func_80055CCC(s32 objectIndex, s32 cameraId) {
                        0x8000);
             D_80183E80[2] = (u16) gObjectList[objectIndex].direction_angle[2];
             FrameInterpolation_RecordOpenChild("hot_air_balloon3", (_objectIndex << 5) | cameraId);
+            gSPSetGeometryMode(gDisplayListHead++, G_SHADE | G_LIGHTING | G_SHADING_SMOOTH);
             func_80043328(gObjectList[objectIndex].pos, D_80183E80, gObjectList[objectIndex].sizeScaling,
                           (Gfx*)d_course_luigi_raceway_dl_FBE0);
             gSPDisplayList(gDisplayListHead++, (Gfx*)d_course_luigi_raceway_dl_FA20);
