@@ -331,12 +331,16 @@ void CM_DrawTrack(ScreenContext* screen) {
                     // the full track itself through the section hook.
                     GetWorld()->GetTrack()->Draw(screen);
                 } else {
-                    // The credits DL is the authored, self-sufficient full
-                    // course. Drawing the sectioned course on top of it (the
-                    // old fallthrough) both double-drew geometry and ran the
-                    // section lists with texture state the credits pass had
-                    // already replaced, corrupting inherited textures.
-                    GetWorld()->GetTrack()->DrawCredits();
+                    // Freecam: run the course's full Draw() so its state
+                    // preamble (texture enable, combine mode that applies the
+                    // baked vertex shading) and post-section decals (shadows)
+                    // all execute, but substitute the authored full-course
+                    // credits list for the section draw inside it. Calling
+                    // DrawCredits() bare skipped that state and rendered the
+                    // course unshaded.
+                    GeometryMode_MarkTrackPass(1);
+                    GetWorld()->GetTrack()->Draw(screen);
+                    GeometryMode_MarkTrackPass(0);
                 }
                 break;
             case RENDER_TRACK_SECTIONS:

@@ -192,6 +192,10 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
         return;
     }
 
+    if (GeometryMode_StockFreecamDraw()) {
+        return;
+    }
+
     index = ((index - 1) * 4) + direction;
     gSPDisplayList(gDisplayListHead++, addr[index]);
 

@@ -17,6 +17,12 @@ void GeometryMode_DumpFrame(void* pool);
 // section draw); 0 to fall through to the game's own path.
 int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t direction);
 void GeometryMode_OnTrackSectionsParsed(void* sections);
+// Stock-freecam support: CM_DrawTrack marks the main track pass, and inside
+// render_track_sections the marked pass substitutes the credits list for the
+// section list, so the course's own Draw() preamble and post-section extras
+// (combine modes, shading state, decal shadows) still run around it.
+void GeometryMode_MarkTrackPass(int32_t inPass);
+int32_t GeometryMode_StockFreecamDraw(void);
 void GeometryMode_Tick(void);
 
 #ifdef __cplusplus

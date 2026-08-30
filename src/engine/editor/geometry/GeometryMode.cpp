@@ -899,6 +899,28 @@ extern "C" void GeometryMode_OnTrackSectionsParsed(void* sections) {
     ClearSelection();
 }
 
+static int32_t sTrackPassMarked = 0;
+
+extern "C" void GeometryMode_MarkTrackPass(int32_t inPass) {
+    sTrackPassMarked = inPass;
+}
+
+extern "C" int32_t GeometryMode_StockFreecamDraw(void) {
+    using namespace GeometryEditor;
+    if (!sTrackPassMarked || gGamestate != RACING) {
+        return 0;
+    }
+    Track* track = GetWorld()->GetTrack();
+    if (track == nullptr) {
+        return 0;
+    }
+    // One-shot per pass: never fires for the transparency-pass calls into
+    // render_track_sections (Koopa Beach, Sherbet Land secondary tables).
+    sTrackPassMarked = 0;
+    track->DrawCredits();
+    return 1;
+}
+
 extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t direction) {
     using namespace GeometryEditor;
     if (!ModeActive() || sSectionCount == 0 || sCatalog.Failed()) {
