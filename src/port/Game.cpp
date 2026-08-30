@@ -324,13 +324,19 @@ void CM_DrawTrack(ScreenContext* screen) {
     } else {
         switch(screen->camera->renderMode) {
             case RENDER_FULL_SCENE:
-                if (gModeSelection == BATTLE) {
+                if (gModeSelection == BATTLE || GeometryMode_IsActive()) {
+                    // Battle arenas have no credits DL; geometry mode draws
+                    // the full track itself through the section hook.
                     GetWorld()->GetTrack()->Draw(screen);
-                } else if (!GeometryMode_IsActive()) {
-                    // Geometry mode draws the full track itself, so skip the
-                    // credits DL to avoid double-drawing it.
+                } else {
+                    // The credits DL is the authored, self-sufficient full
+                    // course. Drawing the sectioned course on top of it (the
+                    // old fallthrough) both double-drew geometry and ran the
+                    // section lists with texture state the credits pass had
+                    // already replaced, corrupting inherited textures.
                     GetWorld()->GetTrack()->DrawCredits();
                 }
+                break;
             case RENDER_TRACK_SECTIONS:
                 GetWorld()->GetTrack()->Draw(screen);
                 break;
