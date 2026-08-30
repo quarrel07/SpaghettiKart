@@ -306,11 +306,23 @@ void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& section
     }
     printf("[GeometryMode] LOD classification: %zu near, %zu far stand-ins, %zu unique, %zu unplaced\n", nNear, nFar,
            nUnique, nUnplaced);
-    for (const auto& li : mLeafInfo) {
-        if (li.cls == LeafClass::Far) {
+    // Also to a file, since a Finder-launched app has no visible console.
+    FILE* f = fopen("/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/"
+                    "lod_classification.txt",
+                    "w");
+    if (f != nullptr) {
+        fprintf(f, "near=%zu far=%zu unique=%zu unplaced=%zu\n", nNear, nFar, nUnique, nUnplaced);
+        for (const auto& li : mLeafInfo) {
             const char* n = ResourceGetNameByCrc(li.hash);
-            printf("[GeometryMode]   far: %s (home section %d)\n", n != nullptr ? n : "?", li.homeSection);
+            const char* cls = li.cls == LeafClass::Near     ? "near"
+                              : li.cls == LeafClass::Far    ? "FAR"
+                              : li.cls == LeafClass::Unique ? "unique"
+                                                            : "unplaced";
+            fprintf(f, "%-8s home=%-3d box=(%.0f,%.0f,%.0f)..(%.0f,%.0f,%.0f) %s\n", cls, li.homeSection,
+                    li.boxMin[0], li.boxMin[1], li.boxMin[2], li.boxMax[0], li.boxMax[1], li.boxMax[2],
+                    n != nullptr ? n : "?");
         }
+        fclose(f);
     }
 }
 
