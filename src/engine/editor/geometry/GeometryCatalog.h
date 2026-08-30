@@ -36,7 +36,11 @@ class GeometryCatalog {
     bool Failed() const {
         return mFailed;
     }
-    void Build(const char* const wrappers[], size_t sectionCount);
+    // creditsRoot, when non-null, is the authored full-course credits list;
+    // vertices/edges are enumerated from it so the catalog matches what the
+    // stable credits assembly actually draws. Without it, enumeration falls
+    // back to the merged union.
+    void Build(const char* const wrappers[], size_t sectionCount, Gfx* creditsRoot);
 
     const std::vector<Gfx>& MergedDL(int direction) const {
         return mMerged[direction & 3];

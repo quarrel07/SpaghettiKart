@@ -12,6 +12,22 @@
 #include "engine/World.h"
 #include "engine/tracks/Track.h"
 #include "engine/AllTracks.h"
+#include "assets/models/tracks/mario_raceway/mario_raceway_data.h"
+#include "assets/models/tracks/choco_mountain/choco_mountain_data.h"
+#include "assets/models/tracks/bowsers_castle/bowsers_castle_data.h"
+#include "assets/models/tracks/banshee_boardwalk/banshee_boardwalk_data.h"
+#include "assets/models/tracks/yoshi_valley/yoshi_valley_data.h"
+#include "assets/models/tracks/frappe_snowland/frappe_snowland_data.h"
+#include "assets/models/tracks/koopa_troopa_beach/koopa_troopa_beach_data.h"
+#include "assets/models/tracks/royal_raceway/royal_raceway_data.h"
+#include "assets/models/tracks/luigi_raceway/luigi_raceway_data.h"
+#include "assets/models/tracks/moo_moo_farm/moo_moo_farm_data.h"
+#include "assets/models/tracks/toads_turnpike/toads_turnpike_data.h"
+#include "assets/models/tracks/kalimari_desert/kalimari_desert_data.h"
+#include "assets/models/tracks/sherbet_land/sherbet_land_data.h"
+#include "assets/models/tracks/rainbow_road/rainbow_road_data.h"
+#include "assets/models/tracks/wario_stadium/wario_stadium_data.h"
+#include "assets/models/tracks/dks_jungle_parkway/dks_jungle_parkway_data.h"
 #include "engine/editor/EditorMath.h"
 #include "port/Engine.h"
 #include <fast/interpreter.h>
@@ -57,6 +73,29 @@ static size_t SectionTableLimit(Track* track) {
     return 0;
 }
 
+// The authored full-course credits list per course: the stable one-of-each
+// assembly (the racing lists contain multiple detail variants of the same
+// surfaces, which fight when drawn together).
+static const char* CreditsRootFor(Track* track) {
+    if (dynamic_cast<MarioRaceway*>(track)) return d_course_mario_raceway_dl_9348;
+    if (dynamic_cast<ChocoMountain*>(track)) return d_course_choco_mountain_dl_71B8;
+    if (dynamic_cast<BowsersCastle*>(track)) return d_course_bowsers_castle_dl_9148;
+    if (dynamic_cast<BansheeBoardwalk*>(track)) return d_course_banshee_boardwalk_dl_B308;
+    if (dynamic_cast<YoshiValley*>(track)) return d_course_yoshi_valley_dl_18020;
+    if (dynamic_cast<FrappeSnowland*>(track)) return d_course_frappe_snowland_dl_76A0;
+    if (dynamic_cast<KoopaTroopaBeach*>(track)) return d_course_koopa_troopa_beach_dl_18D68;
+    if (dynamic_cast<RoyalRaceway*>(track)) return d_course_royal_raceway_dl_D8E8;
+    if (dynamic_cast<LuigiRaceway*>(track)) return d_course_luigi_raceway_dl_FD40;
+    if (dynamic_cast<MooMooFarm*>(track)) return d_course_moo_moo_farm_dl_14088;
+    if (dynamic_cast<ToadsTurnpike*>(track)) return d_course_toads_turnpike_dl_23930;
+    if (dynamic_cast<KalimariDesert*>(track)) return d_course_kalimari_desert_dl_22E00;
+    if (dynamic_cast<SherbetLand*>(track)) return d_course_sherbet_land_dl_9AE8;
+    if (dynamic_cast<RainbowRoad*>(track)) return d_course_rainbow_road_dl_16220;
+    if (dynamic_cast<WarioStadium*>(track)) return d_course_wario_stadium_dl_CA78;
+    if (dynamic_cast<DKJungle*>(track)) return d_course_dks_jungle_parkway_dl_13C30;
+    return nullptr;
+}
+
 // Selection / edit state
 static int32_t sSelected = -1;             // index into sCatalog.Vertices()
 static std::vector<size_t> sMoveSet;       // selected + weld members (catalog indices)
@@ -64,7 +103,7 @@ static bool sWeld = true;
 static bool sCloud = true;
 static bool sHideBackfaces = true;
 static bool sXray = false;
-static int sCourseView = 0; // 0 = race assembly, 1 = credits assembly
+static int sCourseView = 1; // 0 = race union (diagnostic), 1 = credits assembly (default)
 
 // Front-facing test from accumulated face normals; vertices with no faces
 // (never triangulated) count as visible.
@@ -800,7 +839,9 @@ extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t 
         return 0;
     }
     if (!sCatalog.Built()) {
-        sCatalog.Build(addr, sSectionCount);
+        const char* creditsPath = CreditsRootFor(GetWorld()->GetTrack());
+        Gfx* creditsRoot = (creditsPath != nullptr) ? (Gfx*) ResourceGetDataByName(creditsPath) : nullptr;
+        sCatalog.Build(addr, sSectionCount, creditsRoot);
         if (sCatalog.Failed()) {
             return 0;
         }

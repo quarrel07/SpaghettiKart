@@ -94,7 +94,7 @@ Gfx* GeometryCatalog::ResolveWrapper(const char* path) {
     return (Gfx*) ResourceGetDataByName(path);
 }
 
-void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount) {
+void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, Gfx* creditsRoot) {
     Reset();
 
     bool ok = sectionCount > 0;
@@ -119,8 +119,17 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount) {
         return;
     }
 
-    for (uint64_t hash : mLeafOrder) {
-        EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
+    if (creditsRoot != nullptr) {
+        EnumerateLeaf(creditsRoot, 0);
+    } else {
+        for (uint64_t hash : mLeafOrder) {
+            EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
+        }
+    }
+    if (mVertices.empty()) {
+        mFailed = true;
+        printf("[GeometryMode] catalog enumerated no vertices; falling back to stock rendering\n");
+        return;
     }
 
     mBuilt = true;

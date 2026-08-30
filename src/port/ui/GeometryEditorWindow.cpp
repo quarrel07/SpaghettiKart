@@ -119,9 +119,9 @@ void GeometryEditorWindow::DrawElement() {
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("Race = the union of what racing actually draws (what you edit).\nCredits = the authored "
-                          "full-course list freecam uses when the editor is off.\nFlip between them from one spot to "
-                          "see any differences; the wireframe always shows the race assembly.");
+        ImGui::SetTooltip("Credits (default) = the authored one-of-each course; stable, and what the wireframe and "
+                          "vertices now follow.\nRace = the raw union of the racing section lists; detail variants "
+                          "overlap and shimmer there, which makes it a diagnostic view for spotting them.");
     }
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Show vertices and wireframe through geometry (screen overlay) instead of depth-tested in-scene rendering");
