@@ -21,6 +21,7 @@
 #include "racing/render_courses.h"
 #include "racing/memory.h"
 #include "main.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include "courses/all_course_data.h"
 #include "courses/all_course_packed.h"
 #include "menus.h"
@@ -356,4 +357,6 @@ void credits_spawn_actors(void) {
     CM_BeginPlay();
 
     gNumPermanentActors = gNumActors;
+    // TEMP diagnostic: record how many actors each credits course spawned.
+    GeometryMode_LogTrackDraw("credits-spawned", gNumActors, 0);
 }
