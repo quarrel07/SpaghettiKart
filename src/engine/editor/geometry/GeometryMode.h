@@ -28,6 +28,10 @@ void GeometryMode_MarkTrackPass(int32_t inPass);
 // the race mode and follows the camera instead of stale kart bookkeeping.
 int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut);
 void GeometryMode_Tick(void);
+// TEMP diagnostic flight recorder: appends a line to Claude Test Builds/
+// track_draw_log.txt whenever the track-draw decision or live settings
+// change, so observed geometry can be traced to the code path that drew it.
+void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int32_t direction);
 
 #ifdef __cplusplus
 }

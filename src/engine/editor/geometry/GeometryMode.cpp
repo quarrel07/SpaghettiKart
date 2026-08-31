@@ -6,6 +6,8 @@
 #include <cmath>
 #include <map>
 #include <cstdio>
+#include <cstring>
+#include <typeinfo>
 #include <vector>
 
 #include <imgui.h>
@@ -952,6 +954,38 @@ static bool EnsureCatalog(const char* const addr[]) {
     return sCatalog.Built();
 }
 
+extern "C" void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int32_t direction) {
+    using namespace GeometryEditor;
+    static char last[320] = "";
+    static uint32_t repeats = 0;
+    const char* course = "?";
+    Track* track = GetWorld() != nullptr ? GetWorld()->GetTrack() : nullptr;
+    if (track != nullptr) {
+        course = typeid(*track).name();
+    }
+    char line[320];
+    snprintf(line, sizeof(line), "%-18s course=%s idx=%d dir=%d | freecam=%d version=%d forceLod=%d noLod=%d editorWin=%d state=%d",
+             branch, course, index, direction, CVarGetInteger("gFreecam", 0),
+             CVarGetInteger("gFreecamCourseVersion", 0), CVarGetInteger("gFreecamForceLod", 0),
+             CVarGetInteger("gDisableLod", 1), CVarGetInteger("gGeometryEditorWindow", 0), (int) gGamestate);
+    if (strcmp(line, last) == 0) {
+        repeats++;
+        return;
+    }
+    FILE* f = fopen("/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/"
+                    "track_draw_log.txt",
+                    "a");
+    if (f != nullptr) {
+        if (repeats > 0) {
+            fprintf(f, "    (repeated %u more times)\n", repeats);
+        }
+        fprintf(f, "%s\n", line);
+        fclose(f);
+    }
+    snprintf(last, sizeof(last), "%s", line);
+    repeats = 0;
+}
+
 extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut) {
     using namespace GeometryEditor;
     if (!sTrackPassMarked || gGamestate != RACING) {
@@ -978,12 +1012,14 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         const std::vector<Gfx>& dl = (force == 1) ? sCatalog.NearDL(direction) : sCatalog.FarDL(direction);
         if (!dl.empty()) {
             gSPDisplayList(gDisplayListHead++, (Gfx*) dl.data());
+            GeometryMode_LogTrackDraw(force == 1 ? "freecam-force-nolod" : "freecam-force-lod", -1, direction);
             return 1;
         }
     }
     int version = CVarGetInteger("gFreecamCourseVersion", 0); // 0 match mode, 1 VS (pending), 2 credits
     if (version == 2) {
         track->DrawCredits();
+        GeometryMode_LogTrackDraw("freecam-credits", -1, direction);
         return 1;
     }
     // Match race mode (and VS until its measurement lands): the game's own

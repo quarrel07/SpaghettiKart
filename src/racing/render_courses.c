@@ -189,6 +189,7 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
     arg1->pathCounter = index;
 
     if (GeometryMode_DrawFullTrack(addr, direction)) {
+        GeometryMode_LogTrackDraw("editor-fulltrack", index, direction);
         return;
     }
 
@@ -200,11 +201,14 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
     index = ((index - 1) * 4) + direction;
     gSPDisplayList(gDisplayListHead++, addr[index]);
 
+    const char* geoLogBranch = "stock-sheet";
     if (CVarGetInteger("gDisableLod", 1) == 1 && (IsBowsersCastle()) &&
         (index < 20 || index > 99)) { // always render higher version of bowser statue
         gDisplayListHead--;
         gSPDisplayList(gDisplayListHead++, d_course_bowsers_castle_dl_9148); // use credit version of the track
+        geoLogBranch = "bc-credits-swap";
     }
+    GeometryMode_LogTrackDraw(geoLogBranch, index, direction);
 }
 
 void func_80291198(void) {
