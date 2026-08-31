@@ -227,6 +227,11 @@ void GeometryEditor::SceneryWindow::DrawElement() {
         CVarSetInteger("gTestHideUnconfirmedPieces", hide);
     }
     ImGui::TextDisabled("Luigi Raceway (3) and Moo Moo Farm (3):\nanything that vanishes is confirmed race content");
+    ImGui::Separator();
+    if (ImGui::Button("Capture Frame Snapshot (debug)")) {
+        RequestFrameDump();
+    }
+    ImGui::TextDisabled("Records everything drawn this frame to a file\nfor offline analysis. Takes one frame, no lag.");
 }
 
 namespace GameUI {
