@@ -36,6 +36,31 @@ extern u32 bFreecamUseController;
 void freecam_get_player_from_character(s32 characterId);
 }
 
+void Freecam::FreecamOptionsWindow::DrawElement() {
+    bool freecam = CVarGetInteger("gFreecam", 0);
+    if (ImGui::Checkbox("Freecam", &freecam)) {
+        CVarSetInteger("gFreecam", freecam);
+        CM_SetFreeCamera(freecam);
+    }
+    if (gModeSelection == BATTLE) {
+        ImGui::TextDisabled("Battle: single course version");
+        return;
+    }
+    static const char* kVersions[] = { "GP Race", "VS Race", "Credits" };
+    int version = CVarGetInteger("gFreecamCourseVersion", 0);
+    ImGui::SetNextItemWidth(170.0f);
+    if (ImGui::Combo("Geometry", &version, kVersions, 3)) {
+        CVarSetInteger("gFreecamCourseVersion", version);
+    }
+    static const char* kLods[] = { "Default", "Force No LOD", "Force LOD" };
+    int lod = CVarGetInteger("gFreecamForceLod", 0);
+    ImGui::SetNextItemWidth(170.0f);
+    if (ImGui::Combo("LOD", &lod, kLods, 3)) {
+        CVarSetInteger("gFreecamForceLod", lod);
+    }
+}
+
+
 namespace GameUI {
 extern std::shared_ptr<PortMenu> mPortMenu;
 namespace Freecam {
@@ -81,6 +106,12 @@ void RegisterFreecamWidgets() {
         { 1, "VS Race" },
         { 2, "Credits" },
     };
+    mPortMenu->AddWidget(path, "Popout Freecam Options", WIDGET_WINDOW_BUTTON)
+        .CVar("gFreecamOptionsWindow")
+        .Options(UIWidgets::ButtonOptions().Tooltip(
+            "Floating window with these freecam view options, usable while watching the course"))
+        .WindowName("Freecam Options");
+
     mPortMenu->AddWidget(path, "Course Geometry", WIDGET_CVAR_COMBOBOX)
         .CVar("gFreecamCourseVersion")
         .PreFunc([](WidgetInfo& info) { info.isHidden = gModeSelection == BATTLE; })

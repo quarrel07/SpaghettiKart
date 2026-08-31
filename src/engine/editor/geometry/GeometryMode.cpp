@@ -130,10 +130,12 @@ bool PointerOverUI(float mx, float my) {
     if (CVarGetInteger("gOpenMenu", 0) != 0) {
         return true;
     }
-    if (ImGuiWindow* editorWindow = ImGui::FindWindowByName("Geometry Editor")) {
-        if (editorWindow->Active && mx >= editorWindow->Pos.x && mx < editorWindow->Pos.x + editorWindow->Size.x &&
-            my >= editorWindow->Pos.y && my < editorWindow->Pos.y + editorWindow->Size.y) {
-            return true;
+    for (const char* name : { "Geometry Editor", "Freecam Options" }) {
+        if (ImGuiWindow* w = ImGui::FindWindowByName(name)) {
+            if (w->Active && mx >= w->Pos.x && mx < w->Pos.x + w->Size.x && my >= w->Pos.y &&
+                my < w->Pos.y + w->Size.y) {
+                return true;
+            }
         }
     }
     return false;
