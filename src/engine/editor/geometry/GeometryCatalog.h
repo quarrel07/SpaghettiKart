@@ -65,6 +65,7 @@ class GeometryCatalog {
         bool hasBox = false;
         int homeSection = -1;
         bool inHomeList = false;
+        bool hasFarSibling = false; // a Far leaf substantially overlaps this Near leaf
         LeafClass cls = LeafClass::Unplaced;
     };
     const std::vector<LeafInfo>& Leaves() const {

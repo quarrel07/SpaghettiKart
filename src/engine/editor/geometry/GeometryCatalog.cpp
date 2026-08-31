@@ -212,8 +212,16 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
             if (lodFilter != 0) {
                 auto li = mLeafInfoIndex.find(hash);
                 if (li != mLeafInfoIndex.end()) {
-                    LeafClass c = mLeafInfo[li->second].cls;
-                    allowed = (lodFilter == 1) ? (c != LeafClass::Far) : (c != LeafClass::Near);
+                    const LeafInfo& info = mLeafInfo[li->second];
+                    if (lodFilter == 1) {
+                        // Force No LOD: hide only far stand-ins (each has a
+                        // near sibling by definition, so nothing goes bare).
+                        allowed = info.cls != LeafClass::Far;
+                    } else {
+                        // Force LOD: hide a near piece only when its far
+                        // counterpart is present to cover the space.
+                        allowed = !(info.cls == LeafClass::Near && info.hasFarSibling);
+                    }
                 }
             }
             if (allowed && emittedLeaves.insert(hash).second) {
@@ -308,9 +316,24 @@ void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& section
         li.inHomeList = it != mLeafSections.end() && it->second.count(li.homeSection) != 0;
         li.cls = li.inHomeList ? LeafClass::Near : LeafClass::Unique; // Unique pending overlap check
     }
-    // Second pass: a not-at-home leaf overlapped by a Near leaf is a Far
-    // stand-in; without such a sibling it is unique scenery and stays.
-    const float m = 30.0f; // overlap margin in course units
+    // Substantial-overlap test: the shared box must cover a meaningful
+    // fraction of the smaller piece on every axis, so grazing contact
+    // between unrelated geometry cannot create a false variant pair.
+    auto substantialOverlap = [](const LeafInfo& a, const LeafInfo& b) {
+        float ratio = 1.0f;
+        for (int i = 0; i < 3; i++) {
+            float lo = std::max(a.boxMin[i], b.boxMin[i]);
+            float hi = std::min(a.boxMax[i], b.boxMax[i]);
+            if (hi < lo) {
+                return false;
+            }
+            float smaller = std::max(1.0f, std::min(a.boxMax[i] - a.boxMin[i], b.boxMax[i] - b.boxMin[i]));
+            ratio *= std::min(1.0f, (hi - lo + 1.0f) / smaller);
+        }
+        return ratio >= 0.3f;
+    };
+    // Second pass: a not-at-home leaf substantially overlapped by a Near
+    // leaf is a Far stand-in; without such a sibling it is unique scenery.
     for (auto& li : mLeafInfo) {
         if (li.cls != LeafClass::Unique || !li.hasBox) {
             continue;
@@ -319,11 +342,24 @@ void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& section
             if (other.cls != LeafClass::Near || !other.hasBox) {
                 continue;
             }
-            bool overlap = li.boxMin[0] - m <= other.boxMax[0] && li.boxMax[0] + m >= other.boxMin[0] &&
-                           li.boxMin[1] - m <= other.boxMax[1] && li.boxMax[1] + m >= other.boxMin[1] &&
-                           li.boxMin[2] - m <= other.boxMax[2] && li.boxMax[2] + m >= other.boxMin[2];
-            if (overlap) {
+            if (substantialOverlap(li, other)) {
                 li.cls = LeafClass::Far;
+                break;
+            }
+        }
+    }
+    // Third pass: mark which Near leaves actually have a Far stand-in, so
+    // Force LOD only hides a near piece when its far counterpart draws.
+    for (auto& li : mLeafInfo) {
+        if (li.cls != LeafClass::Near || !li.hasBox) {
+            continue;
+        }
+        for (const auto& other : mLeafInfo) {
+            if (other.cls != LeafClass::Far || !other.hasBox) {
+                continue;
+            }
+            if (substantialOverlap(li, other)) {
+                li.hasFarSibling = true;
                 break;
             }
         }
@@ -351,9 +387,9 @@ void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& section
                               : li.cls == LeafClass::Far    ? "FAR"
                               : li.cls == LeafClass::Unique ? "unique"
                                                             : "unplaced";
-            fprintf(f, "%-8s home=%-3d box=(%.0f,%.0f,%.0f)..(%.0f,%.0f,%.0f) %s\n", cls, li.homeSection,
-                    li.boxMin[0], li.boxMin[1], li.boxMin[2], li.boxMax[0], li.boxMax[1], li.boxMax[2],
-                    n != nullptr ? n : "?");
+            fprintf(f, "%-8s%s home=%-3d box=(%.0f,%.0f,%.0f)..(%.0f,%.0f,%.0f) %s\n", cls,
+                    li.hasFarSibling ? "+farSib" : "", li.homeSection, li.boxMin[0], li.boxMin[1], li.boxMin[2],
+                    li.boxMax[0], li.boxMax[1], li.boxMax[2], n != nullptr ? n : "?");
         }
         fclose(f);
     }
