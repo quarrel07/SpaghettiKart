@@ -14,4 +14,15 @@ class GeometryEditorWindow : public Ship::GuiWindow {
     void DrawElement() override;
     void UpdateElement() override {};
 };
+
+class SceneryWindow : public Ship::GuiWindow {
+  public:
+    using Ship::GuiWindow::GuiWindow;
+    ~SceneryWindow() override = default;
+
+  protected:
+    void InitElement() override {};
+    void DrawElement() override;
+    void UpdateElement() override {};
+};
 } // namespace GeometryEditor

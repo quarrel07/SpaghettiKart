@@ -86,6 +86,11 @@ class GeometryCatalog {
     const std::vector<Gfx>& RepairedFullCourseDL() const {
         return mRepaired;
     }
+    // The credits-only scenery dropped from the repaired assembly, as its
+    // own drawable list (for the optional Show Credits Scenery toggle).
+    const std::vector<Gfx>& SceneryDL() const {
+        return mScenery;
+    }
     // Force No LOD: near + unique + unplaced. Force LOD: far + unique + unplaced.
     const std::vector<Gfx>& NearDL(int direction) const {
         return mNearMerged[direction & 3];
@@ -125,6 +130,7 @@ class GeometryCatalog {
     // Credits-only scenery (no twins at all) is dropped from the repaired
     // assembly; races provide the live versions of those things.
     bool SubtreeHasRaceGeometry(Gfx* cmds, int depth);
+    void CopySubtree(Gfx* cmds, std::vector<Gfx>& out, int depth);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
     int32_t AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
@@ -134,6 +140,7 @@ class GeometryCatalog {
     bool mFailed = false;
     std::vector<Gfx> mMerged[4];
     std::vector<Gfx> mRepaired;
+    std::vector<Gfx> mScenery;
     std::map<std::pair<uint64_t, uint32_t>, std::vector<Gfx>> mBindByLoad; // (vtx hash, load word) -> bind block
     std::unordered_map<uint64_t, std::vector<Gfx>> mBindByVtx;             // vtx hash -> first bind block
     std::unordered_set<uint64_t> mBindWalked;

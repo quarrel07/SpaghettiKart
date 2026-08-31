@@ -73,6 +73,7 @@ void GeometryCatalog::Reset() {
         m.clear();
     }
     mRepaired.clear();
+    mScenery.clear();
     mBindByLoad.clear();
     mBindByVtx.clear();
     mBindWalked.clear();
@@ -207,6 +208,9 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
         end.words.w0 = (uintptr_t) OP_ENDDL << 24;
         end.words.w1 = 0;
         mRepaired.push_back(end);
+        if (!mScenery.empty()) {
+            mScenery.push_back(end);
+        }
         printf("[GeometryMode] repaired full-course assembly: %zu words, %zu bind snapshots\n", mRepaired.size(),
                mBindByLoad.size());
     }
@@ -648,8 +652,11 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
                 Gfx* child = (Gfx*) ResourceGetDataByCrc(hash);
                 if (SubtreeHasRaceGeometry(child, depth + 1)) {
                     BuildRepairedFullCourse(child, depth + 1);
+                } else {
+                    // Credits-only scenery: out of the course assembly, into
+                    // the optional scenery layer with its authored state.
+                    CopySubtree(child, mScenery, depth + 1);
                 }
-                // else: credits-only scenery, dropped whole
             }
             if (GEO_C0(w0, 16, 1) != 0) {
                 return;
@@ -680,6 +687,39 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
         int words = CommandWords(op);
         for (int i = 0; i < words; i++) {
             mRepaired.push_back(ptr[i]);
+        }
+        ptr += words;
+    }
+}
+
+// Verbatim flattened copy of a subtree (calls inlined, markers stripped).
+void GeometryCatalog::CopySubtree(Gfx* cmds, std::vector<Gfx>& out, int depth) {
+    if (cmds == nullptr || depth > 10) {
+        return;
+    }
+    Gfx* ptr = cmds;
+    for (int guard = 0; guard < (1 << 18); guard++) {
+        uintptr_t w0 = ptr->words.w0;
+        uint8_t op = GEO_OPCODE(w0);
+        if (op == OP_ENDDL) {
+            return;
+        }
+        if (op == G_MARKER) {
+            ptr += 2;
+            continue;
+        }
+        if (op == G_DL_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            CopySubtree((Gfx*) ResourceGetDataByCrc(hash), out, depth + 1);
+            if (GEO_C0(w0, 16, 1) != 0) {
+                return;
+            }
+            ptr += 2;
+            continue;
+        }
+        int words = CommandWords(op);
+        for (int i = 0; i < words; i++) {
+            out.push_back(ptr[i]);
         }
         ptr += words;
     }

@@ -134,7 +134,7 @@ bool PointerOverUI(float mx, float my) {
     if (CVarGetInteger("gOpenMenu", 0) != 0) {
         return true;
     }
-    for (const char* name : { "Geometry Editor" }) {
+    for (const char* name : { "Geometry Editor", "Credits Scenery" }) {
         if (ImGuiWindow* w = ImGui::FindWindowByName(name)) {
             if (w->Active && mx >= w->Pos.x && mx < w->Pos.x + w->Size.x && my >= w->Pos.y &&
                 my < w->Pos.y + w->Size.y) {
@@ -1152,23 +1152,50 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // render_track_sections (Koopa Beach, Sherbet Land secondary tables).
     sTrackPassMarked = 0;
 
-    if (!CVarGetInteger("gDisableLod", 1) && !CVarGetInteger("gFreecam", 0)) {
+    bool substitution = CVarGetInteger("gDisableLod", 1) || CVarGetInteger("gFreecam", 0);
+    bool wantScenery = CVarGetInteger("gCreditsScenery", 0);
+    if (!substitution && !wantScenery) {
         return 0; // stock sectioned rendering
     }
     if (gModeSelection == BATTLE || track->IsMod() || CreditsRootFor(track) == nullptr) {
         return 0; // battle arenas and custom tracks have no full assembly
     }
-    // Prefer the repaired assembly: race-authored texture binds injected
-    // before every vertex load, so surfaces the credits camera never films
-    // cannot inherit garbage state.
-    if (EnsureCatalog(addr) && !sCatalog.RepairedFullCourseDL().empty()) {
+    if (!EnsureCatalog(addr)) {
+        if (substitution) {
+            track->DrawCredits();
+            GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
+            return 1;
+        }
+        return 0;
+    }
+    if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
+        // Repaired assembly: race-authored texture binds injected before
+        // every vertex load, so surfaces the credits camera never films
+        // cannot inherit garbage state.
         gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
-        GeometryMode_LogTrackDraw("fullcourse-repaired", -1, direction);
+        if (wantScenery && !sCatalog.SceneryDL().empty()) {
+            gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
+        }
+        GeometryMode_LogTrackDraw(wantScenery ? "fullcourse+scenery" : "fullcourse-repaired", -1, direction);
         return 1;
     }
-    track->DrawCredits();
-    GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
-    return 1;
+    if (substitution) {
+        track->DrawCredits();
+        GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
+        return 1;
+    }
+    // Scenery over stock rendering: draw the game's own sheet first (same
+    // command the stock path would issue), then the scenery layer on top so
+    // its state cannot bleed into the course pieces.
+    if (indexInOut != nullptr && *indexInOut >= 1 && (size_t) *indexInOut <= sSectionCount &&
+        !sCatalog.SceneryDL().empty()) {
+        int idx = ((*indexInOut - 1) * 4) + direction;
+        gSPDisplayList(gDisplayListHead++, (Gfx*) addr[idx]);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
+        GeometryMode_LogTrackDraw("stock+scenery", idx, direction);
+        return 1;
+    }
+    return 0;
 }
 
 extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t direction) {
