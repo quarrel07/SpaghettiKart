@@ -13,6 +13,7 @@ extern "C" {
 #include "code_800029B0.h"
 #include "main.h"
 #include "defines.h"
+#include "audio/external.h"
 }
 
 namespace GeometryEditor {
@@ -234,6 +235,7 @@ static void RegisterGeometryEditorWidgets() {
 
     mPortMenu->AddWidget(path, "Watch Credits Sequence", WIDGET_BUTTON)
         .Callback([](WidgetInfo& info) {
+            func_800CA330(0x19); // the game's own pre-credits music fade-out
             gGamestateNext = CREDITS_SEQUENCE;
         })
         .Options(UIWidgets::ButtonOptions().Tooltip(
