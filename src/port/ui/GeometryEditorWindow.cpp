@@ -241,7 +241,7 @@ static void RegisterGeometryEditorWidgets() {
             "Opens the track geometry editor: click course vertices to inspect and move them"))
         .WindowName("Geometry Editor");
 
-    WidgetPath enh = { "Enhancements", "Visuals", SECTION_COLUMN_1 };
+    WidgetPath enh = { "Enhancements", "General", SECTION_COLUMN_1 };
     mPortMenu->AddWidget(enh, "Show Credits-Only Scenery", WIDGET_CVAR_CHECKBOX)
         .CVar("gCreditsScenery")
         .Options(UIWidgets::CheckboxOptions().Tooltip(
