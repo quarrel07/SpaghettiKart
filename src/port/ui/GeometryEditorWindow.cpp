@@ -231,6 +231,14 @@ static void RegisterGeometryEditorWidgets() {
         .Options(UIWidgets::ButtonOptions().Tooltip(
             "Opens the track geometry editor: click course vertices to inspect and move them"))
         .WindowName("Geometry Editor");
+
+    mPortMenu->AddWidget(path, "Watch Credits Sequence", WIDGET_BUTTON)
+        .Callback([](WidgetInfo& info) {
+            gGamestateNext = CREDITS_SEQUENCE;
+        })
+        .Options(UIWidgets::ButtonOptions().Tooltip(
+            "Jumps straight to the game's credits sequence (the game's own debug shortcut). Quit and relaunch to "
+            "return to normal play."));
 }
 
 static RegisterMenuInitFunc initFunc(RegisterGeometryEditorWidgets);
