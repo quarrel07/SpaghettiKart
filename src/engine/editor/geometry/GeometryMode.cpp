@@ -1187,6 +1187,17 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         }
         return 0;
     }
+    // TEMP DIAGNOSTIC (2026-08-31): Choco alone draws the RAW credits root
+    // instead of the repaired assembly. Splits the black-screen search:
+    // course visible => the rebuild output is at fault; still black => the
+    // race context is hostile to the credits list itself.
+    if (substitution && dynamic_cast<ChocoMountain*>(track) != nullptr) {
+        gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
+        track->DrawCredits();
+        gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
+        GeometryMode_LogTrackDraw("choco-raw-diag", -1, direction);
+        return 1;
+    }
     if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
         // The credits assembly was authored for a pass with culling cleared
         // (the old freecam preamble); with culling left on, whole walls and
