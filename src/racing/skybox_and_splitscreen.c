@@ -709,7 +709,8 @@ void render_screens(ScreenContext* screen, s32 mode, s32 someId, s32 playerId) {
     }
     func_80093A5C(mode); // Perhaps pause render?
 
-    if (CVarGetInteger("gDrawHUD", true) == true) {
+    // Freecam is a viewing tool: hide the race HUD while it is active.
+    if (CVarGetInteger("gDrawHUD", true) == true && CVarGetInteger("gFreecam", 0) == 0) {
         if (D_800DC5B8 != 0) {
             render_hud(mode);
         }
