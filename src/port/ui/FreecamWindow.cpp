@@ -73,6 +73,12 @@ void RegisterFreecamWidgets() {
         .CVar("gFreecam")
         .Callback([](WidgetInfo& info) { CM_SetFreeCamera(CVarGetInteger("gFreecam", 0)); });
 
+    mPortMenu->AddWidget(path, "Show Back-Facing Surfaces", WIDGET_CVAR_CHECKBOX)
+        .CVar("gFreecamShowBackfaces")
+        .Options(UIWidgets::CheckboxOptions().Tooltip(
+            "Draw both sides of every surface in freecam so textures are visible from any angle. Causes "
+            "shimmering on back-to-back panels like the trackside signs, so it is off by default."));
+
     mPortMenu->AddWidget(path, "Camera Damping", WIDGET_SLIDER_FLOAT)
         .ValuePointer(&gDampValue)
         .Options(UIWidgets::FloatSliderOptions().Min(0.970f).Max(1.0f).Step(0.001f).Format("%.3f"));

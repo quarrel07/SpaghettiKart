@@ -1185,6 +1185,12 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         return 0;
     }
     if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
+        // The credits assembly was authored for a pass with culling cleared
+        // (the old freecam preamble); with culling left on, whole walls and
+        // roads vanish (Choco, Bowser's Castle, Turnpike - Andy 2026-08-31).
+        // Clear it for the assembly only and restore G_CULL_BACK after, so
+        // race-code draws (the trackside signs) keep their protection.
+        gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
         // Scenery first: its pieces sit at the START of the authored stream
         // and depend on the fresh course-preamble state, which only exists
         // before anything else draws. The repaired course after it is
@@ -1203,11 +1209,14 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         // every vertex load, so surfaces the credits camera never films
         // cannot inherit garbage state.
         gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
+        gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
         GeometryMode_LogTrackDraw(wantScenery ? "fullcourse+scenery" : "fullcourse-repaired", -1, direction);
         return 1;
     }
     if (substitution) {
+        gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
         track->DrawCredits();
+        gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
         GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
         return 1;
     }
@@ -1217,7 +1226,9 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     if (wantScenery && indexInOut != nullptr && *indexInOut >= 1 && (size_t) *indexInOut <= sSectionCount &&
         !sCatalog.SceneryDL().empty()) {
         int idx = ((*indexInOut - 1) * 4) + direction;
+        gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
         gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
+        gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
         gSPDisplayList(gDisplayListHead++, (Gfx*) addr[idx]);
         GeometryMode_LogTrackDraw("scenery+stock", idx, direction);
         return 1;
