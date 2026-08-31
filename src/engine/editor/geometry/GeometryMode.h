@@ -36,6 +36,9 @@ void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int32_t direct
 // and texture the game actually submits, per course and game mode, into
 // Claude Test Builds/census_<mode>_<course>.txt. Measurement only.
 void GeometryMode_Census(void* pool);
+// True while the full-course substitution is active: course Draw() extras
+// gated on kart section/direction windows draw unconditionally instead.
+int32_t GeometryMode_ForceAllExtras(void);
 
 #ifdef __cplusplus
 }

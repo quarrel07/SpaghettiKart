@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "MarioRaceway.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include "engine/World.h"
 #include "engine/actors/Finishline.h"
 #include "engine/actors/MarioSign.h"
@@ -272,6 +273,12 @@ void MarioRaceway::Draw(ScreenContext* arg0) {
     gDPPipeSync(gDisplayListHead++);
     gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
 
+    if (GeometryMode_ForceAllExtras()) {
+        // Full-course view: the giant mushroom cluster and the pipe both
+        // draw regardless of the kart's section window.
+        func_80291198();
+        render_mario_raceway_pipe();
+    } else
     switch (sp22) {
         case 1:
         case 2:

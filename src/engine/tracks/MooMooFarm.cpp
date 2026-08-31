@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "MooMooFarm.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include "engine/World.h"
 #include "engine/actors/Finishline.h"
 #include "engine/objects/BombKart.h"
@@ -275,6 +276,14 @@ void MooMooFarm::Draw(ScreenContext* arg0) {
 
     render_track_sections(moo_moo_farm_dls, arg0);
 
+    if (GeometryMode_ForceAllExtras()) {
+        // Full-course view: every windowed extra draws (bridges, barn).
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_dl_13FF8);
+        gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEI, G_CC_MODULATEI);
+        gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_5410);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_dl_14060);
+    } else {
     if ((temp_s0 < 14) && (temp_s0 > 10)) {
         if ((temp_s1 == 2) || (temp_s1 == 3) || (temp_s1 == 1)) {
             gSPDisplayList(gDisplayListHead++, (Gfx*)d_course_moo_moo_farm_dl_13FF8);
@@ -323,6 +332,7 @@ void MooMooFarm::Draw(ScreenContext* arg0) {
         if ((temp_s1 == 0) || (temp_s1 == 3)) {
             gSPDisplayList(gDisplayListHead++, (Gfx*)d_course_moo_moo_farm_dl_14060);
         }
+    }
     }
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_TEX_EDGE, G_RM_AA_ZB_TEX_EDGE2);

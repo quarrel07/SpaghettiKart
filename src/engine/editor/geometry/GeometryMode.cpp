@@ -1099,6 +1099,18 @@ static bool EnsureCatalog(const char* const addr[]) {
     return sCatalog.Built();
 }
 
+extern "C" int32_t GeometryMode_ForceAllExtras(void) {
+    using namespace GeometryEditor;
+    if (gGamestate != RACING || gModeSelection == BATTLE) {
+        return 0;
+    }
+    Track* track = GetWorld() != nullptr ? GetWorld()->GetTrack() : nullptr;
+    if (track == nullptr || track->IsMod()) {
+        return 0;
+    }
+    return (CVarGetInteger("gDisableLod", 1) != 0 || CVarGetInteger("gFreecam", 0) != 0) ? 1 : 0;
+}
+
 extern "C" void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int32_t direction) {
     using namespace GeometryEditor;
     static char last[320] = "";

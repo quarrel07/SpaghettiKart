@@ -1,8 +1,10 @@
 #include "GeometryCatalog.h"
+#include "RaceCodeDrawn.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 namespace GeometryEditor {
 
@@ -686,6 +688,27 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
         if (op == G_DL_OTR_HASH) {
             uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
             if (mRepairWalked.insert(hash).second) {
+                // Pieces the game's race code draws itself are skipped
+                // entirely (not in the assembly, not in the scenery layer):
+                // the course's own Draw() provides them, and a second copy
+                // z-fights it (the billboard flicker).
+                const char* childName = ResourceGetNameByCrc(hash);
+                bool raceCodeDrawn = false;
+                if (childName != nullptr) {
+                    for (const char* excl : kRaceCodeDrawnDLs) {
+                        if (strcmp(childName, excl) == 0) {
+                            raceCodeDrawn = true;
+                            break;
+                        }
+                    }
+                }
+                if (raceCodeDrawn) {
+                    if (GEO_C0(w0, 16, 1) != 0) {
+                        return;
+                    }
+                    ptr += 2;
+                    continue;
+                }
                 Gfx* child = (Gfx*) ResourceGetDataByCrc(hash);
                 if (SubtreeHasRaceGeometry(child, depth + 1)) {
                     BuildRepairedFullCourse(child, depth + 1);
