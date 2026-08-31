@@ -194,6 +194,30 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
     }
 
     if (creditsRoot != nullptr) {
+        // The scenery layer draws before everything else, so it must open
+        // with the assembly root's own leading state block (combine mode
+        // and friends) - the authored state its pieces were written under.
+        // Frame-dump evidence: without this the scenery runs under the
+        // frame preamble's combine (FC121824) instead of the course's
+        // (FC127E24), rendering signs as solid color.
+        {
+            Gfx* ptr = creditsRoot;
+            for (int guard = 0; guard < 4096; guard++) {
+                uint8_t op = GEO_OPCODE(ptr->words.w0);
+                if (op == OP_ENDDL || op == G_DL_OTR_HASH || op == OP_DL) {
+                    break;
+                }
+                if (op == G_MARKER) {
+                    ptr += 2;
+                    continue;
+                }
+                int w = CommandWords(op);
+                for (int i = 0; i < w; i++) {
+                    mScenery.push_back(ptr[i]);
+                }
+                ptr += w;
+            }
+        }
         // Capture the texture binds the racing tables author for every
         // vertex load, then rebuild the full-course assembly with those
         // binds injected so no surface depends on inherited state.
@@ -206,13 +230,16 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
                 }
             }
         }
+        size_t preambleOnly = mScenery.size();
         BuildRepairedFullCourse(creditsRoot, 0);
         Gfx end;
         end.words.w0 = (uintptr_t) OP_ENDDL << 24;
         end.words.w1 = 0;
         mRepaired.push_back(end);
-        if (!mScenery.empty()) {
+        if (mScenery.size() > preambleOnly) {
             mScenery.push_back(end);
+        } else {
+            mScenery.clear(); // no scenery pieces: no layer at all
         }
         printf("[GeometryMode] repaired full-course assembly: %zu words, %zu bind snapshots\n", mRepaired.size(),
                mBindByLoad.size());
