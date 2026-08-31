@@ -18,11 +18,6 @@ void render_actor_mario_sign(Camera* camera, UNUSED Mat4 arg1, struct Actor* arg
     if (temp & 0x800) {
         return;
     }
-    // The full-course substitution draws this sign's baked twin; drawing
-    // both z-fights (the billboard flicker). Stand down while it is active.
-    if (CVarGetInteger("gDisableLod", 1) != 0 || CVarGetInteger("gFreecam", 0) != 0) {
-        return;
-    }
 
     unk = is_within_render_distance(camera->pos, arg2->pos, camera->rot[1], 0, camera->fieldOfView, 16000000.0f);
     if (CVarGetInteger("gNoCulling", 0) == 1) {
