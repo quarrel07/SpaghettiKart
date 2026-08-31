@@ -4,6 +4,7 @@
 #include <mk64.h>
 
 #include "code_80086E70.h"
+#include "code_800029B0.h"
 #include "camera.h"
 #include "objects.h"
 #include "racing/math_util.h"
@@ -1402,15 +1403,24 @@ void func_8008A6DC(s32 objectIndex, f32 arg1) {
 
     clear_object_flag(objectIndex, 0x00060000);
     for (camera = camera1, loopIndex = 0; loopIndex < gPlayerCountSelection1; loopIndex++, camera++) {
+        Camera* checkCam = camera;
+        // Freecam renders through a different camera than the parked race
+        // camera these checks were written against; without this, object
+        // visibility stays anchored to the kart's area (billboards flicker,
+        // scenery vanishes away from the kart).
+        if (loopIndex == 0 && CVarGetInteger("gFreecam", 0) != 0 && gScreenOneCtx != NULL &&
+            gScreenOneCtx->camera != NULL) {
+            checkCam = gScreenOneCtx->camera;
+        }
         if ((gObjectList[objectIndex].state != 0) &&
-            (is_within_horizontal_distance_to_camera(objectIndex, camera, arg1) != 0)) {
+            (is_within_horizontal_distance_to_camera(objectIndex, checkCam, arg1) != 0)) {
             set_object_flag(objectIndex, 0x00020000);
             if (arg1 <= 500.0) {
                 var_a2 = 0x4000;
             } else {
                 var_a2 = 0x2AAB;
             }
-            if (is_object_visible_on_camera(objectIndex, camera, var_a2) != 0) {
+            if (is_object_visible_on_camera(objectIndex, checkCam, var_a2) != 0) {
                 set_object_flag(objectIndex, VISIBLE);
             }
         }
