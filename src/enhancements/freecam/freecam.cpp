@@ -283,6 +283,9 @@ void freecam_keyboard_manager(Camera* camera, Vec3f forwardVector) {
         if (FreecamKeyDown('M')) {
             TargetNextPlayer = true;
         }
+        if (FreecamKeyDown('B')) {
+            CVarSetInteger("gFreecamShowBackfaces", !CVarGetInteger("gFreecamShowBackfaces", 0));
+        }
         if (GetKeyState('W') & 0x8000) {
             Forward = true;
         }
@@ -320,6 +323,9 @@ void freecam_keyboard_manager(Camera* camera, Vec3f forwardVector) {
         }
         if (FreecamKeyDown(SDL_SCANCODE_M)) {
             TargetNextPlayer = true;
+        }
+        if (FreecamKeyDown(SDL_SCANCODE_B)) {
+            CVarSetInteger("gFreecamShowBackfaces", !CVarGetInteger("gFreecamShowBackfaces", 0));
         }
         if (keystate[SDL_SCANCODE_W]) {
             Forward = true;
