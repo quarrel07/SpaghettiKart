@@ -959,6 +959,12 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // render_track_sections (Koopa Beach, Sherbet Land secondary tables).
     sTrackPassMarked = 0;
 
+    // These are freecam VIEW options; with freecam off, normal racing must
+    // render completely stock regardless of what the selectors are set to.
+    if (!CVarGetInteger("gFreecam", 0)) {
+        return 0;
+    }
+
     // Freecam view options, editor not required. Force LOD choices use the
     // classifier-built assemblies; the version selector picks the base view.
     int force = CVarGetInteger("gFreecamForceLod", 0); // 0 default, 1 no-lod, 2 lod
