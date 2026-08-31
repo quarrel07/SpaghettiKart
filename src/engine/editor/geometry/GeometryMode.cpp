@@ -1169,13 +1169,17 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         return 0;
     }
     if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
+        // Scenery first: its pieces sit at the START of the authored stream
+        // and depend on the fresh course-preamble state, which only exists
+        // before anything else draws. The repaired course after it is
+        // state-self-sufficient (injected binds), so order is safe.
+        if (wantScenery && !sCatalog.SceneryDL().empty()) {
+            gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
+        }
         // Repaired assembly: race-authored texture binds injected before
         // every vertex load, so surfaces the credits camera never films
         // cannot inherit garbage state.
         gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
-        if (wantScenery && !sCatalog.SceneryDL().empty()) {
-            gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
-        }
         GeometryMode_LogTrackDraw(wantScenery ? "fullcourse+scenery" : "fullcourse-repaired", -1, direction);
         return 1;
     }
