@@ -38,7 +38,7 @@ void freecam_get_player_from_character(s32 characterId);
 
 void Freecam::FreecamOptionsWindow::DrawElement() {
     bool freecam = CVarGetInteger("gFreecam", 0);
-    if (ImGui::Checkbox("Freecam", &freecam)) {
+    if (ImGui::Checkbox("Enable Freecam", &freecam)) {
         CVarSetInteger("gFreecam", freecam);
         CM_SetFreeCamera(freecam);
     }
@@ -93,13 +93,12 @@ void RegisterFreecamWidgets() {
 
     mPortMenu->AddWidget(path, "Keyboard: Move: W,A,S,D, Up: Space, Down: Shift\n  Faster: Ctrl, Look: Right-mouse button\n  Target Player Mode: F, Next: M, Previous: N", WIDGET_TEXT);
     mPortMenu->AddWidget(path, "Controller: Up: A, Down: B, Faster: Z\n  Target Player Mode: R, Next: Right DPad, Previous: Left DPad\n  Driving Mode: L and R Buttons", WIDGET_TEXT);
-    mPortMenu->AddWidget(path, "Enable Freecam", WIDGET_CVAR_CHECKBOX)
-        .CVar("gFreecam")
-        .Options(UIWidgets::CheckboxOptions({ { .tooltip = "Allows you to fly around the track" } }))
-        .Callback([](UNUSED WidgetInfo& info) {
-            bool state = (bool) CVarGetInteger("gFreecam", false);
-            CM_SetFreeCamera(state);
-        });
+
+    mPortMenu->AddWidget(path, "Popout Freecam Options", WIDGET_WINDOW_BUTTON)
+        .CVar("gFreecamOptionsWindow")
+        .Options(UIWidgets::ButtonOptions().Tooltip(
+            "Floating window with the freecam toggle and view options, usable while watching the course"))
+        .WindowName("Freecam Options");
 
     mPortMenu->AddWidget(path, "Camera Damping", WIDGET_SLIDER_FLOAT)
         .ValuePointer(&gDampValue)
