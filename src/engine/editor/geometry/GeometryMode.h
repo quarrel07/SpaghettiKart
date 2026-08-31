@@ -32,6 +32,10 @@ void GeometryMode_Tick(void);
 // track_draw_log.txt whenever the track-draw decision or live settings
 // change, so observed geometry can be traced to the code path that drew it.
 void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int32_t direction);
+// TEMP diagnostic census: accumulates the set of every distinct display list
+// and texture the game actually submits, per course and game mode, into
+// Claude Test Builds/census_<mode>_<course>.txt. Measurement only.
+void GeometryMode_Census(void* pool);
 
 #ifdef __cplusplus
 }
