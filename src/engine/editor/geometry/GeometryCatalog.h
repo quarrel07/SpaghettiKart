@@ -145,6 +145,8 @@ class GeometryCatalog {
     // on/off, combine, othermodes, geometry mode), stamped before each
     // scenery piece so detached pieces keep their authored render state.
     std::vector<Gfx> mSceneryContext;
+    std::vector<Gfx> mSceneryBindCtx; // rolling texture-bind context of the credits stream
+    std::vector<Gfx> mSceneryTlut;    // last complete palette-load block seen
     std::map<std::pair<uint64_t, uint32_t>, std::vector<Gfx>> mBindByLoad; // (vtx hash, load word) -> bind block
     std::unordered_map<uint64_t, std::vector<Gfx>> mBindByVtx;             // vtx hash -> first bind block
     std::unordered_set<uint64_t> mBindWalked;

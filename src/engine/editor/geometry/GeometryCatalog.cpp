@@ -75,6 +75,8 @@ void GeometryCatalog::Reset() {
     mRepaired.clear();
     mScenery.clear();
     mSceneryContext.clear();
+    mSceneryBindCtx.clear();
+    mSceneryTlut.clear();
     mBindByLoad.clear();
     mBindByVtx.clear();
     mBindWalked.clear();
@@ -671,6 +673,10 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
                     sync.words.w1 = 0;
                     mScenery.push_back(sync);
                     mScenery.insert(mScenery.end(), mSceneryContext.begin(), mSceneryContext.end());
+                    mScenery.insert(mScenery.end(), mSceneryBindCtx.begin(), mSceneryBindCtx.end());
+                    // Palette last so nothing in the bind context clobbers it:
+                    // the pieces' own texture loads assume this TLUT resident.
+                    mScenery.insert(mScenery.end(), mSceneryTlut.begin(), mSceneryTlut.end());
                     CopySubtree(child, mScenery, depth + 1);
                 }
             }
