@@ -1402,9 +1402,10 @@ void func_8008A6DC(s32 objectIndex, f32 arg1) {
     Camera* camera;
 
     clear_object_flag(objectIndex, 0x00060000);
-    // Freecam shows the whole course, so objects skip distance and
-    // view-cone culling entirely, matching the full-track geometry.
-    if (CVarGetInteger("gFreecam", 0) != 0) {
+    // Freecam and the No LOD enhancement show the whole course, so objects
+    // skip distance and view-cone culling entirely, matching the
+    // full-track geometry.
+    if (CVarGetInteger("gFreecam", 0) != 0 || CVarGetInteger("gDisableLod", 1) != 0) {
         if (gObjectList[objectIndex].state != 0) {
             set_object_flag(objectIndex, 0x00020000);
             set_object_flag(objectIndex, VISIBLE);
