@@ -9,6 +9,7 @@
 #include <string>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <typeinfo>
 #include <vector>
 
@@ -859,9 +860,11 @@ extern "C" void GeometryMode_DumpFrame(void* pool) {
     }
     sDumpRequested = false;
     char path[512];
+    // Unique per capture across relaunches: the old per-process counter
+    // restarted at 0 every launch and overwrote earlier evidence.
     snprintf(path, sizeof(path),
-             "/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/framedump_%d.txt",
-             sDumpCounter++);
+             "/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/framedump_%ld_%d.txt",
+             (long) time(nullptr), sDumpCounter++);
     FILE* f = fopen(path, "w");
     if (f == nullptr) {
         return;
