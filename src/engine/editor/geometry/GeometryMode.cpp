@@ -921,7 +921,25 @@ extern "C" void GeometryMode_MarkTrackPass(int32_t inPass) {
     sTrackPassMarked = inPass;
 }
 
-extern "C" int32_t GeometryMode_StockFreecamDraw(void) {
+static bool EnsureCatalog(const char* const addr[]) {
+    using namespace GeometryEditor;
+    if (sCatalog.Built()) {
+        return true;
+    }
+    if (sCatalog.Failed() || sSectionCount == 0) {
+        return false;
+    }
+    const char* creditsPath = CreditsRootFor(GetWorld()->GetTrack());
+    Gfx* creditsRoot = (creditsPath != nullptr) ? (Gfx*) ResourceGetDataByName(creditsPath) : nullptr;
+    sCatalog.Build(addr, sSectionCount, creditsRoot, sSectionCentroids);
+    if (!sCatalog.Failed()) {
+        printf("[GeometryMode] catalog: %zu sections, %zu leaves, %zu vertices, %zu weld groups\n", sSectionCount,
+               sCatalog.LeafCount(), sCatalog.Vertices().size(), sCatalog.WeldGroupCount());
+    }
+    return sCatalog.Built();
+}
+
+extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction) {
     using namespace GeometryEditor;
     if (!sTrackPassMarked || gGamestate != RACING) {
         return 0;
@@ -933,8 +951,25 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(void) {
     // One-shot per pass: never fires for the transparency-pass calls into
     // render_track_sections (Koopa Beach, Sherbet Land secondary tables).
     sTrackPassMarked = 0;
-    track->DrawCredits();
-    return 1;
+
+    // Freecam view options, editor not required. Force LOD choices use the
+    // classifier-built assemblies; the version selector picks the base view.
+    int force = CVarGetInteger("gFreecamForceLod", 0); // 0 default, 1 no-lod, 2 lod
+    if ((force == 1 || force == 2) && EnsureCatalog(addr)) {
+        const std::vector<Gfx>& dl = (force == 1) ? sCatalog.NearDL(direction) : sCatalog.FarDL(direction);
+        if (!dl.empty()) {
+            gSPDisplayList(gDisplayListHead++, (Gfx*) dl.data());
+            return 1;
+        }
+    }
+    int version = CVarGetInteger("gFreecamCourseVersion", 2); // 0 GP, 1 VS (pending), 2 credits
+    if (version == 2) {
+        track->DrawCredits();
+        return 1;
+    }
+    // GP (and VS until its measurement lands): the game's own
+    // position-based sheet behavior.
+    return 0;
 }
 
 extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t direction) {

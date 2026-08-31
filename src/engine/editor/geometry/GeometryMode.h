@@ -22,7 +22,7 @@ void GeometryMode_OnTrackSectionsParsed(void* sections);
 // section list, so the course's own Draw() preamble and post-section extras
 // (combine modes, shading state, decal shadows) still run around it.
 void GeometryMode_MarkTrackPass(int32_t inPass);
-int32_t GeometryMode_StockFreecamDraw(void);
+int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction);
 void GeometryMode_Tick(void);
 
 #ifdef __cplusplus

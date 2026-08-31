@@ -192,7 +192,7 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
         return;
     }
 
-    if (GeometryMode_StockFreecamDraw()) {
+    if (GeometryMode_StockFreecamDraw(addr, direction)) {
         return;
     }
 

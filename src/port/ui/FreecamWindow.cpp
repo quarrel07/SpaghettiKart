@@ -76,6 +76,33 @@ void RegisterFreecamWidgets() {
             CM_SetFreeCamera(state);
         });
 
+    static const std::unordered_map<int32_t, const char*> freecamCourseVersionOptions = {
+        { 0, "GP Race (position-based sheets)" },
+        { 1, "VS Race (pending measurement)" },
+        { 2, "Credits (full course, stable)" },
+    };
+    mPortMenu->AddWidget(path, "Course Geometry", WIDGET_CVAR_COMBOBOX)
+        .CVar("gFreecamCourseVersion")
+        .Options(UIWidgets::ComboboxOptions()
+                     .ComboMap(freecamCourseVersionOptions)
+                     .DefaultIndex(2)
+                     .Tooltip("Which course assembly freecam renders. Credits is the authored full course; GP Race "
+                              "uses the game's own position-based selection; VS Race is wired like GP until its "
+                              "differences are measured."));
+
+    static const std::unordered_map<int32_t, const char*> freecamLodOptions = {
+        { 0, "Default" },
+        { 1, "Force No LOD (up-close versions everywhere)" },
+        { 2, "Force LOD (far stand-ins everywhere)" },
+    };
+    mPortMenu->AddWidget(path, "Course LOD", WIDGET_CVAR_COMBOBOX)
+        .CVar("gFreecamForceLod")
+        .Options(UIWidgets::ComboboxOptions()
+                     .ComboMap(freecamLodOptions)
+                     .DefaultIndex(0)
+                     .Tooltip("Force which detail versions of course geometry render, using the per-piece LOD "
+                              "classification. Overrides Course Geometry while forced."));
+
     mPortMenu->AddWidget(path, "Camera Damping", WIDGET_SLIDER_FLOAT)
         .ValuePointer(&gDampValue)
         .Options(UIWidgets::FloatSliderOptions().Min(0.970f).Max(1.0f).Step(0.001f).Format("%.3f"));

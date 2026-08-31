@@ -74,6 +74,13 @@ class GeometryCatalog {
     const std::vector<Gfx>& MergedDL(int direction) const {
         return mMerged[direction & 3];
     }
+    // Force No LOD: near + unique + unplaced. Force LOD: far + unique + unplaced.
+    const std::vector<Gfx>& NearDL(int direction) const {
+        return mNearMerged[direction & 3];
+    }
+    const std::vector<Gfx>& FarDL(int direction) const {
+        return mFarMerged[direction & 3];
+    }
     const std::vector<VertexRef>& Vertices() const {
         return mVertices;
     }
@@ -97,7 +104,7 @@ class GeometryCatalog {
 
     Gfx* ResolveWrapper(const char* path);
     bool mMarkOnly = false; // enumeration pass flags existing refs instead of creating
-    bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves);
+    bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves, int lodFilter);
     void ClassifyLeaves(const std::vector<SectionCentroid>& sectionCentroids);
     void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
     void EnumerateLeaf(Gfx* cmds, int depth);
@@ -108,6 +115,8 @@ class GeometryCatalog {
     bool mBuilt = false;
     bool mFailed = false;
     std::vector<Gfx> mMerged[4];
+    std::vector<Gfx> mNearMerged[4];
+    std::vector<Gfx> mFarMerged[4];
     std::vector<uint64_t> mLeafOrder;
     std::unordered_set<uint64_t> mLeafSeen;
     std::unordered_map<uint64_t, std::unordered_set<int>> mLeafSections; // leaf -> section ids listing it

@@ -71,6 +71,12 @@ void GeometryCatalog::Reset() {
     for (auto& m : mMerged) {
         m.clear();
     }
+    for (auto& m : mNearMerged) {
+        m.clear();
+    }
+    for (auto& m : mFarMerged) {
+        m.clear();
+    }
     mLeafOrder.clear();
     mLeafSeen.clear();
     mLeafSections.clear();
@@ -109,7 +115,7 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
         for (size_t s = 0; s < sectionCount; s++) {
             mMergeSection = (int) s + 1;
             Gfx* cmds = ResolveWrapper(wrappers[s * 4 + direction]);
-            if (cmds == nullptr || !MergeWrapper(cmds, mMerged[direction], emittedLeaves)) {
+            if (cmds == nullptr || !MergeWrapper(cmds, mMerged[direction], emittedLeaves, 0)) {
                 ok = false;
                 break;
             }
@@ -144,6 +150,24 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
         mMarkOnly = false;
         mCurrentLeaf = 0;
         ClassifyLeaves(sectionCentroids);
+        // Filtered sweeps for the Force LOD views, now that classes exist.
+        for (int filter = 1; filter <= 2; filter++) {
+            auto* dest = (filter == 1) ? mNearMerged : mFarMerged;
+            for (int direction = 0; direction < 4; direction++) {
+                std::unordered_set<uint64_t> emitted;
+                for (size_t s = 0; s < sectionCount; s++) {
+                    mMergeSection = -1;
+                    Gfx* cmds = ResolveWrapper(wrappers[s * 4 + direction]);
+                    if (cmds != nullptr) {
+                        MergeWrapper(cmds, dest[direction], emitted, filter);
+                    }
+                }
+                Gfx end;
+                end.words.w0 = (uintptr_t) OP_ENDDL << 24;
+                end.words.w1 = 0;
+                dest[direction].push_back(end);
+            }
+        }
     } else {
         for (uint64_t hash : mLeafOrder) {
             EnumerateLeaf((Gfx*) ResourceGetDataByCrc(hash), 0);
@@ -161,7 +185,8 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
     mBuilt = true;
 }
 
-bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves) {
+bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves,
+                                   int lodFilter) {
     Gfx* ptr = cmds;
     for (int guard = 0; guard < (1 << 16); guard++) {
         uintptr_t w0 = ptr->words.w0;
@@ -183,7 +208,15 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
             if (mMergeSection > 0) {
                 mLeafSections[hash].insert(mMergeSection);
             }
-            if (emittedLeaves.insert(hash).second) {
+            bool allowed = true;
+            if (lodFilter != 0) {
+                auto li = mLeafInfoIndex.find(hash);
+                if (li != mLeafInfoIndex.end()) {
+                    LeafClass c = mLeafInfo[li->second].cls;
+                    allowed = (lodFilter == 1) ? (c != LeafClass::Far) : (c != LeafClass::Near);
+                }
+            }
+            if (allowed && emittedLeaves.insert(hash).second) {
                 Gfx call = ptr[0];
                 call.words.w0 &= ~((uintptr_t) 1 << 16);
                 out.push_back(call);
