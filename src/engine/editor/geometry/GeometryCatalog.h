@@ -79,12 +79,6 @@ class GeometryCatalog {
     const std::vector<Gfx>& MergedDL(int direction) const {
         return mMerged[direction & 3];
     }
-    // The credits assembly filtered to race-known leaves only: full-detail
-    // course surfaces without the credits-only extras (staff text, baked
-    // scenery copies). Empty when no credits root was available.
-    const std::vector<Gfx>& NoLodDL() const {
-        return mNoLod;
-    }
     // Force No LOD: near + unique + unplaced. Force LOD: far + unique + unplaced.
     const std::vector<Gfx>& NearDL(int direction) const {
         return mNearMerged[direction & 3];
@@ -118,7 +112,6 @@ class GeometryCatalog {
     bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves, int lodFilter);
     void ClassifyLeaves(const std::vector<SectionCentroid>& sectionCentroids);
     void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
-    void BuildNoLodFromCredits(Gfx* creditsRoot);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
     int32_t AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
@@ -127,7 +120,6 @@ class GeometryCatalog {
     bool mBuilt = false;
     bool mFailed = false;
     std::vector<Gfx> mMerged[4];
-    std::vector<Gfx> mNoLod;
     std::vector<Gfx> mNearMerged[4];
     std::vector<Gfx> mFarMerged[4];
     std::vector<uint64_t> mLeafOrder;
