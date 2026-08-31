@@ -192,9 +192,10 @@ void render_track_sections(const char* addr[], ScreenContext* arg1) {
         return;
     }
 
-    if (GeometryMode_StockFreecamDraw(addr, direction)) {
+    if (GeometryMode_StockFreecamDraw(addr, direction, &index)) {
         return;
     }
+    arg1->pathCounter = index; // freecam may have re-aimed the section at the camera
 
     index = ((index - 1) * 4) + direction;
     gSPDisplayList(gDisplayListHead++, addr[index]);

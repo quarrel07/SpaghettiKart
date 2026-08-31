@@ -22,7 +22,11 @@ void GeometryMode_OnTrackSectionsParsed(void* sections);
 // section list, so the course's own Draw() preamble and post-section extras
 // (combine modes, shading state, decal shadows) still run around it.
 void GeometryMode_MarkTrackPass(int32_t inPass);
-int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction);
+// Returns 1 if it drew the course (caller returns). Returns 0 to continue
+// the normal sectioned draw; in freecam that continues with *indexInOut
+// overridden to the section nearest the camera, so the default view matches
+// the race mode and follows the camera instead of stale kart bookkeeping.
+int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut);
 void GeometryMode_Tick(void);
 
 #ifdef __cplusplus

@@ -939,7 +939,7 @@ static bool EnsureCatalog(const char* const addr[]) {
     return sCatalog.Built();
 }
 
-extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction) {
+extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut) {
     using namespace GeometryEditor;
     if (!sTrackPassMarked || gGamestate != RACING) {
         return 0;
@@ -962,13 +962,33 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
             return 1;
         }
     }
-    int version = CVarGetInteger("gFreecamCourseVersion", 2); // 0 GP, 1 VS (pending), 2 credits
+    int version = CVarGetInteger("gFreecamCourseVersion", 0); // 0 match mode, 1 VS (pending), 2 credits
     if (version == 2) {
         track->DrawCredits();
         return 1;
     }
-    // GP (and VS until its measurement lands): the game's own
-    // position-based sheet behavior.
+    // Match race mode (and VS until its measurement lands): the game's own
+    // position-based sheets, but selected by CAMERA proximity so freecam
+    // shows what the game would show if the kart stood where the camera is.
+    if (indexInOut != nullptr && !sSectionCentroids.empty() && gScreenOneCtx != nullptr &&
+        gScreenOneCtx->camera != nullptr) {
+        Camera* cam = gScreenOneCtx->camera;
+        float best = 1e30f;
+        int bestId = -1;
+        for (const auto& sc : sSectionCentroids) {
+            float dx = cam->pos[0] - sc.pos[0];
+            float dy = cam->pos[1] - sc.pos[1];
+            float dz = cam->pos[2] - sc.pos[2];
+            float d = dx * dx + dy * dy + dz * dz;
+            if (d < best) {
+                best = d;
+                bestId = sc.sectionId;
+            }
+        }
+        if (bestId > 0 && (size_t) bestId <= sSectionCount) {
+            *indexInOut = (int16_t) bestId;
+        }
+    }
     return 0;
 }
 
