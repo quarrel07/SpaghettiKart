@@ -1188,14 +1188,15 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
         return 1;
     }
-    // Scenery over stock rendering: draw the game's own sheet first, then
-    // the scenery layer so its state cannot bleed into the course pieces.
+    // Scenery over stock rendering: scenery first, at its authored
+    // front-of-stream position (it depends on the fresh preamble state),
+    // then the game's own sheet, which starts with its own binds.
     if (wantScenery && indexInOut != nullptr && *indexInOut >= 1 && (size_t) *indexInOut <= sSectionCount &&
         !sCatalog.SceneryDL().empty()) {
         int idx = ((*indexInOut - 1) * 4) + direction;
-        gSPDisplayList(gDisplayListHead++, (Gfx*) addr[idx]);
         gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
-        GeometryMode_LogTrackDraw("stock+scenery", idx, direction);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) addr[idx]);
+        GeometryMode_LogTrackDraw("scenery+stock", idx, direction);
         return 1;
     }
     return 0;
