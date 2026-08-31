@@ -77,6 +77,7 @@ void GeometryCatalog::Reset() {
     mBindByVtx.clear();
     mBindWalked.clear();
     mRepairWalked.clear();
+    mSubtreeRaceGeo.clear();
     for (auto& m : mNearMerged) {
         m.clear();
     }
@@ -571,6 +572,58 @@ void GeometryCatalog::CaptureRaceBinds(Gfx* cmds, std::vector<Gfx>& buffer, int 
     }
 }
 
+// True if the subtree draws at least one vertex load the race tables also
+// author (or draws nothing at all, e.g. pure state wrappers, which are kept).
+bool GeometryCatalog::SubtreeHasRaceGeometry(Gfx* cmds, int depth) {
+    if (cmds == nullptr || depth > 10) {
+        return false;
+    }
+    bool sawLoad = false;
+    Gfx* ptr = cmds;
+    for (int guard = 0; guard < (1 << 18); guard++) {
+        uintptr_t w0 = ptr->words.w0;
+        uint8_t op = GEO_OPCODE(w0);
+        if (op == OP_ENDDL) {
+            break;
+        }
+        if (op == G_MARKER) {
+            ptr += 2;
+            continue;
+        }
+        if (op == G_DL_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            auto it = mSubtreeRaceGeo.find(hash);
+            bool sub;
+            if (it != mSubtreeRaceGeo.end()) {
+                sub = it->second;
+            } else {
+                sub = SubtreeHasRaceGeometry((Gfx*) ResourceGetDataByCrc(hash), depth + 1);
+                mSubtreeRaceGeo.emplace(hash, sub);
+            }
+            if (sub) {
+                return true;
+            }
+            sawLoad = true; // subtree drew something, all of it twinless
+            if (GEO_C0(w0, 16, 1) != 0) {
+                break;
+            }
+            ptr += 2;
+            continue;
+        }
+        if (op == G_VTX_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            sawLoad = true;
+            if (mBindByVtx.find(hash) != mBindByVtx.end()) {
+                return true;
+            }
+            ptr += 2;
+            continue;
+        }
+        ptr += CommandWords(op);
+    }
+    return !sawLoad; // no geometry at all: keep (harmless state/structure)
+}
+
 // Flattens the credits assembly into mRepaired, injecting each vertex
 // load's race-authored bind block right before it. Loads without a race
 // twin (credits-only scenery) keep their own authored state.
@@ -592,7 +645,11 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
         if (op == G_DL_OTR_HASH) {
             uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
             if (mRepairWalked.insert(hash).second) {
-                BuildRepairedFullCourse((Gfx*) ResourceGetDataByCrc(hash), depth + 1);
+                Gfx* child = (Gfx*) ResourceGetDataByCrc(hash);
+                if (SubtreeHasRaceGeometry(child, depth + 1)) {
+                    BuildRepairedFullCourse(child, depth + 1);
+                }
+                // else: credits-only scenery, dropped whole
             }
             if (GEO_C0(w0, 16, 1) != 0) {
                 return;

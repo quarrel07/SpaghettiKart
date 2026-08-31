@@ -121,6 +121,10 @@ class GeometryCatalog {
     void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
     void CaptureRaceBinds(Gfx* cmds, std::vector<Gfx>& buffer, int depth);
     void BuildRepairedFullCourse(Gfx* creditsRoot, int depth);
+    // Scans a subtree: does it contain any vertex load with a race twin?
+    // Credits-only scenery (no twins at all) is dropped from the repaired
+    // assembly; races provide the live versions of those things.
+    bool SubtreeHasRaceGeometry(Gfx* cmds, int depth);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
     int32_t AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
@@ -134,6 +138,7 @@ class GeometryCatalog {
     std::unordered_map<uint64_t, std::vector<Gfx>> mBindByVtx;             // vtx hash -> first bind block
     std::unordered_set<uint64_t> mBindWalked;
     std::unordered_set<uint64_t> mRepairWalked;
+    std::unordered_map<uint64_t, bool> mSubtreeRaceGeo; // scan cache by DL hash
     std::vector<Gfx> mNearMerged[4];
     std::vector<Gfx> mFarMerged[4];
     std::vector<uint64_t> mLeafOrder;
