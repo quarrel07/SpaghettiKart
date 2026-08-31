@@ -53,7 +53,10 @@ void FreeCamera::SetViewProjection() {
     UNUSED Mat4 lookAt;
 
     gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER | G_SHADE | G_SHADING_SMOOTH);
-    gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
+    // Do NOT clear the cull bits here (GameCamera doesn't): back-to-back
+    // panels like the trackside signs rely on backface culling to keep the
+    // hidden side from z-fighting its coincident front (Andy's framedumped
+    // checkerboard shimmer, 2026-08-31).
 
     // Perspective (camera movement)
     FrameInterpolation_RecordOpenChild("freecam_persp", FrameInterpolation_GetCameraEpoch());
