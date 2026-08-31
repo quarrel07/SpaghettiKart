@@ -1168,15 +1168,30 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         }
         return 0;
     }
-    // QUARANTINED 2026-08-31: the flattened repaired assembly crashed the
-    // graphics interpreter mid-triangle on its first real run (SIGSEGV in
-    // GfxSpTri1). Until the stream is validated offline against interpreter
-    // semantics, the substitution uses the raw credits draw, which has been
-    // play-validated; the scenery layer (same flattening) is inert too.
-    (void) wantScenery;
+    if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
+        // Repaired assembly: race-authored texture binds injected before
+        // every vertex load, so surfaces the credits camera never films
+        // cannot inherit garbage state.
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
+        if (wantScenery && !sCatalog.SceneryDL().empty()) {
+            gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
+        }
+        GeometryMode_LogTrackDraw(wantScenery ? "fullcourse+scenery" : "fullcourse-repaired", -1, direction);
+        return 1;
+    }
     if (substitution) {
         track->DrawCredits();
         GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
+        return 1;
+    }
+    // Scenery over stock rendering: draw the game's own sheet first, then
+    // the scenery layer so its state cannot bleed into the course pieces.
+    if (wantScenery && indexInOut != nullptr && *indexInOut >= 1 && (size_t) *indexInOut <= sSectionCount &&
+        !sCatalog.SceneryDL().empty()) {
+        int idx = ((*indexInOut - 1) * 4) + direction;
+        gSPDisplayList(gDisplayListHead++, (Gfx*) addr[idx]);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
+        GeometryMode_LogTrackDraw("stock+scenery", idx, direction);
         return 1;
     }
     return 0;

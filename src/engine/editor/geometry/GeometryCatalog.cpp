@@ -565,9 +565,16 @@ void GeometryCatalog::CaptureRaceBinds(Gfx* cmds, std::vector<Gfx>& buffer, int 
                 buffer.push_back(ptr[i]);
             }
             // Cap the rolling buffer; later commands override earlier ones
-            // on replay, so trimming from the front is safe.
+            // on replay. Trim WHOLE commands from the front: erasing single
+            // words can orphan the second half of a two-word command, and an
+            // orphaned hash word replayed as an instruction desyncs the
+            // interpreter (proven crash: 69 of Moo Moo's 342 snapshots).
             while (buffer.size() > 48) {
-                buffer.erase(buffer.begin());
+                size_t drop = (size_t) CommandWords(GEO_OPCODE(buffer.front().words.w0));
+                if (drop > buffer.size()) {
+                    drop = buffer.size();
+                }
+                buffer.erase(buffer.begin(), buffer.begin() + drop);
             }
             ptr += words;
             continue;
