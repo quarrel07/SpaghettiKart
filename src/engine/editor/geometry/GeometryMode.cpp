@@ -134,7 +134,7 @@ bool PointerOverUI(float mx, float my) {
     if (CVarGetInteger("gOpenMenu", 0) != 0) {
         return true;
     }
-    for (const char* name : { "Geometry Editor", "Freecam Options" }) {
+    for (const char* name : { "Geometry Editor" }) {
         if (ImGuiWindow* w = ImGui::FindWindowByName(name)) {
             if (w->Active && mx >= w->Pos.x && mx < w->Pos.x + w->Size.x && my >= w->Pos.y &&
                 my < w->Pos.y + w->Size.y) {
@@ -1066,12 +1066,6 @@ extern "C" void GeometryMode_OnTrackSectionsParsed(void* sections) {
 
     // The freecam view defaults to whatever geometry version is actually
     // loaded for this session; users can override per course.
-    // Default freecam to the full-course view: matches what stock freecam
-    // showed (minus upstream #640's stacked flicker). The census proved the
-    // sheet-based GP/VS views draw partial geometry, so they are opt-in
-    // diagnostics, not a sane default.
-    CVarSetInteger("gFreecamCourseVersion", 2);
-    CVarSetInteger("gFreecamForceLod", 0);
     Track* track = GetWorld()->GetTrack();
     size_t tableLimit = SectionTableLimit(track);
     sSectionCount = (maxSection < tableLimit) ? maxSection : tableLimit;
@@ -1137,8 +1131,16 @@ extern "C" void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int
     repeats = 0;
 }
 
+// Full-course substitution inside the course's own Draw(): active during
+// racing whenever the No LOD enhancement is on (drive mode) or freecam is
+// on. The marked pass keeps the Draw() preamble, decals, and transparency
+// handling; the substituted list is the authored full-detail assembly, so
+// every surface stays present regardless of distance. This generalizes the
+// game's own Bowser's Castle credits-list swap to every stock course.
 extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut) {
     using namespace GeometryEditor;
+    (void) addr;
+    (void) indexInOut;
     if (!sTrackPassMarked || gGamestate != RACING) {
         return 0;
     }
@@ -1150,52 +1152,15 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // render_track_sections (Koopa Beach, Sherbet Land secondary tables).
     sTrackPassMarked = 0;
 
-    // These are freecam VIEW options; with freecam off, normal racing must
-    // render completely stock regardless of what the selectors are set to.
-    if (!CVarGetInteger("gFreecam", 0)) {
-        return 0;
+    if (!CVarGetInteger("gDisableLod", 1) && !CVarGetInteger("gFreecam", 0)) {
+        return 0; // stock sectioned rendering
     }
-
-    // Freecam view options, editor not required. Force LOD choices use the
-    // classifier-built assemblies; the version selector picks the base view.
-    int force = CVarGetInteger("gFreecamForceLod", 0); // 0 default, 1 no-lod, 2 lod
-    if ((force == 1 || force == 2) && EnsureCatalog(addr)) {
-        const std::vector<Gfx>& dl = (force == 1) ? sCatalog.NearDL(direction) : sCatalog.FarDL(direction);
-        if (!dl.empty()) {
-            gSPDisplayList(gDisplayListHead++, (Gfx*) dl.data());
-            GeometryMode_LogTrackDraw(force == 1 ? "freecam-force-nolod" : "freecam-force-lod", -1, direction);
-            return 1;
-        }
+    if (gModeSelection == BATTLE || track->IsMod() || CreditsRootFor(track) == nullptr) {
+        return 0; // battle arenas and custom tracks have no full assembly
     }
-    int version = CVarGetInteger("gFreecamCourseVersion", 0); // 0 match mode, 1 VS (pending), 2 credits
-    if (version == 2) {
-        track->DrawCredits();
-        GeometryMode_LogTrackDraw("freecam-credits", -1, direction);
-        return 1;
-    }
-    // Match race mode (and VS until its measurement lands): the game's own
-    // position-based sheets, but selected by CAMERA proximity so freecam
-    // shows what the game would show if the kart stood where the camera is.
-    if (indexInOut != nullptr && !sSectionCentroids.empty() && gScreenOneCtx != nullptr &&
-        gScreenOneCtx->camera != nullptr) {
-        Camera* cam = gScreenOneCtx->camera;
-        float best = 1e30f;
-        int bestId = -1;
-        for (const auto& sc : sSectionCentroids) {
-            float dx = cam->pos[0] - sc.pos[0];
-            float dy = cam->pos[1] - sc.pos[1];
-            float dz = cam->pos[2] - sc.pos[2];
-            float d = dx * dx + dy * dy + dz * dz;
-            if (d < best) {
-                best = d;
-                bestId = sc.sectionId;
-            }
-        }
-        if (bestId > 0 && (size_t) bestId <= sSectionCount) {
-            *indexInOut = (int16_t) bestId;
-        }
-    }
-    return 0;
+    track->DrawCredits();
+    GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
+    return 1;
 }
 
 extern "C" int32_t GeometryMode_DrawFullTrack(const char* const addr[], int16_t direction) {

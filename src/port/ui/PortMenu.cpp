@@ -376,7 +376,8 @@ void PortMenu::AddEnhancements() {
     AddWidget(path, "No Level of Detail (LOD)", WIDGET_CVAR_CHECKBOX)
         .CVar("gDisableLod")
         .Options(CheckboxOptions().Tooltip(
-            "Disable Level of Detail (LOD) to avoid models using lower poly versions at a distance"));
+            "Render the full-detail course at all times: distant geometry and textures stay present instead of "
+            "using lower-detail versions or vanishing. Also keeps full-detail object models at a distance."));
     AddWidget(path, "Disable Culling", WIDGET_CVAR_CHECKBOX)
         .CVar("gNoCulling")
         .Options(CheckboxOptions().Tooltip("Disable original culling of mk64"));

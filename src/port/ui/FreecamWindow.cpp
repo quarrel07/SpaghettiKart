@@ -36,27 +36,6 @@ extern u32 bFreecamUseController;
 void freecam_get_player_from_character(s32 characterId);
 }
 
-void Freecam::FreecamOptionsWindow::DrawElement() {
-    bool freecam = CVarGetInteger("gFreecam", 0);
-    if (ImGui::Checkbox("Enable Freecam", &freecam)) {
-        CVarSetInteger("gFreecam", freecam);
-        CM_SetFreeCamera(freecam);
-    }
-    if (gModeSelection == BATTLE) {
-        return; // battle arenas have a single presentation
-    }
-    // Full course = the complete assembly, every surface filled in.
-    // Game view = what racing would draw with the kart at the camera:
-    // the real presentation, including distance cuts and stand-ins.
-    int view = (CVarGetInteger("gFreecamCourseVersion", 2) == 2) ? 0 : 1;
-    bool changed = ImGui::RadioButton("Full course", &view, 0);
-    changed |= ImGui::RadioButton("Game view (as racing draws it)", &view, 1);
-    if (changed) {
-        CVarSetInteger("gFreecamCourseVersion", view == 0 ? 2 : 0);
-    }
-}
-
-
 namespace GameUI {
 extern std::shared_ptr<PortMenu> mPortMenu;
 namespace Freecam {
@@ -90,11 +69,9 @@ void RegisterFreecamWidgets() {
     mPortMenu->AddWidget(path, "Keyboard: Move: W,A,S,D, Up: Space, Down: Shift\n  Faster: Ctrl, Look: Right-mouse button\n  Target Player Mode: F, Next: M, Previous: N", WIDGET_TEXT);
     mPortMenu->AddWidget(path, "Controller: Up: A, Down: B, Faster: Z\n  Target Player Mode: R, Next: Right DPad, Previous: Left DPad\n  Driving Mode: L and R Buttons", WIDGET_TEXT);
 
-    mPortMenu->AddWidget(path, "Popout Freecam Options", WIDGET_WINDOW_BUTTON)
-        .CVar("gFreecamOptionsWindow")
-        .Options(UIWidgets::ButtonOptions().Tooltip(
-            "Floating window with the freecam toggle and view options, usable while watching the course"))
-        .WindowName("Freecam Options");
+    mPortMenu->AddWidget(path, "Enable Freecam", WIDGET_CVAR_CHECKBOX)
+        .CVar("gFreecam")
+        .Callback([](WidgetInfo& info) { CM_SetFreeCamera(CVarGetInteger("gFreecam", 0)); });
 
     mPortMenu->AddWidget(path, "Camera Damping", WIDGET_SLIDER_FLOAT)
         .ValuePointer(&gDampValue)

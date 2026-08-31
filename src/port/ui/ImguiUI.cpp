@@ -41,7 +41,6 @@ std::shared_ptr<Ship::GuiWindow> mPropertiesWindow;
 std::shared_ptr<Ship::GuiWindow> mTrackPropertiesWindow;
 std::shared_ptr<Ship::GuiWindow> mContentBrowserWindow;
 std::shared_ptr<Ship::GuiWindow> mGeometryEditorWindow;
-std::shared_ptr<Ship::GuiWindow> mFreecamOptionsWindow;
 
 void SetupGuiElements() {
     auto gui = Ship::Context::GetRawInstance()->GetWindow()->GetGui();
@@ -94,9 +93,6 @@ void SetupGuiElements() {
         std::make_shared<GeometryEditor::GeometryEditorWindow>("gGeometryEditorWindow", "Geometry Editor");
     gui->AddGuiWindow(mGeometryEditorWindow);
 
-    mFreecamOptionsWindow =
-        std::make_shared<::Freecam::FreecamOptionsWindow>("gFreecamOptionsWindow", "Freecam Options");
-    gui->AddGuiWindow(mFreecamOptionsWindow);
 }
 
 void Destroy() {
@@ -109,7 +105,6 @@ void Destroy() {
     mTrackPropertiesWindow = nullptr;
     mContentBrowserWindow = nullptr;
     mGeometryEditorWindow = nullptr;
-    mFreecamOptionsWindow = nullptr;
 }
 
 std::string GetWindowButtonText(const char* text, bool menuOpen) {

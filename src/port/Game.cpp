@@ -352,7 +352,13 @@ void CM_DrawTrack(ScreenContext* screen) {
                 }
                 break;
             case RENDER_TRACK_SECTIONS:
+                // Marked so the No LOD enhancement can substitute the
+                // full-course assembly during normal driving; with the
+                // enhancement and freecam both off the mark is consumed
+                // without effect and rendering is stock.
+                GeometryMode_MarkTrackPass(1);
                 GetWorld()->GetTrack()->Draw(screen);
+                GeometryMode_MarkTrackPass(0);
                 break;
             case RENDER_COLLISION_MESH:
                 render_collision();
