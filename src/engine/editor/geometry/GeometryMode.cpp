@@ -1066,7 +1066,11 @@ extern "C" void GeometryMode_OnTrackSectionsParsed(void* sections) {
 
     // The freecam view defaults to whatever geometry version is actually
     // loaded for this session; users can override per course.
-    CVarSetInteger("gFreecamCourseVersion", (gModeSelection == VERSUS) ? 1 : 0);
+    // Default freecam to the full-course view: matches what stock freecam
+    // showed (minus upstream #640's stacked flicker). The census proved the
+    // sheet-based GP/VS views draw partial geometry, so they are opt-in
+    // diagnostics, not a sane default.
+    CVarSetInteger("gFreecamCourseVersion", 2);
     CVarSetInteger("gFreecamForceLod", 0);
     Track* track = GetWorld()->GetTrack();
     size_t tableLimit = SectionTableLimit(track);
