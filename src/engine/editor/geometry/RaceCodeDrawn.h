@@ -3,31 +3,12 @@
 // layer must both skip these to avoid drawing duplicates.
 #pragma once
 
-// Subset CONFIRMED VISIBLE in normal races (empirical; e.g. Mario
-// Raceway's trackside billboards appear in race screenshots). Only these
-// are excluded from the scenery toggle: pieces the race code draws but
-// which never visibly appear in races (Banshee's arrows; mechanism
-// unexplained, five theories falsified 2026-08-31) stay available there.
-static const char* const kRaceVisibleDLs[] = {
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_3508",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_3240",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_14A0",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_450",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_240",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_E0",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_160",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_1140",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_8E8",
-    "models/tracks/mario_raceway/mario_raceway_displaylists/d_course_mario_raceway_packed_dl_2D68",
-    "models/tracks/moo_moo_farm/moo_moo_farm_displaylists/d_course_moo_moo_farm_packed_dl_4DF8",
-    "models/tracks/moo_moo_farm/moo_moo_farm_displaylists/d_course_moo_moo_farm_packed_dl_5640",
-    "models/tracks/moo_moo_farm/moo_moo_farm_displaylists/d_course_moo_moo_farm_packed_dl_5410",
-    "models/tracks/moo_moo_farm/moo_moo_farm_displaylists/d_course_moo_moo_farm_packed_dl_10C0",
-    "models/tracks/luigi_raceway/luigi_raceway_displaylists/d_course_luigi_raceway_packed_dl_E0",
-    "models/tracks/luigi_raceway/luigi_raceway_displaylists/d_course_luigi_raceway_packed_dl_68",
-    "models/tracks/luigi_raceway/luigi_raceway_displaylists/d_course_luigi_raceway_packed_dl_9EC0",
-};
-
+// THE FLIP (2026-08-31): everything in this list is treated as race
+// content - excluded from the full-course assembly AND from the scenery
+// toggle. Andy's live A/B testing (test toggle) confirmed the previously
+// "unconfirmed" pieces are all real race content; the copies routed to
+// the toggle doubled race geometry (Royal Raceway sign z-fight) or showed
+// variants races never present (Moo Moo bridge rails).
 static const char* const kRaceCodeDrawnDLs[] = {
     "models/tracks/banshee_boardwalk/banshee_boardwalk_data/d_course_banshee_boardwalk_dl_B278",
     "models/tracks/banshee_boardwalk/banshee_boardwalk_displaylists/d_course_banshee_boardwalk_packed_dl_4E60",
