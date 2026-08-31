@@ -693,6 +693,30 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
                 // the course's own Draw() provides them, and a second copy
                 // z-fights it (the billboard flicker).
                 const char* childName = ResourceGetNameByCrc(hash);
+                // Credits vignette pieces that only make sense under the
+                // credits' own camera/matrix setup. Choco's dl_6F88 is the
+                // rolling-boulder scene: its shadow is a black translucent
+                // quad that, under race matrices, drapes across the whole
+                // screen (Andy's black-Choco framedump, 2026-08-31).
+                static const char* const kCreditsVignetteDLs[] = {
+                    "models/tracks/choco_mountain/choco_mountain_data/d_course_choco_mountain_dl_6F88",
+                };
+                if (childName != nullptr) {
+                    bool vignette = false;
+                    for (const char* excl : kCreditsVignetteDLs) {
+                        if (strcmp(childName, excl) == 0) {
+                            vignette = true;
+                            break;
+                        }
+                    }
+                    if (vignette) {
+                        if (GEO_C0(w0, 16, 1) != 0) {
+                            return;
+                        }
+                        ptr += 2;
+                        continue;
+                    }
+                }
                 bool raceCodeDrawn = false;
                 if (childName != nullptr) {
                     for (const char* excl : kRaceCodeDrawnDLs) {
