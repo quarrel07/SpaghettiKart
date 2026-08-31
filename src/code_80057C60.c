@@ -729,7 +729,9 @@ void func_80058F78(void) {
         FrameInterpolation_RecordOpenChild("HudMatrix", 0);
 
         set_matrix_hud_screen();
-        if ((!gDemoMode) && (gIsHUDVisible != 0) && (D_801657D8 == 0)) {
+        // Freecam is a viewing tool: hide these HUD elements too (the
+        // render_hud gate alone missed this site).
+        if ((!gDemoMode) && (gIsHUDVisible != 0) && (D_801657D8 == 0) && (CVarGetInteger("gFreecam", 0) == 0)) {
             draw_item_window(PLAYER_ONE);
             if (gHUDModes != 2) {
                 render_hud_timer(PLAYER_ONE);
@@ -812,7 +814,7 @@ void func_800591B4(void) {
         gSPDisplayList(gDisplayListHead++, D_0D0076F8);
         gSPClearGeometryMode(gDisplayListHead++, G_ZBUFFER);
 
-        if (gIsHUDVisible != 0) {
+        if (gIsHUDVisible != 0 && CVarGetInteger("gFreecam", 0) == 0) {
             if (D_801657D8 == 0) {
                 if (D_801657F0 != false) {
                     func_800514BC();
