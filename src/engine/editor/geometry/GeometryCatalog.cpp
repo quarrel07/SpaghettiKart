@@ -703,6 +703,29 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
                     }
                 }
                 if (raceCodeDrawn) {
+                    // Race-VISIBLE pieces are fully skipped (the course
+                    // Draw() shows them; a copy would double). Pieces the
+                    // race code draws invisibly go to the scenery layer:
+                    // the toggle is their only visible home.
+                    bool raceVisible = false;
+                    if (childName != nullptr) {
+                        for (const char* vis : kRaceVisibleDLs) {
+                            if (strcmp(childName, vis) == 0) {
+                                raceVisible = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!raceVisible) {
+                        Gfx sync;
+                        sync.words.w0 = (uintptr_t) 0xE7 << 24; // G_RDPPIPESYNC
+                        sync.words.w1 = 0;
+                        mScenery.push_back(sync);
+                        mScenery.insert(mScenery.end(), mSceneryContext.begin(), mSceneryContext.end());
+                        mScenery.insert(mScenery.end(), mSceneryBindCtx.begin(), mSceneryBindCtx.end());
+                        mScenery.insert(mScenery.end(), mSceneryTlut.begin(), mSceneryTlut.end());
+                        CopySubtree((Gfx*) ResourceGetDataByCrc(hash), mScenery, depth + 1);
+                    }
                     if (GEO_C0(w0, 16, 1) != 0) {
                         return;
                     }
