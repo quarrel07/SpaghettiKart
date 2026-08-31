@@ -77,18 +77,19 @@ void RegisterFreecamWidgets() {
         });
 
     static const std::unordered_map<int32_t, const char*> freecamCourseVersionOptions = {
-        { 0, "Match race mode (camera-based)" },
-        { 1, "VS Race (pending measurement)" },
-        { 2, "Credits (full course)" },
+        { 0, "GP Race" },
+        { 1, "VS Race" },
+        { 2, "Credits" },
     };
     mPortMenu->AddWidget(path, "Course Geometry", WIDGET_CVAR_COMBOBOX)
         .CVar("gFreecamCourseVersion")
         .Options(UIWidgets::ComboboxOptions()
                      .ComboMap(freecamCourseVersionOptions)
                      .DefaultIndex(0)
-                     .Tooltip("Which course assembly freecam renders. Match race mode (default) shows what your "
-                              "current mode draws, selected by camera position; Credits is the authored full-course "
-                              "list; VS Race is wired like the default until its differences are measured."));
+                     .Tooltip("Which course version freecam renders; defaults to the version your current session "
+                              "loaded. GP and VS use the game's own sheets selected by camera position (VS renders "
+                              "like GP until its differences are measured); Credits is the authored full-course "
+                              "list."));
 
     static const std::unordered_map<int32_t, const char*> freecamLodOptions = {
         { 0, "Default" },

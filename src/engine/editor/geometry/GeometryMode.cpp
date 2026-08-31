@@ -906,6 +906,11 @@ extern "C" void GeometryMode_OnTrackSectionsParsed(void* sections) {
                 { id, { (float) (a[0] / a[3]), (float) (a[1] / a[3]), (float) (a[2] / a[3]) } });
         }
     }
+
+    // The freecam view defaults to whatever geometry version is actually
+    // loaded for this session; users can override per course.
+    CVarSetInteger("gFreecamCourseVersion", (gModeSelection == VERSUS) ? 1 : 0);
+    CVarSetInteger("gFreecamForceLod", 0);
     Track* track = GetWorld()->GetTrack();
     size_t tableLimit = SectionTableLimit(track);
     sSectionCount = (maxSection < tableLimit) ? maxSection : tableLimit;
