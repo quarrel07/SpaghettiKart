@@ -221,6 +221,12 @@ void GeometryEditor::SceneryWindow::DrawElement() {
         CVarSetInteger("gCreditsScenery", on);
     }
     ImGui::TextDisabled("Extra set dressing authored for the credits");
+    ImGui::Separator();
+    bool hide = CVarGetInteger("gTestHideUnconfirmedPieces", 0);
+    if (ImGui::Checkbox("TEST: Hide Unconfirmed Race Pieces", &hide)) {
+        CVarSetInteger("gTestHideUnconfirmedPieces", hide);
+    }
+    ImGui::TextDisabled("Luigi Raceway (3) and Moo Moo Farm (3):\nanything that vanishes is confirmed race content");
 }
 
 namespace GameUI {
