@@ -1099,6 +1099,10 @@ static bool EnsureCatalog(const char* const addr[]) {
     return sCatalog.Built();
 }
 
+extern "C" int32_t GeometryMode_HideUnconfirmedPieces(void) {
+    return CVarGetInteger("gTestHideUnconfirmedPieces", 0);
+}
+
 extern "C" int32_t GeometryMode_ForceAllExtras(void) {
     using namespace GeometryEditor;
     if (gGamestate != RACING || gModeSelection == BATTLE) {

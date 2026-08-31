@@ -39,6 +39,10 @@ void GeometryMode_Census(void* pool);
 // True while the full-course substitution is active: course Draw() extras
 // gated on kart section/direction windows draw unconditionally instead.
 int32_t GeometryMode_ForceAllExtras(void);
+// TEMP test instrument: hides the six race-code draws whose race visibility
+// is unconfirmed (Luigi E0/68/9EC0, Moo Moo 4DF8/5640/10C0) so a live A/B
+// during a race shows which ones actually appear.
+int32_t GeometryMode_HideUnconfirmedPieces(void);
 
 #ifdef __cplusplus
 }

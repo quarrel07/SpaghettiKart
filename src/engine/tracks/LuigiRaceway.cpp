@@ -7,6 +7,7 @@
 
 #include "LuigiRaceway.h"
 #include "engine/World.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include "align_asset_macro.h"
 #include "engine/objects/BombKart.h"
 #include "assets/models/tracks/luigi_raceway/luigi_raceway_data.h"
@@ -280,7 +281,9 @@ void LuigiRaceway::Draw(ScreenContext* arg0) {
         gDPSetCombineMode(gDisplayListHead++, G_CC_SHADE, G_CC_SHADE);
         gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
         // d_course_luigi_raceway_packed_dl_9EC0
-        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_luigi_raceway_packed_dl_9EC0);
+        if (!GeometryMode_HideUnconfirmedPieces()) {
+            gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_luigi_raceway_packed_dl_9EC0);
+        }
     }
 
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
@@ -290,10 +293,12 @@ void LuigiRaceway::Draw(ScreenContext* arg0) {
 
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_TEX_EDGE, G_RM_AA_ZB_TEX_EDGE2);
-    // d_course_luigi_raceway_packed_dl_E0
-    gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_luigi_raceway_packed_dl_E0);
-    // d_course_luigi_raceway_packed_dl_68
-    gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_luigi_raceway_packed_dl_68);
+    if (!GeometryMode_HideUnconfirmedPieces()) {
+        // d_course_luigi_raceway_packed_dl_E0
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_luigi_raceway_packed_dl_E0);
+        // d_course_luigi_raceway_packed_dl_68
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_luigi_raceway_packed_dl_68);
+    }
 
     D_800DC5DC = 88;
     D_800DC5E0 = 72;

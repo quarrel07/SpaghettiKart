@@ -251,6 +251,14 @@ static void RegisterGeometryEditorWidgets() {
         .CVar("gCreditsSceneryWindow")
         .Options(UIWidgets::ButtonOptions().Tooltip("Floating toggle for live before/after comparison"))
         .WindowName("Credits Scenery");
+    // TEMP test instrument (2026-08-31): live A/B for the six race-code
+    // pieces whose race visibility is guessed, not confirmed.
+    mPortMenu->AddWidget(enh, "TEST: Hide Unconfirmed Race Pieces", WIDGET_CVAR_CHECKBOX)
+        .CVar("gTestHideUnconfirmedPieces")
+        .Options(UIWidgets::CheckboxOptions().Tooltip(
+            "Temporary test toggle. Hides six race-drawn pieces on Luigi Raceway (3) and Moo Moo Farm (3) whose "
+            "race visibility is unconfirmed. Flip it during a race: anything that visibly disappears is confirmed "
+            "race content; if nothing changes on a course, its pieces are invisible in races."));
 
     mPortMenu->AddWidget(path, "Watch Credits Sequence", WIDGET_BUTTON)
         .Callback([](WidgetInfo& info) {

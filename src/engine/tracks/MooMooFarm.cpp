@@ -268,10 +268,12 @@ void MooMooFarm::Draw(ScreenContext* arg0) {
     gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEI, G_CC_MODULATEI);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);
-    // d_course_moo_moo_farm_packed_dl_4DF8
-    gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_4DF8);
-    // d_course_moo_moo_farm_packed_dl_5640
-    gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_5640);
+    if (!GeometryMode_HideUnconfirmedPieces()) {
+        // d_course_moo_moo_farm_packed_dl_4DF8
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_4DF8);
+        // d_course_moo_moo_farm_packed_dl_5640
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_5640);
+    }
     gSPFogPosition(gDisplayListHead++, gFogMin, gFogMax);
 
     render_track_sections(moo_moo_farm_dls, arg0);
@@ -336,8 +338,10 @@ void MooMooFarm::Draw(ScreenContext* arg0) {
     }
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_TEX_EDGE, G_RM_AA_ZB_TEX_EDGE2);
-    // d_course_moo_moo_farm_packed_dl_10C0
-    gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_10C0);
+    if (!GeometryMode_HideUnconfirmedPieces()) {
+        // d_course_moo_moo_farm_packed_dl_10C0
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_packed_dl_10C0);
+    }
 }
 
 void MooMooFarm::DrawCredits() {
