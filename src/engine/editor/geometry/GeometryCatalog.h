@@ -79,6 +79,13 @@ class GeometryCatalog {
     const std::vector<Gfx>& MergedDL(int direction) const {
         return mMerged[direction & 3];
     }
+    // The credits assembly flattened with race-authored texture binds
+    // injected before every vertex load that has a race twin, so surfaces
+    // never depend on the credits list's own (sometimes sloppy) state
+    // chains. Empty when no credits root was available.
+    const std::vector<Gfx>& RepairedFullCourseDL() const {
+        return mRepaired;
+    }
     // Force No LOD: near + unique + unplaced. Force LOD: far + unique + unplaced.
     const std::vector<Gfx>& NearDL(int direction) const {
         return mNearMerged[direction & 3];
@@ -112,6 +119,8 @@ class GeometryCatalog {
     bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves, int lodFilter);
     void ClassifyLeaves(const std::vector<SectionCentroid>& sectionCentroids);
     void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
+    void CaptureRaceBinds(Gfx* cmds, std::vector<Gfx>& buffer, int depth);
+    void BuildRepairedFullCourse(Gfx* creditsRoot, int depth);
     void EnumerateLeaf(Gfx* cmds, int depth);
     void AddVertexRange(uint64_t crc, int32_t baseIndex, uint32_t dest, uint32_t count, Vtx* data);
     int32_t AddRef(const SlotRef& slot, uint32_t offset, Vtx* v);
@@ -120,6 +129,11 @@ class GeometryCatalog {
     bool mBuilt = false;
     bool mFailed = false;
     std::vector<Gfx> mMerged[4];
+    std::vector<Gfx> mRepaired;
+    std::map<std::pair<uint64_t, uint32_t>, std::vector<Gfx>> mBindByLoad; // (vtx hash, load word) -> bind block
+    std::unordered_map<uint64_t, std::vector<Gfx>> mBindByVtx;             // vtx hash -> first bind block
+    std::unordered_set<uint64_t> mBindWalked;
+    std::unordered_set<uint64_t> mRepairWalked;
     std::vector<Gfx> mNearMerged[4];
     std::vector<Gfx> mFarMerged[4];
     std::vector<uint64_t> mLeafOrder;

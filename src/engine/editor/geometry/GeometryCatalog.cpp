@@ -72,6 +72,11 @@ void GeometryCatalog::Reset() {
     for (auto& m : mMerged) {
         m.clear();
     }
+    mRepaired.clear();
+    mBindByLoad.clear();
+    mBindByVtx.clear();
+    mBindWalked.clear();
+    mRepairWalked.clear();
     for (auto& m : mNearMerged) {
         m.clear();
     }
@@ -183,6 +188,27 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
         return;
     }
 
+    if (creditsRoot != nullptr) {
+        // Capture the texture binds the racing tables author for every
+        // vertex load, then rebuild the full-course assembly with those
+        // binds injected so no surface depends on inherited state.
+        std::vector<Gfx> bindBuffer;
+        for (int direction = 0; direction < 4; direction++) {
+            for (size_t sec = 0; sec < sectionCount; sec++) {
+                Gfx* cmds = ResolveWrapper(wrappers[sec * 4 + direction]);
+                if (cmds != nullptr) {
+                    CaptureRaceBinds(cmds, bindBuffer, 0);
+                }
+            }
+        }
+        BuildRepairedFullCourse(creditsRoot, 0);
+        Gfx end;
+        end.words.w0 = (uintptr_t) OP_ENDDL << 24;
+        end.words.w1 = 0;
+        mRepaired.push_back(end);
+        printf("[GeometryMode] repaired full-course assembly: %zu words, %zu bind snapshots\n", mRepaired.size(),
+               mBindByLoad.size());
+    }
     mBuilt = true;
 }
 
@@ -461,6 +487,144 @@ void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& section
                     li.drawnByFarthest ? 1 : 0, n != nullptr ? n : "?");
         }
         fclose(f);
+    }
+}
+
+// True for commands that participate in texture binding: replaying the most
+// recent run of these reconstructs the texture state a surface was authored
+// against. (SETTIMG pairs, tile setup/loads, TLUT, syncs, combine.)
+static bool IsBindOp(uint8_t op) {
+    switch (op) {
+        case G_SETTIMG_OTR_HASH: // 0x20, two words
+        case 0xF0:               // G_LOADTLUT
+        case 0xF2:               // G_SETTILESIZE
+        case 0xF3:               // G_LOADBLOCK
+        case 0xF4:               // G_LOADTILE
+        case 0xF5:               // G_SETTILE
+        case 0xE6:               // G_RDPLOADSYNC
+        case 0xE7:               // G_RDPPIPESYNC
+        case 0xE8:               // G_RDPTILESYNC
+        case 0xFC:               // G_SETCOMBINE
+            return true;
+        default:
+            return false;
+    }
+}
+
+// Walks a racing sheet keeping a rolling buffer of bind commands; at every
+// vertex load, snapshots the buffer as that load's authored texture state.
+// First snapshot wins (the first drawn context is the up-close one).
+void GeometryCatalog::CaptureRaceBinds(Gfx* cmds, std::vector<Gfx>& buffer, int depth) {
+    if (cmds == nullptr || depth > 10) {
+        return;
+    }
+    Gfx* ptr = cmds;
+    for (int guard = 0; guard < (1 << 18); guard++) {
+        uintptr_t w0 = ptr->words.w0;
+        uint8_t op = GEO_OPCODE(w0);
+        if (op == OP_ENDDL) {
+            return;
+        }
+        if (op == G_MARKER) {
+            ptr += 2;
+            continue;
+        }
+        if (op == G_DL_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            if (mBindWalked.insert(hash).second) {
+                CaptureRaceBinds((Gfx*) ResourceGetDataByCrc(hash), buffer, depth + 1);
+            }
+            if (GEO_C0(w0, 16, 1) != 0) {
+                return;
+            }
+            ptr += 2;
+            continue;
+        }
+        if (op == G_VTX_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            if (PlausiblePointer(hash) || ptr[1].words.w0 != 0) { // still hash form
+                auto key = std::make_pair(hash, (uint32_t) w0);
+                if (mBindByLoad.find(key) == mBindByLoad.end()) {
+                    mBindByLoad.emplace(key, buffer);
+                }
+                if (mBindByVtx.find(hash) == mBindByVtx.end()) {
+                    mBindByVtx.emplace(hash, buffer);
+                }
+            }
+            ptr += 2;
+            continue;
+        }
+        if (IsBindOp(op)) {
+            int words = CommandWords(op);
+            for (int i = 0; i < words; i++) {
+                buffer.push_back(ptr[i]);
+            }
+            // Cap the rolling buffer; later commands override earlier ones
+            // on replay, so trimming from the front is safe.
+            while (buffer.size() > 48) {
+                buffer.erase(buffer.begin());
+            }
+            ptr += words;
+            continue;
+        }
+        ptr += CommandWords(op);
+    }
+}
+
+// Flattens the credits assembly into mRepaired, injecting each vertex
+// load's race-authored bind block right before it. Loads without a race
+// twin (credits-only scenery) keep their own authored state.
+void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
+    if (creditsRoot == nullptr || depth > 10) {
+        return;
+    }
+    Gfx* ptr = creditsRoot;
+    for (int guard = 0; guard < (1 << 18); guard++) {
+        uintptr_t w0 = ptr->words.w0;
+        uint8_t op = GEO_OPCODE(w0);
+        if (op == OP_ENDDL) {
+            return;
+        }
+        if (op == G_MARKER) {
+            ptr += 2;
+            continue;
+        }
+        if (op == G_DL_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            if (mRepairWalked.insert(hash).second) {
+                BuildRepairedFullCourse((Gfx*) ResourceGetDataByCrc(hash), depth + 1);
+            }
+            if (GEO_C0(w0, 16, 1) != 0) {
+                return;
+            }
+            ptr += 2;
+            continue;
+        }
+        if (op == G_VTX_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            auto it = mBindByLoad.find(std::make_pair(hash, (uint32_t) w0));
+            const std::vector<Gfx>* bind = nullptr;
+            if (it != mBindByLoad.end()) {
+                bind = &it->second;
+            } else {
+                auto iv = mBindByVtx.find(hash);
+                if (iv != mBindByVtx.end()) {
+                    bind = &iv->second;
+                }
+            }
+            if (bind != nullptr) {
+                mRepaired.insert(mRepaired.end(), bind->begin(), bind->end());
+            }
+            mRepaired.push_back(ptr[0]);
+            mRepaired.push_back(ptr[1]);
+            ptr += 2;
+            continue;
+        }
+        int words = CommandWords(op);
+        for (int i = 0; i < words; i++) {
+            mRepaired.push_back(ptr[i]);
+        }
+        ptr += words;
     }
 }
 

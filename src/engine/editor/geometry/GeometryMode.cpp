@@ -1158,6 +1158,14 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     if (gModeSelection == BATTLE || track->IsMod() || CreditsRootFor(track) == nullptr) {
         return 0; // battle arenas and custom tracks have no full assembly
     }
+    // Prefer the repaired assembly: race-authored texture binds injected
+    // before every vertex load, so surfaces the credits camera never films
+    // cannot inherit garbage state.
+    if (EnsureCatalog(addr) && !sCatalog.RepairedFullCourseDL().empty()) {
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
+        GeometryMode_LogTrackDraw("fullcourse-repaired", -1, direction);
+        return 1;
+    }
     track->DrawCredits();
     GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
     return 1;
