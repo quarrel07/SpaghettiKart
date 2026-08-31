@@ -1114,9 +1114,10 @@ f32 is_within_render_distance(Vec3f cameraPos, Vec3f objectPos, u16 orientationY
 
     // Freecam and the No LOD enhancement show the whole course: skip
     // actor distance and view-cone culling entirely, and report the actor
-    // as near so callers pick their full-detail versions.
+    // as near so callers pick their full-detail versions. Must be a positive
+    // value: the Moo Moo cow loop draws only when the result is > 0.0f.
     if (CVarGetInteger("gFreecam", 0) != 0 || CVarGetInteger("gDisableLod", 1) != 0) {
-        return 0.0f;
+        return 1.0f;
     }
 
     maxDistance *= 6.5f;
