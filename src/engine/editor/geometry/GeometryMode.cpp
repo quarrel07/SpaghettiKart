@@ -172,6 +172,12 @@ static bool ModeActive() {
     if (!CVarGetInteger("gGeometryEditorEnabled", 0)) {
         return false;
     }
+    // Enabled arms the tool; only an OPEN editor window activates it. With
+    // the window closed, races render fully stock (no stable-view swap, no
+    // overlay, no click handling).
+    if (!CVarGetInteger("gGeometryEditorWindow", 0)) {
+        return false;
+    }
     if (gIsMirrorMode != 0 || gGamestate != RACING) {
         return false;
     }
