@@ -83,6 +83,7 @@ void RegisterFreecamWidgets() {
     };
     mPortMenu->AddWidget(path, "Course Geometry", WIDGET_CVAR_COMBOBOX)
         .CVar("gFreecamCourseVersion")
+        .PreFunc([](WidgetInfo& info) { info.isHidden = gModeSelection == BATTLE; })
         .Options(UIWidgets::ComboboxOptions()
                      .ComboMap(freecamCourseVersionOptions)
                      .DefaultIndex(0)
@@ -98,6 +99,7 @@ void RegisterFreecamWidgets() {
     };
     mPortMenu->AddWidget(path, "Course LOD", WIDGET_CVAR_COMBOBOX)
         .CVar("gFreecamForceLod")
+        .PreFunc([](WidgetInfo& info) { info.isHidden = gModeSelection == BATTLE; })
         .Options(UIWidgets::ComboboxOptions()
                      .ComboMap(freecamLodOptions)
                      .DefaultIndex(0)

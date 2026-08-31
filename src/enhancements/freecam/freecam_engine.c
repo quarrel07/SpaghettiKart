@@ -72,10 +72,16 @@ void freecam_start_from(Camera* freecamCamera, Camera* source) {
     for (i = 0; i < 3; i++) {
         freecamCamera->pos[i] = source->pos[i];
         freecamCamera->lookAt[i] = source->lookAt[i];
-        freecamCamera->up[i] = source->up[i];
         freeCam.velocity[i] = 0.0f;
         freeCam.rotVelocity[i] = 0.0f;
     }
+    // Always world-up: inheriting a tilted or rolled up vector from the
+    // source camera flips the freecam's look math (seen as reversed vertical
+    // mouse look in battle mode).
+    freecamCamera->up[0] = 0.0f;
+    freecamCamera->up[1] = 1.0f;
+    freecamCamera->up[2] = 0.0f;
+    freecamCamera->rot[0] = 0;
     dx = source->lookAt[0] - source->pos[0];
     dy = source->lookAt[1] - source->pos[1];
     dz = source->lookAt[2] - source->pos[2];
