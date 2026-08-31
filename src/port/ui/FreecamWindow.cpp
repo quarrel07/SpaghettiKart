@@ -42,15 +42,6 @@ void Freecam::FreecamOptionsWindow::DrawElement() {
         CVarSetInteger("gFreecam", freecam);
         CM_SetFreeCamera(freecam);
     }
-    if (gModeSelection == BATTLE) {
-        return;
-    }
-    static const char* kLods[] = { "Default", "Force No LOD", "Force LOD" };
-    int lod = CVarGetInteger("gFreecamForceLod", 0);
-    ImGui::SetNextItemWidth(170.0f);
-    if (ImGui::Combo("LOD", &lod, kLods, 3)) {
-        CVarSetInteger("gFreecamForceLod", lod);
-    }
 }
 
 
