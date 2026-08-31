@@ -343,11 +343,11 @@ void CM_DrawTrack(ScreenContext* screen) {
                     GetWorld()->GetTrack()->Draw(screen);
                     GeometryMode_MarkTrackPass(0);
                 } else {
-                    // Credits sequence and other non-racing full-scene
-                    // states: the game's original stacked draw (full-course
-                    // list, then the sectioned pass), unchanged.
+                    // Credits and other non-racing full-scene states draw the
+                    // credits list alone, as this case did from its creation
+                    // (#568) until #640 accidentally dropped its break and
+                    // stacked the sectioned draw on top every frame.
                     GetWorld()->GetTrack()->DrawCredits();
-                    GetWorld()->GetTrack()->Draw(screen);
                 }
                 break;
             case RENDER_TRACK_SECTIONS:
