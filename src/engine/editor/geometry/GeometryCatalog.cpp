@@ -1,6 +1,7 @@
 #include "GeometryCatalog.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace GeometryEditor {
@@ -214,13 +215,13 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
                 if (li != mLeafInfoIndex.end()) {
                     const LeafInfo& info = mLeafInfo[li->second];
                     if (lodFilter == 1) {
-                        // Force No LOD: hide only far stand-ins (each has a
-                        // near sibling by definition, so nothing goes bare).
+                        // Force No LOD: hide pieces only ever drawn from far
+                        // away; every area keeps its own section's version.
                         allowed = info.cls != LeafClass::Far;
                     } else {
-                        // Force LOD: hide a near piece only when its far
-                        // counterpart is present to cover the space.
-                        allowed = !(info.cls == LeafClass::Near && info.hasFarSibling);
+                        // Force LOD: each area drawn exactly as its farthest
+                        // viewing section draws it, per the visibility table.
+                        allowed = info.drawnByFarthest;
                     }
                 }
             }
@@ -289,13 +290,47 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
     return false; // guard exhausted: not a well-formed wrapper
 }
 
-// Assigns each racing leaf a home section by proximity and classifies it:
-// drawn by its home section's own lists = the up-close (Near) version; not,
-// but spatially overlapped by a Near leaf = a Far stand-in; otherwise Unique.
+// Classifies each racing leaf from the visibility table itself: which
+// camera sections draw it, and how far those cameras stand from the leaf.
+// Drawn from up close = the area's own up-close version; only ever drawn
+// from far away = a distance representation. The cutoffs are expressed in
+// units of the course's own median section spacing, and anything landing
+// between them is flagged Ambiguous and kept visible in both Force modes.
 void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& sectionCentroids) {
     if (sectionCentroids.empty()) {
         return;
     }
+    std::unordered_map<int, const SectionCentroid*> centroidById;
+    for (const auto& sc : sectionCentroids) {
+        centroidById[sc.sectionId] = &sc;
+    }
+    // Median distance between consecutive sections along the track path.
+    std::vector<float> spacings;
+    for (size_t i = 0; i + 1 < sectionCentroids.size(); i++) {
+        const auto& a = sectionCentroids[i];
+        const auto& b = sectionCentroids[i + 1];
+        float dx = a.pos[0] - b.pos[0], dy = a.pos[1] - b.pos[1], dz = a.pos[2] - b.pos[2];
+        spacings.push_back(std::sqrt(dx * dx + dy * dy + dz * dz));
+    }
+    std::sort(spacings.begin(), spacings.end());
+    float medianSpacing = spacings.empty() ? 800.0f : spacings[spacings.size() / 2];
+    if (medianSpacing < 1.0f) {
+        medianSpacing = 800.0f;
+    }
+    const float nearCut = 1.5f * medianSpacing;
+    const float farCut = 2.5f * medianSpacing;
+
+    // Distance from a camera section's centroid to the leaf's bounding box
+    // (closest point, so long walls measure from their nearest edge).
+    auto boxDist = [](const LeafInfo& li, const float* p) {
+        float d2 = 0.0f;
+        for (int i = 0; i < 3; i++) {
+            float v = p[i] < li.boxMin[i] ? li.boxMin[i] - p[i] : (p[i] > li.boxMax[i] ? p[i] - li.boxMax[i] : 0.0f);
+            d2 += v * v;
+        }
+        return std::sqrt(d2);
+    };
+
     for (auto& li : mLeafInfo) {
         if (!li.hasBox) {
             li.cls = LeafClass::Unplaced;
@@ -313,83 +348,117 @@ void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& section
             }
         }
         auto it = mLeafSections.find(li.hash);
-        li.inHomeList = it != mLeafSections.end() && it->second.count(li.homeSection) != 0;
-        li.cls = li.inHomeList ? LeafClass::Near : LeafClass::Unique; // Unique pending overlap check
-    }
-    // Substantial-overlap test: the shared box must cover a meaningful
-    // fraction of the smaller piece on every axis, so grazing contact
-    // between unrelated geometry cannot create a false variant pair.
-    auto substantialOverlap = [](const LeafInfo& a, const LeafInfo& b) {
-        float ratio = 1.0f;
-        for (int i = 0; i < 3; i++) {
-            float lo = std::max(a.boxMin[i], b.boxMin[i]);
-            float hi = std::min(a.boxMax[i], b.boxMax[i]);
-            if (hi < lo) {
-                return false;
-            }
-            float smaller = std::max(1.0f, std::min(a.boxMax[i] - a.boxMin[i], b.boxMax[i] - b.boxMin[i]));
-            ratio *= std::min(1.0f, (hi - lo + 1.0f) / smaller);
-        }
-        return ratio >= 0.3f;
-    };
-    // Second pass: a not-at-home leaf substantially overlapped by a Near
-    // leaf is a Far stand-in; without such a sibling it is unique scenery.
-    for (auto& li : mLeafInfo) {
-        if (li.cls != LeafClass::Unique || !li.hasBox) {
+        if (it == mLeafSections.end() || it->second.empty()) {
+            // Never listed by any section we merged; keep it everywhere.
+            li.cls = LeafClass::Ambiguous;
             continue;
         }
-        for (const auto& other : mLeafInfo) {
-            if (other.cls != LeafClass::Near || !other.hasBox) {
-                continue;
-            }
-            if (substantialOverlap(li, other)) {
-                li.cls = LeafClass::Far;
-                break;
+        li.viewerCount = (int) it->second.size();
+        li.inHomeList = it->second.count(li.homeSection) != 0;
+        float nearest = 1e30f;
+        for (int v : it->second) {
+            auto cIt = centroidById.find(v);
+            if (cIt != centroidById.end()) {
+                nearest = std::min(nearest, boxDist(li, cIt->second->pos));
             }
         }
+        li.nearestViewerDist = nearest;
+        li.viewerRatio = nearest / medianSpacing;
+        if (li.inHomeList || nearest <= nearCut) {
+            li.cls = LeafClass::Near;
+        } else if (nearest >= farCut) {
+            li.cls = LeafClass::Far;
+        } else {
+            li.cls = LeafClass::Ambiguous;
+        }
     }
-    // Third pass: mark which Near leaves actually have a Far stand-in, so
-    // Force LOD only hides a near piece when its far counterpart draws.
-    for (auto& li : mLeafInfo) {
-        if (li.cls != LeafClass::Near || !li.hasBox) {
+
+    // Force LOD view: each area rendered exactly as its farthest viewing
+    // section renders it. Per home section, find that farthest viewer and
+    // keep the leaves it draws; Ambiguous/Unplaced leaves always stay.
+    std::unordered_map<int, std::vector<size_t>> byHome;
+    for (size_t i = 0; i < mLeafInfo.size(); i++) {
+        if (mLeafInfo[i].hasBox && mLeafInfo[i].homeSection >= 0) {
+            byHome[mLeafInfo[i].homeSection].push_back(i);
+        }
+    }
+    for (auto& [home, indices] : byHome) {
+        auto hIt = centroidById.find(home);
+        if (hIt == centroidById.end()) {
             continue;
         }
-        for (const auto& other : mLeafInfo) {
-            if (other.cls != LeafClass::Far || !other.hasBox) {
+        int farthest = -1;
+        float farthestDist = -1.0f;
+        for (size_t idx : indices) {
+            auto vIt = mLeafSections.find(mLeafInfo[idx].hash);
+            if (vIt == mLeafSections.end()) {
                 continue;
             }
-            if (substantialOverlap(li, other)) {
-                li.hasFarSibling = true;
-                break;
+            for (int v : vIt->second) {
+                auto cIt = centroidById.find(v);
+                if (cIt == centroidById.end()) {
+                    continue;
+                }
+                float dx = cIt->second->pos[0] - hIt->second->pos[0];
+                float dy = cIt->second->pos[1] - hIt->second->pos[1];
+                float dz = cIt->second->pos[2] - hIt->second->pos[2];
+                float d = std::sqrt(dx * dx + dy * dy + dz * dz);
+                if (d > farthestDist) {
+                    farthestDist = d;
+                    farthest = v;
+                }
             }
         }
+        for (size_t idx : indices) {
+            auto& li = mLeafInfo[idx];
+            if (li.cls == LeafClass::Ambiguous || li.cls == LeafClass::Unplaced) {
+                li.drawnByFarthest = true;
+                continue;
+            }
+            auto vIt = mLeafSections.find(li.hash);
+            li.drawnByFarthest = farthest >= 0 && vIt != mLeafSections.end() && vIt->second.count(farthest) != 0;
+        }
     }
-    size_t nNear = 0, nFar = 0, nUnique = 0, nUnplaced = 0;
+
+    size_t nNear = 0, nFar = 0, nAmbiguous = 0, nUnplaced = 0;
     for (const auto& li : mLeafInfo) {
         switch (li.cls) {
             case LeafClass::Near: nNear++; break;
             case LeafClass::Far: nFar++; break;
-            case LeafClass::Unique: nUnique++; break;
+            case LeafClass::Ambiguous: nAmbiguous++; break;
             case LeafClass::Unplaced: nUnplaced++; break;
         }
     }
-    printf("[GeometryMode] LOD classification: %zu near, %zu far stand-ins, %zu unique, %zu unplaced\n", nNear, nFar,
-           nUnique, nUnplaced);
+    printf("[GeometryMode] LOD classification: %zu near, %zu far, %zu ambiguous, %zu unplaced (spacing %.0f)\n", nNear,
+           nFar, nAmbiguous, nUnplaced, medianSpacing);
     // Also to a file, since a Finder-launched app has no visible console.
     FILE* f = fopen("/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/"
                     "lod_classification.txt",
                     "w");
     if (f != nullptr) {
-        fprintf(f, "near=%zu far=%zu unique=%zu unplaced=%zu\n", nNear, nFar, nUnique, nUnplaced);
+        fprintf(f, "near=%zu far=%zu ambiguous=%zu unplaced=%zu\n", nNear, nFar, nAmbiguous, nUnplaced);
+        fprintf(f, "median section spacing=%.0f nearCut=%.0f farCut=%.0f\n", medianSpacing, nearCut, farCut);
+        fprintf(f, "columns: class home inHome viewers nearestViewerDist(ratio) inFarView name\n\n");
+        if (nAmbiguous > 0) {
+            fprintf(f, "AMBIGUOUS (kept visible in both Force modes; judgment calls):\n");
+            for (const auto& li : mLeafInfo) {
+                if (li.cls == LeafClass::Ambiguous) {
+                    const char* n = ResourceGetNameByCrc(li.hash);
+                    fprintf(f, "  home=%-3d viewers=%-2d dist=%.0f(%.2fx) %s\n", li.homeSection, li.viewerCount,
+                            li.nearestViewerDist, li.viewerRatio, n != nullptr ? n : "?");
+                }
+            }
+            fprintf(f, "\n");
+        }
         for (const auto& li : mLeafInfo) {
             const char* n = ResourceGetNameByCrc(li.hash);
-            const char* cls = li.cls == LeafClass::Near     ? "near"
-                              : li.cls == LeafClass::Far    ? "FAR"
-                              : li.cls == LeafClass::Unique ? "unique"
-                                                            : "unplaced";
-            fprintf(f, "%-8s%s home=%-3d box=(%.0f,%.0f,%.0f)..(%.0f,%.0f,%.0f) %s\n", cls,
-                    li.hasFarSibling ? "+farSib" : "", li.homeSection, li.boxMin[0], li.boxMin[1], li.boxMin[2],
-                    li.boxMax[0], li.boxMax[1], li.boxMax[2], n != nullptr ? n : "?");
+            const char* cls = li.cls == LeafClass::Near        ? "near"
+                              : li.cls == LeafClass::Far       ? "FAR"
+                              : li.cls == LeafClass::Ambiguous ? "AMBIG"
+                                                               : "unplaced";
+            fprintf(f, "%-8s home=%-3d inHome=%d viewers=%-2d dist=%.0f(%.2fx) inFarView=%d %s\n", cls,
+                    li.homeSection, li.inHomeList ? 1 : 0, li.viewerCount, li.nearestViewerDist, li.viewerRatio,
+                    li.drawnByFarthest ? 1 : 0, n != nullptr ? n : "?");
         }
         fclose(f);
     }

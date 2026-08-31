@@ -29,12 +29,13 @@ struct SectionCentroid {
     float pos[3];
 };
 
-// One racing leaf's LOD classification.
+// One racing leaf's LOD classification, read from the game's own
+// visibility table: which camera sections draw the leaf, and from how far.
 enum class LeafClass : uint8_t {
-    Near,     // its home section's own lists draw it: the up-close version
-    Far,      // only distant sections draw it and a Near leaf overlaps it
-    Unique,   // no overlapping sibling; kept in both Force modes
-    Unplaced, // no vertex data to place it with; kept in both Force modes
+    Near,      // some section draws it from up close (its own area's version)
+    Far,       // only distant sections ever draw it: a distance representation
+    Ambiguous, // nearest viewer falls between the cutoffs; kept in both modes
+    Unplaced,  // no vertex data to place it with; kept in both Force modes
 };
 
 // Built once per course from the primary visibility table: the deduplicated
@@ -64,8 +65,11 @@ class GeometryCatalog {
         float boxMax[3] = { 0, 0, 0 };
         bool hasBox = false;
         int homeSection = -1;
-        bool inHomeList = false;
-        bool hasFarSibling = false; // a Far leaf substantially overlaps this Near leaf
+        bool inHomeList = false;         // home section's own lists draw it
+        float nearestViewerDist = -1.0f; // closest drawing camera section, course units
+        float viewerRatio = -1.0f;       // nearestViewerDist / median section spacing
+        int viewerCount = 0;             // how many sections' lists draw it
+        bool drawnByFarthest = true;     // in the farthest viewer's set for its area
         LeafClass cls = LeafClass::Unplaced;
     };
     const std::vector<LeafInfo>& Leaves() const {
