@@ -46,11 +46,13 @@ void Freecam::FreecamOptionsWindow::DrawElement() {
         ImGui::TextDisabled("Battle: single course version");
         return;
     }
-    static const char* kVersions[] = { "GP Race", "VS Race", "Credits" };
-    int version = CVarGetInteger("gFreecamCourseVersion", 0);
+    // Census-verified: GP/TT/VS draw identical course geometry; the sheet
+    // view is a renderer diagnostic, not a course version.
+    static const char* kViews[] = { "Full course", "Race sections (diagnostic)" };
+    int viewIdx = (CVarGetInteger("gFreecamCourseVersion", 2) == 2) ? 0 : 1;
     ImGui::SetNextItemWidth(170.0f);
-    if (ImGui::Combo("Geometry", &version, kVersions, 3)) {
-        CVarSetInteger("gFreecamCourseVersion", version);
+    if (ImGui::Combo("View", &viewIdx, kViews, 2)) {
+        CVarSetInteger("gFreecamCourseVersion", viewIdx == 0 ? 2 : 0);
     }
     static const char* kLods[] = { "Default", "Force No LOD", "Force LOD" };
     int lod = CVarGetInteger("gFreecamForceLod", 0);
