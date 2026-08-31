@@ -1158,6 +1158,14 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     if (gModeSelection == BATTLE || track->IsMod() || CreditsRootFor(track) == nullptr) {
         return 0; // battle arenas and custom tracks have no full assembly
     }
+    // Prefer the filtered assembly (race-known geometry only): keeps every
+    // surface at full detail while dropping the credits-only extras (staff
+    // text, baked scenery copies that would double the live objects).
+    if (EnsureCatalog(addr) && !sCatalog.NoLodDL().empty()) {
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.NoLodDL().data());
+        GeometryMode_LogTrackDraw("fullcourse-filtered", -1, direction);
+        return 1;
+    }
     track->DrawCredits();
     GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
     return 1;

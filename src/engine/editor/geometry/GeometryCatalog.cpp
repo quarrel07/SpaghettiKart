@@ -72,6 +72,7 @@ void GeometryCatalog::Reset() {
     for (auto& m : mMerged) {
         m.clear();
     }
+    mNoLod.clear();
     for (auto& m : mNearMerged) {
         m.clear();
     }
@@ -183,6 +184,9 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
         return;
     }
 
+    if (creditsRoot != nullptr) {
+        BuildNoLodFromCredits(creditsRoot);
+    }
     mBuilt = true;
 }
 
@@ -462,6 +466,56 @@ void GeometryCatalog::ClassifyLeaves(const std::vector<SectionCentroid>& section
         }
         fclose(f);
     }
+}
+
+// Walks the credits assembly and keeps only leaf calls the racing tables
+// also reference: the course surfaces at full detail, without the
+// credits-only extras (staff text geometry, baked static copies of course
+// objects). Dropped leaves contribute their state commands so later pieces
+// still inherit the texture setup their authored order relies on.
+void GeometryCatalog::BuildNoLodFromCredits(Gfx* creditsRoot) {
+    Gfx* ptr = creditsRoot;
+    for (int guard = 0; guard < (1 << 18); guard++) {
+        uintptr_t w0 = ptr->words.w0;
+        uint8_t op = GEO_OPCODE(w0);
+        bool branch = GEO_C0(w0, 16, 1) != 0;
+        if (op == OP_ENDDL) {
+            Gfx end;
+            end.words.w0 = (uintptr_t) OP_ENDDL << 24;
+            end.words.w1 = 0;
+            mNoLod.push_back(end);
+            return;
+        }
+        if (op == G_MARKER) {
+            ptr += 2;
+            continue;
+        }
+        if (op == G_DL_OTR_HASH) {
+            uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
+            if (mLeafSeen.count(hash) != 0) {
+                Gfx call = ptr[0];
+                call.words.w0 &= ~((uintptr_t) 1 << 16);
+                mNoLod.push_back(call);
+                mNoLod.push_back(ptr[1]);
+            } else {
+                EmitLeafStateOnly((Gfx*) ResourceGetDataByCrc(hash), mNoLod, 0);
+            }
+            if (branch) {
+                break;
+            }
+            ptr += 2;
+            continue;
+        }
+        int words = CommandWords(op);
+        for (int i = 0; i < words; i++) {
+            mNoLod.push_back(ptr[i]);
+        }
+        ptr += words;
+    }
+    Gfx end;
+    end.words.w0 = (uintptr_t) OP_ENDDL << 24;
+    end.words.w1 = 0;
+    mNoLod.push_back(end);
 }
 
 // Copies a dropped leaf's non-drawing commands (texture loads, tile setup,
