@@ -687,25 +687,12 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
             uint64_t hash = ((uint64_t) ptr[1].words.w0 << 32) + ptr[1].words.w1;
             if (mRepairWalked.insert(hash).second) {
                 Gfx* child = (Gfx*) ResourceGetDataByCrc(hash);
-                if (SubtreeHasRaceGeometry(child, depth + 1)) {
-                    BuildRepairedFullCourse(child, depth + 1);
-                } else {
-                    // Credits-only scenery: out of the course assembly, into
-                    // the optional scenery layer. Prefix the global enables
-                    // in effect at this point of the authored stream, so the
-                    // detached piece renders as it did in place (textured
-                    // arrows, not untextured rectangles).
-                    Gfx sync;
-                    sync.words.w0 = (uintptr_t) 0xE7 << 24; // G_RDPPIPESYNC
-                    sync.words.w1 = 0;
-                    mScenery.push_back(sync);
-                    mScenery.insert(mScenery.end(), mSceneryContext.begin(), mSceneryContext.end());
-                    mScenery.insert(mScenery.end(), mSceneryBindCtx.begin(), mSceneryBindCtx.end());
-                    // Palette last so nothing in the bind context clobbers it:
-                    // the pieces' own texture loads assume this TLUT resident.
-                    mScenery.insert(mScenery.end(), mSceneryTlut.begin(), mSceneryTlut.end());
-                    CopySubtree(child, mScenery, depth + 1);
-                }
+                // Everything stays in the assembly: the "credits-only
+                // scenery" split cut real course content (Mario Raceway's
+                // giant mushroom is baked geometry, not an actor). Live
+                // static-sign actors stand down while the substitution
+                // draws their baked twins instead.
+                BuildRepairedFullCourse(child, depth + 1);
             }
             if (GEO_C0(w0, 16, 1) != 0) {
                 return;

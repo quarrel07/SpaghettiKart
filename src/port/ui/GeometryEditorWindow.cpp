@@ -241,17 +241,6 @@ static void RegisterGeometryEditorWidgets() {
             "Opens the track geometry editor: click course vertices to inspect and move them"))
         .WindowName("Geometry Editor");
 
-    WidgetPath enh = { "Enhancements", "General", SECTION_COLUMN_1 };
-    mPortMenu->AddWidget(enh, "Show Credits-Only Scenery", WIDGET_CVAR_CHECKBOX)
-        .CVar("gCreditsScenery")
-        .Options(UIWidgets::CheckboxOptions().Tooltip(
-            "Adds the extra scenery authored for the credits fly-through (billboards, set dressing) to normal "
-            "races. May show quirks; it was never meant to be seen up close."));
-    mPortMenu->AddWidget(enh, "Popout Scenery Toggle", WIDGET_WINDOW_BUTTON)
-        .CVar("gCreditsSceneryWindow")
-        .Options(UIWidgets::ButtonOptions().Tooltip("Floating toggle for live before/after comparison"))
-        .WindowName("Credits Scenery");
-
     mPortMenu->AddWidget(path, "Watch Credits Sequence", WIDGET_BUTTON)
         .Callback([](WidgetInfo& info) {
             func_800CA330(0x19); // the game's own pre-credits music fade-out
