@@ -42,6 +42,18 @@ void Freecam::FreecamOptionsWindow::DrawElement() {
         CVarSetInteger("gFreecam", freecam);
         CM_SetFreeCamera(freecam);
     }
+    if (gModeSelection == BATTLE) {
+        return; // battle arenas have a single presentation
+    }
+    // Full course = the complete assembly, every surface filled in.
+    // Game view = what racing would draw with the kart at the camera:
+    // the real presentation, including distance cuts and stand-ins.
+    int view = (CVarGetInteger("gFreecamCourseVersion", 2) == 2) ? 0 : 1;
+    bool changed = ImGui::RadioButton("Full course", &view, 0);
+    changed |= ImGui::RadioButton("Game view (as racing draws it)", &view, 1);
+    if (changed) {
+        CVarSetInteger("gFreecamCourseVersion", view == 0 ? 2 : 0);
+    }
 }
 
 
