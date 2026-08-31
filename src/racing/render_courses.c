@@ -42,6 +42,13 @@ s16 D_802B87D4 = 0;
 s16 currentScreenSection = 0;
 
 s32 func_80290C20(Camera* camera) {
+    // Freecam never updates the camera collision probe, so this check
+    // reads stale/empty data and draws the shade-only fallback copies on
+    // top of the textured originals (coincident-surface shimmer). A
+    // normally driven camera keeps them off; match that.
+    if (CVarGetInteger("gFreecam", 0) != 0) {
+        return 0;
+    }
     if (camera->collision.unk34 == 0) {
         return 1;
     }
