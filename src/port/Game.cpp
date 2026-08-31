@@ -331,7 +331,7 @@ void CM_DrawTrack(ScreenContext* screen) {
                     // Battle arenas have no credits DL; geometry mode draws
                     // the full track itself through the section hook.
                     GetWorld()->GetTrack()->Draw(screen);
-                } else if (gGamestate == RACING) {
+                } else if (gGamestate == RACING && CVarGetInteger("gFreecam", 0)) {
                     // Freecam: run the course's full Draw() so its state
                     // preamble (texture enable, combine mode that applies the
                     // baked vertex shading) and post-section decals (shadows)
@@ -343,10 +343,11 @@ void CM_DrawTrack(ScreenContext* screen) {
                     GetWorld()->GetTrack()->Draw(screen);
                     GeometryMode_MarkTrackPass(0);
                 } else {
-                    // Credits and other non-racing full-scene states draw the
-                    // credits list alone, as this case did from its creation
-                    // (#568) until #640 accidentally dropped its break and
-                    // stacked the sectioned draw on top every frame.
+                    // Every full-scene draw without freecam (credits, podium
+                    // ceremony, tour camera) uses the credits list alone, as
+                    // this case did from its creation (#568) until #640
+                    // accidentally dropped its break and stacked the
+                    // sectioned draw on top every frame.
                     GetWorld()->GetTrack()->DrawCredits();
                 }
                 break;
