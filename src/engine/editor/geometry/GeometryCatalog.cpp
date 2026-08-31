@@ -74,6 +74,7 @@ void GeometryCatalog::Reset() {
     }
     mRepaired.clear();
     mScenery.clear();
+    mSceneryContext.clear();
     mBindByLoad.clear();
     mBindByVtx.clear();
     mBindWalked.clear();
@@ -661,7 +662,15 @@ void GeometryCatalog::BuildRepairedFullCourse(Gfx* creditsRoot, int depth) {
                     BuildRepairedFullCourse(child, depth + 1);
                 } else {
                     // Credits-only scenery: out of the course assembly, into
-                    // the optional scenery layer with its authored state.
+                    // the optional scenery layer. Prefix the global enables
+                    // in effect at this point of the authored stream, so the
+                    // detached piece renders as it did in place (textured
+                    // arrows, not untextured rectangles).
+                    Gfx sync;
+                    sync.words.w0 = (uintptr_t) 0xE7 << 24; // G_RDPPIPESYNC
+                    sync.words.w1 = 0;
+                    mScenery.push_back(sync);
+                    mScenery.insert(mScenery.end(), mSceneryContext.begin(), mSceneryContext.end());
                     CopySubtree(child, mScenery, depth + 1);
                 }
             }
