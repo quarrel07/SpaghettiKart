@@ -1174,6 +1174,13 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         // before anything else draws. The repaired course after it is
         // state-self-sufficient (injected binds), so order is safe.
         if (wantScenery && !sCatalog.SceneryDL().empty()) {
+            // TEMP diagnostic: capture the first scenery frame per course so
+            // the real state around the scenery draw can be read offline.
+            static const void* sDumpedFor = nullptr;
+            if (sDumpedFor != (const void*) track) {
+                sDumpedFor = (const void*) track;
+                RequestFrameDump();
+            }
             gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
         }
         // Repaired assembly: race-authored texture binds injected before
