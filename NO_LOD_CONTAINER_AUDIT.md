@@ -99,7 +99,7 @@ runtime-verified unless explicitly marked ANDY-VERIFIED.
 | SherbetLand | DrawTransparency | d_course_sherbet_land_packed_dl_2B48 | camera probe | `if ((func_80290C20(screen->camera) == 1) && (get_water_level(screen->p` | NOT covered |
 | WarioStadium | Draw | d_course_wario_stadium_packed_dl_A0C8 | camera probe | `if (func_80290C20(arg0->camera) == 1)` | NOT covered |
 
-**Totals:** 84 conditional draw sites, 29 distinct (course,piece) pairs, 5 pairs covered by lifts.
+**Totals (corrected 2026-08-31 late):** 66 conditional draw SITES. These collapse to 24 distinct vanilla-gated PIECES once multi-zone branches are merged and the 6 TEMP-instrument rows (gTestHideUnconfirmedPieces sites on Luigi/MooMoo) are excluded: 5 covered by lifts (MooMoo barn + 2 bridges, MR mushroom + pipe), 19 uncovered (12 camera-probe pieces, Banshee 6310, KTB 9E70, DKJungle 3E40/3EB0/3DD0/36A8/3F30). Earlier chat figure of '35 uncovered' overcounted by mixing sites, instrument rows, and pieces.
 
 ### Container 2 findings
 - Lifts cover ONLY: MooMooFarm dl_13FF8 / dl_14060 (bridges), packed_dl_5410 (barn) — ANDY-VERIFIED on older builds; MarioRaceway func_80291198 (mushroom) + render_mario_raceway_pipe — ANDY-VERIFIED on older builds. Nothing verified on the current build.
