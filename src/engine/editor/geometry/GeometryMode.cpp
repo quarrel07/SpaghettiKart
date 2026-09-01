@@ -1173,13 +1173,15 @@ extern "C" void GeometryMode_EmitFullCourseBase(void) {
     if (!CVarGetInteger("gFreecam", 0)) {
         return;
     }
-    if ((const void*) track != sCatalogTrack || !sCatalog.Built() || sCatalog.RepairedFullCourseDL().empty()) {
-        return; // catalog builds on the first marked pass; stock-only until then
-    }
+    // Upstream's literal recipe: the RAW credits list, drawn plainly with
+    // culling cleared, exactly as upstream freecam does. The repaired
+    // assembly produced defect after defect here (striped walls, bare
+    // holes, fog-tinted shade pieces - Andy's screenshots); parity with
+    // upstream is the accepted standard, improvements come later.
     gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
-    gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
+    track->DrawCredits();
     gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-    GeometryMode_LogTrackDraw("fullcourse-base", -1, 0);
+    GeometryMode_LogTrackDraw("fullcourse-base-raw", -1, 0);
 }
 
 extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut) {
