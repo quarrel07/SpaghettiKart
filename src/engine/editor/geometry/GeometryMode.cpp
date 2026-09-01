@@ -1192,10 +1192,21 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // course visible => the rebuild output is at fault; still black => the
     // race context is hostile to the credits list itself.
     if (substitution && dynamic_cast<ChocoMountain*>(track) != nullptr) {
+        // Live A/B: leave Choco's 2-cycle fog pipeline (race context) or
+        // drop to the 1-cycle no-fog state the credits sequence uses.
+        bool cyc1 = CVarGetInteger("gTestChocoCycle1", 0);
         gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
+        if (cyc1) {
+            gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
+            gSPClearGeometryMode(gDisplayListHead++, G_FOG);
+        }
         track->DrawCredits();
+        if (cyc1) {
+            gDPSetCycleType(gDisplayListHead++, G_CYC_2CYCLE);
+            gSPSetGeometryMode(gDisplayListHead++, G_FOG);
+        }
         gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-        GeometryMode_LogTrackDraw("choco-raw-diag", -1, direction);
+        GeometryMode_LogTrackDraw(cyc1 ? "choco-raw-1cyc" : "choco-raw-diag", -1, direction);
         return 1;
     }
     if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {

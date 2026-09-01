@@ -228,6 +228,11 @@ void GeometryEditor::SceneryWindow::DrawElement() {
     }
     ImGui::TextDisabled("Luigi Raceway (3) and Moo Moo Farm (3):\nanything that vanishes is confirmed race content");
     ImGui::Separator();
+    bool cyc1 = CVarGetInteger("gTestChocoCycle1", 0);
+    if (ImGui::Checkbox("TEST: Choco Credits-Style Pipeline", &cyc1)) {
+        CVarSetInteger("gTestChocoCycle1", cyc1);
+    }
+    ImGui::TextDisabled("Flip while looking at black Choco:\nif the course appears, the fog pipeline is the cause");
     if (ImGui::Button("Capture Frame Snapshot (debug)")) {
         RequestFrameDump();
     }
