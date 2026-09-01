@@ -1191,24 +1191,17 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // by Andy's live A/B, 2026-08-31). Drop to the credits-style pipeline
     // around the substituted draw and hand the fog pipeline back for the
     // course's own post-section pieces.
-    bool fogPipeline =
-        dynamic_cast<ChocoMountain*>(track) != nullptr || dynamic_cast<ToadsTurnpike*>(track) != nullptr;
-    // Fog-pipeline courses: the credits assembly is authored for a 1-cycle
-    // no-fog state and cannot render inside their 2-cycle fog pipeline, so
-    // draw the race-union merged list instead - race-authored data with
-    // race-authored states, fog intact. This is exactly what the Geometry
-    // Editor's Race view draws, which Andy verified renders Choco
-    // correctly (2026-08-31).
-    if (substitution && fogPipeline && (direction & 3) == direction && !sCatalog.MergedDL(direction).empty()) {
-        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.MergedDL(direction).data());
-        GeometryMode_LogTrackDraw("fullcourse-raceunion", -1, direction);
-        return 1;
+    // Fog-pipeline courses (Choco Mountain, Toad's Turnpike): neither
+    // full-course source renders correctly in their 2-cycle fog pipeline -
+    // the credits assembly draws black inside it, and the race union wears
+    // wrong textures (Andy's three-way screenshot comparison vs upstream,
+    // 2026-08-31). Until that is properly solved, these two courses render
+    // exactly as upstream does: fully stock, fog and textures correct,
+    // vanilla section pop-in and all.
+    if (dynamic_cast<ChocoMountain*>(track) != nullptr || dynamic_cast<ToadsTurnpike*>(track) != nullptr) {
+        return 0;
     }
     if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
-        if (fogPipeline) {
-            gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
-            gSPClearGeometryMode(gDisplayListHead++, G_FOG);
-        }
         // The credits assembly was authored for a pass with culling cleared
         // (the old freecam preamble); with culling left on, whole walls and
         // roads vanish (Choco, Bowser's Castle, Turnpike - Andy 2026-08-31).
@@ -1234,25 +1227,13 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         // cannot inherit garbage state.
         gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
         gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-        if (fogPipeline) {
-            gDPSetCycleType(gDisplayListHead++, G_CYC_2CYCLE);
-            gSPSetGeometryMode(gDisplayListHead++, G_FOG);
-        }
         GeometryMode_LogTrackDraw(wantScenery ? "fullcourse+scenery" : "fullcourse-repaired", -1, direction);
         return 1;
     }
     if (substitution) {
         gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
-        if (fogPipeline) {
-            gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
-            gSPClearGeometryMode(gDisplayListHead++, G_FOG);
-        }
         track->DrawCredits();
         gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-        if (fogPipeline) {
-            gDPSetCycleType(gDisplayListHead++, G_CYC_2CYCLE);
-            gSPSetGeometryMode(gDisplayListHead++, G_FOG);
-        }
         GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
         return 1;
     }
@@ -1263,16 +1244,8 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
         !sCatalog.SceneryDL().empty()) {
         int idx = ((*indexInOut - 1) * 4) + direction;
         gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
-        if (fogPipeline) {
-            gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
-            gSPClearGeometryMode(gDisplayListHead++, G_FOG);
-        }
         gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
         gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-        if (fogPipeline) {
-            gDPSetCycleType(gDisplayListHead++, G_CYC_2CYCLE);
-            gSPSetGeometryMode(gDisplayListHead++, G_FOG);
-        }
         gSPDisplayList(gDisplayListHead++, (Gfx*) addr[idx]);
         GeometryMode_LogTrackDraw("scenery+stock", idx, direction);
         return 1;
