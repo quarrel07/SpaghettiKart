@@ -9,6 +9,7 @@
 #include "memory.h"
 #include "engine/Matrix.h"
 #include "port/Game.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include <port/interpolation/FrameInterpolation.h>
 #include <port/interpolation/matrix.h>
 #ifdef _MSC_VER
@@ -1098,8 +1099,8 @@ s32 is_visible_between_angle(u16 arg0, u16 arg1, u16 arg2) {
  *                        or -1.0f if it exceeds the render distance.
  */
 
-f32 is_within_render_distance(Vec3f cameraPos, Vec3f objectPos, u16 orientationY, f32 minDistance, f32 fov,
-                              f32 maxDistance) {
+static f32 vanilla_render_distance(Vec3f cameraPos, Vec3f objectPos, u16 orientationY, f32 minDistance, f32 fov,
+                                   f32 maxDistance) {
     u16 angleObject;
     u16 temp_v0;
     f32 distanceX;
@@ -1111,14 +1112,6 @@ f32 is_within_render_distance(Vec3f cameraPos, Vec3f objectPos, u16 orientationY
     s32 minus_fov_angle;
     u16 temp;
     UNUSED s32 count = 0;
-
-    // Freecam and the No LOD enhancement show the whole course: skip
-    // actor distance and view-cone culling entirely, and report the actor
-    // as near so callers pick their full-detail versions. Must be a positive
-    // value: the Moo Moo cow loop draws only when the result is > 0.0f.
-    if (CVarGetInteger("gFreecam", 0) != 0 || CVarGetInteger("gDisableLod", 1) != 0) {
-        return 1.0f;
-    }
 
     maxDistance *= 6.5f;
     maxDistance2 = 1.0f;
@@ -1182,6 +1175,26 @@ f32 is_within_render_distance(Vec3f cameraPos, Vec3f objectPos, u16 orientationY
         return distance;
     }
     return -1.0f;
+}
+
+f32 is_within_render_distance(Vec3f cameraPos, Vec3f objectPos, u16 orientationY, f32 minDistance, f32 fov,
+                              f32 maxDistance) {
+    f32 vanilla = vanilla_render_distance(cameraPos, objectPos, orientationY, minDistance, fov, maxDistance);
+    // Freecam and the No LOD enhancement show the whole course: skip actor
+    // distance and view-cone culling entirely, and report the actor as near
+    // so callers pick their full-detail versions. Must be a positive value:
+    // the Moo Moo cow loop draws only when the result is > 0.0f.
+    // The vanilla verdict is still computed so the gate counters can prove
+    // how many culls the skip actually prevented (container audit).
+    if (CVarGetInteger("gFreecam", 0) != 0 || CVarGetInteger("gDisableLod", 1) != 0) {
+        if (vanilla < 0.0f) {
+            GeometryMode_CountGate("c3_cull_prevented");
+        } else {
+            GeometryMode_CountGate("c3_visible_anyway");
+        }
+        return 1.0f;
+    }
+    return vanilla;
 }
 
 // No idea if arg1 is actually a Mat4 or not, but since this function is unused

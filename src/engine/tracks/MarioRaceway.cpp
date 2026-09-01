@@ -274,6 +274,7 @@ void MarioRaceway::Draw(ScreenContext* arg0) {
     gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
 
     if (GeometryMode_ForceAllExtras()) {
+        GeometryMode_CountGate("c2_lift_marioraceway");
         // Full-course view: the giant mushroom cluster and the pipe both
         // draw regardless of the kart's section window.
         func_80291198();

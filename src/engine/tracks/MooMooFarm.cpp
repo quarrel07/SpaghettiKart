@@ -279,6 +279,7 @@ void MooMooFarm::Draw(ScreenContext* arg0) {
     render_track_sections(moo_moo_farm_dls, arg0);
 
     if (GeometryMode_ForceAllExtras()) {
+        GeometryMode_CountGate("c2_lift_moomoo");
         // Full-course view: every windowed extra draws (bridges, barn).
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_moo_moo_farm_dl_13FF8);
         gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEI, G_CC_MODULATEI);

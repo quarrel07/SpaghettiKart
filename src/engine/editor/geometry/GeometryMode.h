@@ -10,6 +10,11 @@ extern "C" {
 #endif
 
 int32_t GeometryMode_IsActive(void);
+// Runtime gate counters (container audit): covered gates self-report each
+// firing; a "gate-counters" line flushes to the flight-recorder log every
+// ~300 frames so coverage claims are proven by numbers, not assertions.
+void GeometryMode_CountGate(const char* gate);
+void GeometryMode_FlushGateCounters(void);
 // TEMP diagnostic: walks the completed frame command stream into a text file
 // when a dump was requested from the editor window.
 void GeometryMode_DumpFrame(void* pool);

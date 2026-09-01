@@ -1154,6 +1154,40 @@ extern "C" void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int
 // handling; the substituted list is the authored full-detail assembly, so
 // every surface stays present regardless of distance. This generalizes the
 // game's own Bowser's Castle credits-list swap to every stock course.
+// ---- Runtime gate counters (container audit) ----
+static std::map<std::string, uint64_t> sGateCounts;
+
+extern "C" void GeometryMode_CountGate(const char* gate) {
+    sGateCounts[gate]++;
+}
+
+extern "C" void GeometryMode_FlushGateCounters(void) {
+    using namespace GeometryEditor;
+    static int frames = 0;
+    if (++frames < 300 || sGateCounts.empty()) {
+        return;
+    }
+    frames = 0;
+    const char* course = "?";
+    Track* track = GetWorld() != nullptr ? GetWorld()->GetTrack() : nullptr;
+    if (track != nullptr) {
+        course = typeid(*track).name();
+    }
+    FILE* f = fopen("/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/"
+                    "track_draw_log.txt",
+                    "a");
+    if (f != nullptr) {
+        fprintf(f, "gate-counters      course=%s noLod=%d freecam=%d |", course,
+                CVarGetInteger("gDisableLod", 1), CVarGetInteger("gFreecam", 0));
+        for (auto& kv : sGateCounts) {
+            fprintf(f, " %s=%llu", kv.first.c_str(), (unsigned long long) kv.second);
+        }
+        fprintf(f, "\n");
+        fclose(f);
+    }
+    sGateCounts.clear();
+}
+
 extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut) {
     using namespace GeometryEditor;
     (void) addr;
