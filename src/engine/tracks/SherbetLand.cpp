@@ -222,7 +222,8 @@ void SherbetLand::DrawTransparency(ScreenContext* screen, UNUSED uint16_t pathCo
     render_track_sections(sherbet_land_dls_2, screen);
 
     gDPSetAlphaCompare(gDisplayListHead++, G_AC_NONE);
-    if ((func_80290C20(screen->camera) == 1) && (get_water_level(screen->player) < screen->player->pos[1])) {
+    if (((func_80290C20(screen->camera) == 1) && (get_water_level(screen->player) < screen->player->pos[1])) ||
+        CVarGetInteger("gTestOpenGates", 0) != 0) {
         gSPSetGeometryMode(gDisplayListHead++, G_ZBUFFER);
         gDPSetCombineMode(gDisplayListHead++, G_CC_SHADE, G_CC_SHADE);
         gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_OPA_SURF, G_RM_AA_ZB_OPA_SURF2);

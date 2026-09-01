@@ -336,6 +336,19 @@ void DKJungle::DrawTransparency(UNUSED ScreenContext* screen, uint16_t pathCount
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
     gDPSetRenderMode(gDisplayListHead++, G_RM_AA_ZB_XLU_INTER, G_RM_NOOP2);
 
+    if (CVarGetInteger("gTestOpenGates", 0) != 0) {
+        // TEST instrument: draw every zone-gated transparency piece (the
+        // river/waterfall system) regardless of kart zone and direction.
+        // State is the pass's shared setup; per-branch combine differences
+        // are not reproduced, so minor tinting differences are expected.
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3DD0);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
+        gDPPipeSync(gDisplayListHead++);
+        return;
+    }
     if (pathCounter < 17) {
         gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
         // d_course_dks_jungle_parkway_packed_dl_3E40

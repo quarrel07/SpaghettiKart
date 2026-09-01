@@ -232,6 +232,12 @@ void GeometryEditor::SceneryWindow::DrawElement() {
     }
     ImGui::TextDisabled("Luigi Raceway (3) and Moo Moo Farm (3):\nanything that vanishes is confirmed race content");
     ImGui::Separator();
+    bool openGates = CVarGetInteger("gTestOpenGates", 0);
+    if (ImGui::Checkbox("TEST: Open All Uncovered Gates", &openGates)) {
+        CVarSetInteger("gTestOpenGates", openGates);
+    }
+    ImGui::TextDisabled("Forces every zone/probe-gated course piece to draw\nso each course's hidden pieces can be identified.\nKnown: darkens Choco (its gated piece is an interior\nshade copy - the verified-harmful case).");
+    ImGui::Separator();
     if (ImGui::Button("Capture Frame Snapshot (debug)")) {
         RequestFrameDump();
     }

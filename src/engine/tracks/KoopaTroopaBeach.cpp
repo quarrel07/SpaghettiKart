@@ -7,6 +7,7 @@
 
 #include "KoopaTroopaBeach.h"
 #include "engine/World.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include "engine/actors/Finishline.h"
 #include "engine/objects/BombKart.h"
 #include "engine/objects/Crab.h"
@@ -302,6 +303,12 @@ void KoopaTroopaBeach::DrawTransparency(ScreenContext* screen, uint16_t pathCoun
     gDPSetBlendMask(gDisplayListHead++, 0xFF);
     gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
 
+    if (CVarGetInteger("gTestOpenGates", 0) != 0) {
+        // TEST instrument: draw the zone-gated piece regardless of pathCounter.
+        gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK);
+        gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_koopa_troopa_beach_packed_dl_9E70);
+        gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
+    }
     switch (pathCounter) {
         case 22:
         case 23:
@@ -309,6 +316,7 @@ void KoopaTroopaBeach::DrawTransparency(ScreenContext* screen, uint16_t pathCoun
         case 30:
         case 31:
         case 37:
+            GeometryMode_CountGate("c2_ktb_9E70_vanilla");
             gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK);
             // d_course_koopa_troopa_beach_packed_dl_9E70
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_koopa_troopa_beach_packed_dl_9E70);

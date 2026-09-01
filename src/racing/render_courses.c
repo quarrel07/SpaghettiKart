@@ -42,6 +42,14 @@ s16 D_802B87D4 = 0;
 s16 currentScreenSection = 0;
 
 s32 func_80290C20(Camera* camera) {
+    // TEST instrument (uncovered-gate campaign): force every probe-gated
+    // piece visible so each course's hidden pieces can be identified live.
+    // Known effect on Choco: its shade-only interior copy will darken the
+    // view - that is the verified-harmful member of this class.
+    if (CVarGetInteger("gTestOpenGates", 0) != 0) {
+        GeometryMode_CountGate("c2_probe_forced");
+        return 1;
+    }
     // Freecam never updates the camera collision probe, so this check
     // reads stale/empty data and draws the shade-only fallback copies on
     // top of the textured originals (coincident-surface shimmer). A
@@ -50,12 +58,15 @@ s32 func_80290C20(Camera* camera) {
         return 0;
     }
     if (camera->collision.unk34 == 0) {
+        GeometryMode_CountGate("c2_probe_vanilla_fired");
         return 1;
     }
     if ((camera->collision.unk30 == 1) && (camera->collision.surfaceDistance[0] < 3.0f)) {
+        GeometryMode_CountGate("c2_probe_vanilla_fired");
         return 1;
     }
     if ((camera->collision.unk32 == 1) && (camera->collision.surfaceDistance[1] < 3.0f)) {
+        GeometryMode_CountGate("c2_probe_vanilla_fired");
         return 1;
     }
     return 0;

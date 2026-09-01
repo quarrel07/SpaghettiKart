@@ -8,6 +8,7 @@
 
 #include "BansheeBoardwalk.h"
 #include "engine/World.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include "align_asset_macro.h"
 #include "engine/actors/Finishline.h"
 #include "engine/objects/BombKart.h"
@@ -290,7 +291,10 @@ void BansheeBoardwalk::Draw(ScreenContext* arg0) {
     // d_course_banshee_boardwalk_packed_dl_540
     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_banshee_boardwalk_packed_dl_540);
 
-    if (camera->pos[1] < -20.0f) {
+    if (camera->pos[1] < -20.0f || CVarGetInteger("gTestOpenGates", 0) != 0) {
+        if (camera->pos[1] < -20.0f) {
+            GeometryMode_CountGate("c2_banshee_6310_vanilla");
+        }
         // d_course_banshee_boardwalk_packed_dl_6310
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_banshee_boardwalk_packed_dl_6310);
     }
