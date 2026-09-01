@@ -27,12 +27,6 @@ void GeometryMode_MarkTrackPass(int32_t inPass);
 // overridden to the section nearest the camera, so the default view matches
 // the race mode and follows the camera instead of stale kart bookkeeping.
 int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut);
-// Upstream-style layering for the 2-cycle fog courses (Choco, Turnpike):
-// emits the repaired full-course assembly at the START of the track draw,
-// in the frame's plain default state - the same slot where upstream's
-// freecam draws its credits copy - before the course's own Draw() sets up
-// the fog pipeline and layers the stock fogged sections on top.
-void GeometryMode_EmitFullCourseBase(void);
 void GeometryMode_Tick(void);
 // TEMP diagnostic flight recorder: appends a line to Claude Test Builds/
 // track_draw_log.txt whenever the track-draw decision or live settings

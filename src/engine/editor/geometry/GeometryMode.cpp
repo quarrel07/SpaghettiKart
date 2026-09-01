@@ -1154,36 +1154,6 @@ extern "C" void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int
 // handling; the substituted list is the authored full-detail assembly, so
 // every surface stays present regardless of distance. This generalizes the
 // game's own Bowser's Castle credits-list swap to every stock course.
-extern "C" void GeometryMode_EmitFullCourseBase(void) {
-    using namespace GeometryEditor;
-    if (gGamestate != RACING || gModeSelection == BATTLE) {
-        return;
-    }
-    Track* track = GetWorld() != nullptr ? GetWorld()->GetTrack() : nullptr;
-    if (track == nullptr || track->IsMod()) {
-        return;
-    }
-    if (dynamic_cast<ChocoMountain*>(track) == nullptr && dynamic_cast<ToadsTurnpike*>(track) == nullptr) {
-        return;
-    }
-    // Freecam only, matching upstream exactly: karts never draw the
-    // full-course copy, so driving keeps its clean fog falloff into the
-    // distance. Layering it under kart mode put crisp unfogged mountains
-    // beyond the fog wall ("fog is super broken" - Andy, 2026-08-31).
-    if (!CVarGetInteger("gFreecam", 0)) {
-        return;
-    }
-    // Upstream's literal recipe: the RAW credits list, drawn plainly with
-    // culling cleared, exactly as upstream freecam does. The repaired
-    // assembly produced defect after defect here (striped walls, bare
-    // holes, fog-tinted shade pieces - Andy's screenshots); parity with
-    // upstream is the accepted standard, improvements come later.
-    gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
-    track->DrawCredits();
-    gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-    GeometryMode_LogTrackDraw("fullcourse-base-raw", -1, 0);
-}
-
 extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut) {
     using namespace GeometryEditor;
     (void) addr;
@@ -1199,78 +1169,25 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // render_track_sections (Koopa Beach, Sherbet Land secondary tables).
     sTrackPassMarked = 0;
 
-    bool substitution = CVarGetInteger("gDisableLod", 1) || CVarGetInteger("gFreecam", 0);
+    // CREDITS DATA RETIRED (Andy's directive, 2026-08-31): the renderer
+    // never draws the credits world - not under No LOD, not in freecam.
+    // TRUE No LOD gets rebuilt from the living race data (step 2). The
+    // opt-in Credits Scenery toggle below is the single deliberate
+    // exception: Andy's archaeology flashlight, drawn only when checked.
     bool wantScenery = CVarGetInteger("gCreditsScenery", 0);
-    if (!substitution && !wantScenery) {
-        return 0; // stock sectioned rendering
+    if (!wantScenery) {
+        return 0; // stock sectioned rendering everywhere
     }
     if (gModeSelection == BATTLE || track->IsMod() || CreditsRootFor(track) == nullptr) {
-        return 0; // battle arenas and custom tracks have no full assembly
+        return 0;
     }
     if (!EnsureCatalog(addr)) {
-        if (substitution) {
-            track->DrawCredits();
-            GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
-            return 1;
-        }
         return 0;
-    }
-    // Choco Mountain and Toad's Turnpike hand their sections a 2-cycle fog
-    // pipeline; the credits assembly is authored for the plain 1-cycle
-    // state the credits sequence uses, and renders black inside it (proven
-    // by Andy's live A/B, 2026-08-31). Drop to the credits-style pipeline
-    // around the substituted draw and hand the fog pipeline back for the
-    // course's own post-section pieces.
-    // Fog-pipeline courses (Choco Mountain, Toad's Turnpike): neither
-    // full-course source renders correctly in their 2-cycle fog pipeline -
-    // the credits assembly draws black inside it, and the race union wears
-    // wrong textures (Andy's three-way screenshot comparison vs upstream,
-    // 2026-08-31). Until that is properly solved, these two courses render
-    // exactly as upstream does: fully stock, fog and textures correct,
-    // vanilla section pop-in and all.
-    if (dynamic_cast<ChocoMountain*>(track) != nullptr || dynamic_cast<ToadsTurnpike*>(track) != nullptr) {
-        return 0;
-    }
-    if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
-        // The credits assembly was authored for a pass with culling cleared
-        // (the old freecam preamble); with culling left on, whole walls and
-        // roads vanish (Choco, Bowser's Castle, Turnpike - Andy 2026-08-31).
-        // Clear it for the assembly only and restore G_CULL_BACK after, so
-        // race-code draws (the trackside signs) keep their protection.
-        gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
-        // Scenery first: its pieces sit at the START of the authored stream
-        // and depend on the fresh course-preamble state, which only exists
-        // before anything else draws. The repaired course after it is
-        // state-self-sufficient (injected binds), so order is safe.
-        if (wantScenery && !sCatalog.SceneryDL().empty()) {
-            // TEMP diagnostic: capture the first scenery frame per course so
-            // the real state around the scenery draw can be read offline.
-            static const void* sDumpedFor = nullptr;
-            if (sDumpedFor != (const void*) track) {
-                sDumpedFor = (const void*) track;
-                RequestFrameDump();
-            }
-            gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.SceneryDL().data());
-        }
-        // Repaired assembly: race-authored texture binds injected before
-        // every vertex load, so surfaces the credits camera never films
-        // cannot inherit garbage state.
-        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
-        gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-        GeometryMode_LogTrackDraw(wantScenery ? "fullcourse+scenery" : "fullcourse-repaired", -1, direction);
-        return 1;
-    }
-    if (substitution) {
-        gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
-        track->DrawCredits();
-        gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
-        GeometryMode_LogTrackDraw("fullcourse-sub", -1, direction);
-        return 1;
     }
     // Scenery over stock rendering: scenery first, at its authored
     // front-of-stream position (it depends on the fresh preamble state),
     // then the game's own sheet, which starts with its own binds.
-    if (wantScenery && indexInOut != nullptr && *indexInOut >= 1 && (size_t) *indexInOut <= sSectionCount &&
+    if (indexInOut != nullptr && *indexInOut >= 1 && (size_t) *indexInOut <= sSectionCount &&
         !sCatalog.SceneryDL().empty()) {
         int idx = ((*indexInOut - 1) * 4) + direction;
         gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);

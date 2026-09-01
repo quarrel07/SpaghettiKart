@@ -339,7 +339,6 @@ void CM_DrawTrack(ScreenContext* screen) {
                     // credits list for the section draw inside it. Calling
                     // DrawCredits() bare skipped that state and rendered the
                     // course unshaded.
-                    GeometryMode_EmitFullCourseBase();
                     GeometryMode_MarkTrackPass(1);
                     GetWorld()->GetTrack()->Draw(screen);
                     GeometryMode_MarkTrackPass(0);
