@@ -297,7 +297,7 @@ void GeometryEditor::GateTourWindow::DrawElement() {
         }
     }
     ImGui::Text("Gate Tour: %d of %d spotted", spotted, (int) (sizeof(kGatePieces) / sizeof(kGatePieces[0])));
-    ImGui::TextDisabled("Pieces draw only while TEST: Open All Uncovered\nGates is on (or their vanilla condition holds).\nIN VIEW = the piece's data-file footprint is in\nyour camera's horizontal view; it ignores height\nand walls, so treat it as a compass, not an X-ray.");
+    ImGui::TextDisabled("IN VIEW (yellow) = the piece's location is in your\ncamera's horizontal view - a compass, not an X-ray\n(ignores height and walls).\nDRAWING (green) = the piece's draw code executed\nthis frame, with the reason: forced by the TEST\ntoggle, or its vanilla rule is true right now.");
     ImGui::Separator();
 
     const char* lastCourse = "";
@@ -321,13 +321,34 @@ void GeometryEditor::GateTourWindow::DrawElement() {
         ImGui::PopID();
         ImGui::SameLine();
         bool inView = here && cam != nullptr && GateInView(g, cam);
-        if (inView) {
-            ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.3f, 1.0f), "%s - %s  [IN VIEW]", g.label, g.desc);
+        // Ground-truth drawing signal: the piece's real draw sites report
+        // each execution. Probe pieces share one signal; only the current
+        // course's probe piece can be the one firing.
+        char drawnId[64];
+        bool probeClass = strcmp(g.label, "6310") != 0 && strcmp(g.label, "9E70") != 0 && g.course[0] != 'D';
+        bool isDkWindow = strncmp(g.course, "DKJungle", 8) == 0 && strcmp(g.label, "92D8") != 0;
+        if (isDkWindow || strcmp(g.label, "6310") == 0 || strcmp(g.label, "9E70") == 0) {
+            snprintf(drawnId, sizeof(drawnId), "%s_%s", g.course, g.label);
+        } else {
+            snprintf(drawnId, sizeof(drawnId), "probe");
+        }
+        bool drawing = here && GeometryMode_GateDrawnRecently(drawnId);
+        const char* drawTag = "";
+        if (drawing) {
+            drawTag = CVarGetInteger("gTestOpenGates", 0) ? "  [DRAWING - forced]" : "  [DRAWING - vanilla]";
+        }
+        if (inView && drawing) {
+            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "%s - %s  [IN VIEW]%s", g.label, g.desc, drawTag);
+        } else if (inView) {
+            ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.3f, 1.0f), "%s - %s  [IN VIEW]%s", g.label, g.desc, drawTag);
+        } else if (drawing) {
+            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "%s - %s%s", g.label, g.desc, drawTag);
         } else if (here) {
             ImGui::Text("%s - %s", g.label, g.desc);
         } else {
             ImGui::TextDisabled("%s - %s", g.label, g.desc);
         }
+        (void) probeClass;
     }
 }
 

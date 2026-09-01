@@ -295,6 +295,7 @@ void BansheeBoardwalk::Draw(ScreenContext* arg0) {
         if (camera->pos[1] < -20.0f) {
             GeometryMode_CountGate("c2_banshee_6310_vanilla");
         }
+        GeometryMode_MarkGateDrawn("BansheeBoardwalk_6310");
         // d_course_banshee_boardwalk_packed_dl_6310
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_banshee_boardwalk_packed_dl_6310);
     }

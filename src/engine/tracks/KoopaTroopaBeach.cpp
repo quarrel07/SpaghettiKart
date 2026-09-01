@@ -305,6 +305,7 @@ void KoopaTroopaBeach::DrawTransparency(ScreenContext* screen, uint16_t pathCoun
 
     if (CVarGetInteger("gTestOpenGates", 0) != 0) {
         // TEST instrument: draw the zone-gated piece regardless of pathCounter.
+        GeometryMode_MarkGateDrawn("KoopaTroopaBeach_9E70");
         gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK);
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_koopa_troopa_beach_packed_dl_9E70);
         gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
@@ -317,6 +318,7 @@ void KoopaTroopaBeach::DrawTransparency(ScreenContext* screen, uint16_t pathCoun
         case 31:
         case 37:
             GeometryMode_CountGate("c2_ktb_9E70_vanilla");
+            GeometryMode_MarkGateDrawn("KoopaTroopaBeach_9E70");
             gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK);
             // d_course_koopa_troopa_beach_packed_dl_9E70
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_koopa_troopa_beach_packed_dl_9E70);

@@ -15,6 +15,10 @@ int32_t GeometryMode_IsActive(void);
 // ~300 frames so coverage claims are proven by numbers, not assertions.
 void GeometryMode_CountGate(const char* gate);
 void GeometryMode_FlushGateCounters(void);
+// Gate Tour live indicator: draw sites report each execution; the panel
+// asks whether a piece drew within the last couple of frames.
+void GeometryMode_MarkGateDrawn(const char* id);
+int32_t GeometryMode_GateDrawnRecently(const char* id);
 // TEMP diagnostic: walks the completed frame command stream into a text file
 // when a dump was requested from the editor window.
 void GeometryMode_DumpFrame(void* pool);

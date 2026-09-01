@@ -6,6 +6,7 @@
 
 #include "DKJungle.h"
 #include "engine/World.h"
+#include "engine/editor/geometry/GeometryMode.h"
 #include "engine/actors/Finishline.h"
 #include "engine/objects/BombKart.h"
 #include "assets/models/tracks/dks_jungle_parkway/dks_jungle_parkway_data.h"
@@ -341,10 +342,19 @@ void DKJungle::DrawTransparency(UNUSED ScreenContext* screen, uint16_t pathCount
         // river/waterfall system) regardless of kart zone and direction.
         // State is the pass's shared setup; per-branch combine differences
         // are not reproduced, so minor tinting differences are expected.
+        GeometryMode_MarkGateDrawn("DKJungle_3E40");
+        GeometryMode_MarkGateDrawn("DKJungle_3EB0");
+        GeometryMode_MarkGateDrawn("DKJungle_3DD0");
+        GeometryMode_MarkGateDrawn("DKJungle_36A8");
+        GeometryMode_MarkGateDrawn("DKJungle_3F30");
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
+        GeometryMode_MarkGateDrawn("DKJungle_3EB0");
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
+        GeometryMode_MarkGateDrawn("DKJungle_3DD0");
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3DD0);
+        GeometryMode_MarkGateDrawn("DKJungle_36A8");
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
+        GeometryMode_MarkGateDrawn("DKJungle_3F30");
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
         gDPPipeSync(gDisplayListHead++);
         return;
@@ -352,45 +362,55 @@ void DKJungle::DrawTransparency(UNUSED ScreenContext* screen, uint16_t pathCount
     if (pathCounter < 17) {
         gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
         // d_course_dks_jungle_parkway_packed_dl_3E40
+        GeometryMode_MarkGateDrawn("DKJungle_3E40");
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
         // d_course_dks_jungle_parkway_packed_dl_3EB0
+        GeometryMode_MarkGateDrawn("DKJungle_3EB0");
         gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
         if ((pathCounter >= 6) && (pathCounter < 13)) {
             gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
             // d_course_dks_jungle_parkway_packed_dl_3DD0
+            GeometryMode_MarkGateDrawn("DKJungle_3DD0");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3DD0);
         }
     } else if ((pathCounter == 21) || (pathCounter == 22)) {
         if (playerDirection == 3) {
             gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
             // d_course_dks_jungle_parkway_packed_dl_36A8
+            GeometryMode_MarkGateDrawn("DKJungle_36A8");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
         }
         if ((playerDirection == 1) || (playerDirection == 0)) {
             gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
             // d_course_dks_jungle_parkway_packed_dl_36A8
+            GeometryMode_MarkGateDrawn("DKJungle_36A8");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
         } else {
             gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIA, G_CC_MODULATEIA);
             // d_course_dks_jungle_parkway_packed_dl_3F30
+            GeometryMode_MarkGateDrawn("DKJungle_3F30");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
             // d_course_dks_jungle_parkway_packed_dl_36A8
+            GeometryMode_MarkGateDrawn("DKJungle_36A8");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
         }
     } else if (pathCounter == 24) {
         if ((playerDirection == 0) || (playerDirection == 3)) {
             gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
             // d_course_dks_jungle_parkway_packed_dl_36A8
+            GeometryMode_MarkGateDrawn("DKJungle_36A8");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
         }
     } else if (pathCounter == 23) {
         if (playerDirection == 3) {
             gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
             // d_course_dks_jungle_parkway_packed_dl_36A8
+            GeometryMode_MarkGateDrawn("DKJungle_36A8");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
         } else if (playerDirection == 0) {
             gDPSetCombineMode(gDisplayListHead++, G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA);
             // d_course_dks_jungle_parkway_packed_dl_36A8
+            GeometryMode_MarkGateDrawn("DKJungle_36A8");
             gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_36A8);
         }
     }
@@ -399,6 +419,7 @@ void DKJungle::DrawTransparency(UNUSED ScreenContext* screen, uint16_t pathCount
         case 5:
             if (playerDirection != 3) {
                 // d_course_dks_jungle_parkway_packed_dl_3DD0
+                GeometryMode_MarkGateDrawn("DKJungle_3DD0");
                 gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3DD0);
             }
             break;
@@ -406,30 +427,40 @@ void DKJungle::DrawTransparency(UNUSED ScreenContext* screen, uint16_t pathCount
             switch (playerDirection) {
                 case 0:
                     // d_course_dks_jungle_parkway_packed_dl_3E40
+                    GeometryMode_MarkGateDrawn("DKJungle_3E40");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
                     // d_course_dks_jungle_parkway_packed_dl_3EB0
+                    GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                     break;
                 case 1:
                     // d_course_dks_jungle_parkway_packed_dl_3DD0
+                    GeometryMode_MarkGateDrawn("DKJungle_3DD0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3DD0);
                     // d_course_dks_jungle_parkway_packed_dl_3E40
+                    GeometryMode_MarkGateDrawn("DKJungle_3E40");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
                     // d_course_dks_jungle_parkway_packed_dl_3EB0
+                    GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                     break;
                 case 2:
                     // d_course_dks_jungle_parkway_packed_dl_
+                    GeometryMode_MarkGateDrawn("DKJungle_3E40");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
                     // d_course_dks_jungle_parkway_packed_dl_3EB0
+                    GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                     // d_course_dks_jungle_parkway_packed_dl_3F30
+                    GeometryMode_MarkGateDrawn("DKJungle_3F30");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
                     break;
                 case 3:
                     // d_course_dks_jungle_parkway_packed_dl_3EB0
+                    GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                     // d_course_dks_jungle_parkway_packed_dl_3F30
+                    GeometryMode_MarkGateDrawn("DKJungle_3F30");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
                     break;
             }
@@ -438,22 +469,29 @@ void DKJungle::DrawTransparency(UNUSED ScreenContext* screen, uint16_t pathCount
             switch (playerDirection) {
                 case 0:
                     // d_course_dks_jungle_parkway_packed_dl_3E40
+                    GeometryMode_MarkGateDrawn("DKJungle_3E40");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
                     // d_course_dks_jungle_parkway_packed_dl_3EB0
+                    GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                     break;
                 case 1:
                     // d_course_dks_jungle_parkway_packed_dl_3DD0
+                    GeometryMode_MarkGateDrawn("DKJungle_3DD0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3DD0);
                     // d_course_dks_jungle_parkway_packed_dl_3E40
+                    GeometryMode_MarkGateDrawn("DKJungle_3E40");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
                     // d_course_dks_jungle_parkway_packed_dl_3EB0
+                    GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                     break;
                 case 2:
                     // d_course_dks_jungle_parkway_packed_dl_3E40
+                    GeometryMode_MarkGateDrawn("DKJungle_3E40");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
                     // d_course_dks_jungle_parkway_packed_dl_3EB0
+                    GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                     gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                     break;
             }
@@ -461,25 +499,31 @@ void DKJungle::DrawTransparency(UNUSED ScreenContext* screen, uint16_t pathCount
         case 21:
             if ((playerDirection == 0) || (playerDirection == 1)) {
                 // d_course_dks_jungle_parkway_packed_dl_3E40
+                GeometryMode_MarkGateDrawn("DKJungle_3E40");
                 gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3E40);
                 // d_course_dks_jungle_parkway_packed_dl_3EB0
+                GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                 gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
                 // d_course_dks_jungle_parkway_packed_dl_3F30
+                GeometryMode_MarkGateDrawn("DKJungle_3F30");
                 gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
             } else {
                 // d_course_dks_jungle_parkway_packed_dl_3EB0
+                GeometryMode_MarkGateDrawn("DKJungle_3EB0");
                 gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3EB0);
             }
             break;
         case 22:
             if (playerDirection == 0) {
                 // d_course_dks_jungle_parkway_packed_dl_3F30
+                GeometryMode_MarkGateDrawn("DKJungle_3F30");
                 gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
             }
             break;
         case 23:
             if (playerDirection != 1) {
                 // d_course_dks_jungle_parkway_packed_dl_3F30
+                GeometryMode_MarkGateDrawn("DKJungle_3F30");
                 gSPDisplayList(gDisplayListHead++, (Gfx*) d_course_dks_jungle_parkway_packed_dl_3F30);
             }
             break;

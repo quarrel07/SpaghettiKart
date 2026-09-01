@@ -48,6 +48,7 @@ s32 func_80290C20(Camera* camera) {
     // view - that is the verified-harmful member of this class.
     if (CVarGetInteger("gTestOpenGates", 0) != 0) {
         GeometryMode_CountGate("c2_probe_forced");
+        GeometryMode_MarkGateDrawn("probe");
         return 1;
     }
     // Freecam never updates the camera collision probe, so this check
@@ -59,14 +60,17 @@ s32 func_80290C20(Camera* camera) {
     }
     if (camera->collision.unk34 == 0) {
         GeometryMode_CountGate("c2_probe_vanilla_fired");
+        GeometryMode_MarkGateDrawn("probe");
         return 1;
     }
     if ((camera->collision.unk30 == 1) && (camera->collision.surfaceDistance[0] < 3.0f)) {
         GeometryMode_CountGate("c2_probe_vanilla_fired");
+        GeometryMode_MarkGateDrawn("probe");
         return 1;
     }
     if ((camera->collision.unk32 == 1) && (camera->collision.surfaceDistance[1] < 3.0f)) {
         GeometryMode_CountGate("c2_probe_vanilla_fired");
+        GeometryMode_MarkGateDrawn("probe");
         return 1;
     }
     return 0;

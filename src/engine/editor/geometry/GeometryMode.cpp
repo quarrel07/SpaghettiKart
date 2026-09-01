@@ -1156,6 +1156,17 @@ extern "C" void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int
 // game's own Bowser's Castle credits-list swap to every stock course.
 // ---- Runtime gate counters (container audit) ----
 static std::map<std::string, uint64_t> sGateCounts;
+static std::map<std::string, uint64_t> sGateDrawnFrame;
+static uint64_t sGateFrameNow = 0;
+
+extern "C" void GeometryMode_MarkGateDrawn(const char* id) {
+    sGateDrawnFrame[id] = sGateFrameNow;
+}
+
+extern "C" int32_t GeometryMode_GateDrawnRecently(const char* id) {
+    auto it = sGateDrawnFrame.find(id);
+    return it != sGateDrawnFrame.end() && sGateFrameNow - it->second <= 2;
+}
 
 extern "C" void GeometryMode_CountGate(const char* gate) {
     sGateCounts[gate]++;
@@ -1163,6 +1174,7 @@ extern "C" void GeometryMode_CountGate(const char* gate) {
 
 extern "C" void GeometryMode_FlushGateCounters(void) {
     using namespace GeometryEditor;
+    sGateFrameNow++;
     static int frames = 0;
     if (++frames < 300 || sGateCounts.empty()) {
         return;
