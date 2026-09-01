@@ -157,6 +157,14 @@ runtime-verified unless explicitly marked ANDY-VERIFIED.
 - The Moo Moo cow LOOP in racing/actors.c (spawn-data cows) uses draw-if-positive and is covered; the per-actor cow renderer likewise.
 
 ## Verification ledger
+
+### Runtime verification, 2026-08-31 evening (gate counters, Andy's two 30-second sits)
+- **Window lifts: RUNTIME-VERIFIED.** c2_lift_moomoo = 300 firings per 300-frame window (every frame), across multiple consecutive windows, kart mode and freecam, No LOD on. c2_lift_marioraceway = 300/300 likewise. "Always" measurably means always on build 1af40bafe.
+- **Culling skip: RUNTIME-VERIFIED.** c3_cull_prevented ran ~10,000-14,000 per 300-frame window on Moo Moo (~37 actors per frame that vanilla would have culled, drawn instead) and ~10,800 per window on Mario Raceway. The skip is doing constant, heavy, measurable work.
+- Instrument quirk (harmless, noted for honesty): counter windows that span a course change are attributed to the course loaded at flush time (one window logged c2_lift_moomoo under the MarioRaceway label during the transition).
+
+### Prior ledger
+
 - ANDY-VERIFIED (older builds): MooMoo barn/bridges lift, MR mushroom/pipe lift, cow culling fix, Choco probe-piece exclusion (via black-Choco resolution arc).
 - MECHANICAL ONLY (this scan): everything else in the tables.
 - NOT VERIFIED ON CURRENT BUILD: all of it. Runtime counters proving each covered gate fires under No LOD remain to be built.
