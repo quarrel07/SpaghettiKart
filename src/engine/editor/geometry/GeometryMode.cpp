@@ -1195,6 +1195,17 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // course's own post-section pieces.
     bool fogPipeline =
         dynamic_cast<ChocoMountain*>(track) != nullptr || dynamic_cast<ToadsTurnpike*>(track) != nullptr;
+    // Fog-pipeline courses: the credits assembly is authored for a 1-cycle
+    // no-fog state and cannot render inside their 2-cycle fog pipeline, so
+    // draw the race-union merged list instead - race-authored data with
+    // race-authored states, fog intact. This is exactly what the Geometry
+    // Editor's Race view draws, which Andy verified renders Choco
+    // correctly (2026-08-31).
+    if (substitution && fogPipeline && (direction & 3) == direction && !sCatalog.MergedDL(direction).empty()) {
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.MergedDL(direction).data());
+        GeometryMode_LogTrackDraw("fullcourse-raceunion", -1, direction);
+        return 1;
+    }
     if (substitution && !sCatalog.RepairedFullCourseDL().empty()) {
         if (fogPipeline) {
             gDPSetCycleType(gDisplayListHead++, G_CYC_1CYCLE);
