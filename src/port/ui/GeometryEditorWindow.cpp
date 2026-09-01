@@ -2,6 +2,11 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <cmath>
+#include <typeinfo>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #include "port/ui/PortMenu.h"
 #include "port/ui/UIWidgets.h"
@@ -15,6 +20,7 @@ extern "C" {
 #include "main.h"
 #include "defines.h"
 #include "audio/external.h"
+#include "camera.h"
 }
 
 namespace GeometryEditor {
@@ -219,6 +225,112 @@ void GeometryEditorWindow::DrawElement() {
 
 } // namespace GeometryEditor
 
+namespace GeometryEditor {
+// The 19 uncovered vanilla-gated pieces, with bounding boxes computed
+// offline from the o2r vertex data (little-endian s16 positions). Boxes
+// are in course data coordinates; mirror mode flips X at runtime.
+struct GatePiece {
+    const char* course;  // typeid substring of the Track class
+    const char* label;   // short piece id
+    const char* desc;    // what the data says it is
+    float minX, minY, minZ, maxX, maxY, maxZ;
+};
+static const GatePiece kGatePieces[] = {
+    { "BigDonut", "DE8", "dark disc, whole arena, mid-height", -854, 190, -854, 854, 230, 854 },
+    { "BowsersCastle", "6A80", "large near-black structure, low", -300, -151, -2820, 2570, 260, 672 },
+    { "ChocoMountain", "4608", "course-wide dark shell (known harmful)", -937, -80, -1464, 2096, 113, 1244 },
+    { "DKJungle", "92D8", "brownish panel, one side", -944, -254, -2674, 581, 42, 1057 },
+    { "FrappeSnowland", "65E0", "small dark-blue patch, very low", -93, -5, 466, 1577, 52, 1368 },
+    { "KalimariDesert", "71C8", "dark sheet, very low", -1337, -2, -2274, 1947, 108, 1379 },
+    { "KoopaTroopaBeach", "9CC0", "dark piece, low", -1354, -100, 481, 378, 113, 2711 },
+    { "LuigiRaceway", "9EC0", "dark strip along one side", -1248, -250, -2479, 142, 72, 1356 },
+    { "MarioRaceway", "3050", "textured but near-black, course-spanning", -351, -40, -1300, 2800, 95, 1800 },
+    { "RoyalRaceway", "B030", "very wide dark-green sheet, low", -4001, -173, -2738, 1456, 193, 400 },
+    { "SherbetLand", "2B48", "course-wide dark shell, mid-height", -3450, -170, -2602, 761, 343, 2150 },
+    { "WarioStadium", "A0C8", "course-wide dark floor, lowest", -2931, -124, -2288, 131, 100, 1792 },
+    { "BansheeBoardwalk", "6310", "underwater course view (textured)", -3150, -80, -2100, 150, 6, 1500 },
+    { "KoopaTroopaBeach", "9E70", "bright translucent water sheet", -1501, -3, -1288, 256, 141, 2409 },
+    { "DKJungle", "3E40", "flat sandy river sheet (east)", 877, -34, -1928, 2302, -34, -1001 },
+    { "DKJungle", "3EB0", "large sandy river sheet (west)", -1817, -475, -1877, 1101, -34, 2320 },
+    { "DKJungle", "3DD0", "flat sandy river sheet (far east)", 2074, -34, -1626, 4250, -34, -59 },
+    { "DKJungle", "36A8", "small cyan waterfall/splash piece", -1422, -475, -1005, -434, -34, -426 },
+    { "DKJungle", "3F30", "brown river/bank sheet", -1817, -475, -1133, -80, -4, 2320 },
+};
+
+static bool GateInView(const GatePiece& g, Camera* cam) {
+    float minX = g.minX, maxX = g.maxX;
+    if (gIsMirrorMode) {
+        minX = -g.maxX;
+        maxX = -g.minX;
+    }
+    float cx = (minX + maxX) * 0.5f;
+    float cz = (g.minZ + g.maxZ) * 0.5f;
+    float dx = cx - cam->pos[0];
+    float dz = cz - cam->pos[2];
+    float dist = sqrtf(dx * dx + dz * dz);
+    float radius = 0.5f * sqrtf((maxX - minX) * (maxX - minX) + (g.maxZ - g.minZ) * (g.maxZ - g.minZ));
+    if (dist < radius) {
+        return true; // camera is inside the piece's footprint
+    }
+    float targetYaw = atan2f(dx, dz);
+    float camYaw = (float) cam->rot[1] * ((float) M_PI / 32768.0f);
+    float diff = targetYaw - camYaw;
+    while (diff > (float) M_PI) diff -= 2.0f * (float) M_PI;
+    while (diff < -(float) M_PI) diff += 2.0f * (float) M_PI;
+    float halfFov = cam->fieldOfView * 0.5f * ((float) M_PI / 180.0f);
+    float angRadius = atanf(radius / dist);
+    return fabsf(diff) < halfFov + angRadius;
+}
+} // namespace GeometryEditor
+
+void GeometryEditor::GateTourWindow::DrawElement() {
+    Track* track = GetWorld() != nullptr ? GetWorld()->GetTrack() : nullptr;
+    const char* courseName = (track != nullptr && gGamestate == RACING) ? typeid(*track).name() : nullptr;
+    Camera* cam = (gScreenOneCtx != nullptr) ? gScreenOneCtx->camera : nullptr;
+
+    int spotted = 0;
+    char key[96];
+    for (const GatePiece& g : kGatePieces) {
+        snprintf(key, sizeof(key), "gGateSpotted_%s_%s", g.course, g.label);
+        if (CVarGetInteger(key, 0)) {
+            spotted++;
+        }
+    }
+    ImGui::Text("Gate Tour: %d of %d spotted", spotted, (int) (sizeof(kGatePieces) / sizeof(kGatePieces[0])));
+    ImGui::TextDisabled("Pieces draw only while TEST: Open All Uncovered\nGates is on (or their vanilla condition holds).\nIN VIEW = the piece's data-file footprint is in\nyour camera's horizontal view; it ignores height\nand walls, so treat it as a compass, not an X-ray.");
+    ImGui::Separator();
+
+    const char* lastCourse = "";
+    for (const GatePiece& g : kGatePieces) {
+        bool here = courseName != nullptr && strstr(courseName, g.course) != nullptr;
+        if (strcmp(lastCourse, g.course) != 0) {
+            lastCourse = g.course;
+            ImGui::Spacing();
+            if (here) {
+                ImGui::TextColored(ImVec4(0.55f, 0.85f, 1.0f, 1.0f), "%s  (you are here)", g.course);
+            } else {
+                ImGui::TextDisabled("%s", g.course);
+            }
+        }
+        snprintf(key, sizeof(key), "gGateSpotted_%s_%s", g.course, g.label);
+        bool done = CVarGetInteger(key, 0);
+        ImGui::PushID(key);
+        if (ImGui::Checkbox("##spot", &done)) {
+            CVarSetInteger(key, done);
+        }
+        ImGui::PopID();
+        ImGui::SameLine();
+        bool inView = here && cam != nullptr && GateInView(g, cam);
+        if (inView) {
+            ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.3f, 1.0f), "%s - %s  [IN VIEW]", g.label, g.desc);
+        } else if (here) {
+            ImGui::Text("%s - %s", g.label, g.desc);
+        } else {
+            ImGui::TextDisabled("%s - %s", g.label, g.desc);
+        }
+    }
+}
+
 void GeometryEditor::SceneryWindow::DrawElement() {
     bool on = CVarGetInteger("gCreditsScenery", 0);
     if (ImGui::Checkbox("Show Credits-Only Scenery", &on)) {
@@ -250,6 +362,13 @@ extern std::shared_ptr<PortMenu> mPortMenu;
 static void RegisterGeometryEditorWidgets() {
     mPortMenu->AddSidebarEntry("Developer", "Geometry", 1);
     WidgetPath path = { "Developer", "Geometry", SECTION_COLUMN_1 };
+
+    mPortMenu->AddWidget(path, "Popout Gate Tour", WIDGET_WINDOW_BUTTON)
+        .CVar("gGateTourWindow")
+        .Options(UIWidgets::ButtonOptions().Tooltip(
+            "Checklist of the 19 uncovered vanilla-gated pieces: rows highlight when the piece's location is in "
+            "your view, with a checkbox to mark each one spotted."))
+        .WindowName("Gate Tour");
 
     mPortMenu->AddWidget(path, "Popout Geometry Editor", WIDGET_WINDOW_BUTTON)
         .CVar("gGeometryEditorWindow")

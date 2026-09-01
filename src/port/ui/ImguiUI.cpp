@@ -42,6 +42,7 @@ std::shared_ptr<Ship::GuiWindow> mTrackPropertiesWindow;
 std::shared_ptr<Ship::GuiWindow> mContentBrowserWindow;
 std::shared_ptr<Ship::GuiWindow> mGeometryEditorWindow;
 std::shared_ptr<Ship::GuiWindow> mSceneryWindow;
+std::shared_ptr<Ship::GuiWindow> mGateTourWindow;
 
 void SetupGuiElements() {
     auto gui = Ship::Context::GetRawInstance()->GetWindow()->GetGui();
@@ -95,6 +96,8 @@ void SetupGuiElements() {
     gui->AddGuiWindow(mGeometryEditorWindow);
     mSceneryWindow = std::make_shared<GeometryEditor::SceneryWindow>("gCreditsSceneryWindow", "Credits Scenery");
     gui->AddGuiWindow(mSceneryWindow);
+    mGateTourWindow = std::make_shared<GeometryEditor::GateTourWindow>("gGateTourWindow", "Gate Tour");
+    gui->AddGuiWindow(mGateTourWindow);
 
 }
 
@@ -109,6 +112,7 @@ void Destroy() {
     mContentBrowserWindow = nullptr;
     mGeometryEditorWindow = nullptr;
     mSceneryWindow = nullptr;
+    mGateTourWindow = nullptr;
 }
 
 std::string GetWindowButtonText(const char* text, bool menuOpen) {
