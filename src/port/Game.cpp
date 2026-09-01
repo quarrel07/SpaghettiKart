@@ -339,6 +339,7 @@ void CM_DrawTrack(ScreenContext* screen) {
                     // credits list for the section draw inside it. Calling
                     // DrawCredits() bare skipped that state and rendered the
                     // course unshaded.
+                    GeometryMode_EmitFullCourseBase();
                     GeometryMode_MarkTrackPass(1);
                     GetWorld()->GetTrack()->Draw(screen);
                     GeometryMode_MarkTrackPass(0);
@@ -356,6 +357,7 @@ void CM_DrawTrack(ScreenContext* screen) {
                 // full-course assembly during normal driving; with the
                 // enhancement and freecam both off the mark is consumed
                 // without effect and rendering is stock.
+                GeometryMode_EmitFullCourseBase();
                 GeometryMode_MarkTrackPass(1);
                 GetWorld()->GetTrack()->Draw(screen);
                 GeometryMode_MarkTrackPass(0);

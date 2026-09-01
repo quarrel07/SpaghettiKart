@@ -1154,6 +1154,30 @@ extern "C" void GeometryMode_LogTrackDraw(const char* branch, int32_t index, int
 // handling; the substituted list is the authored full-detail assembly, so
 // every surface stays present regardless of distance. This generalizes the
 // game's own Bowser's Castle credits-list swap to every stock course.
+extern "C" void GeometryMode_EmitFullCourseBase(void) {
+    using namespace GeometryEditor;
+    if (gGamestate != RACING || gModeSelection == BATTLE) {
+        return;
+    }
+    Track* track = GetWorld() != nullptr ? GetWorld()->GetTrack() : nullptr;
+    if (track == nullptr || track->IsMod()) {
+        return;
+    }
+    if (dynamic_cast<ChocoMountain*>(track) == nullptr && dynamic_cast<ToadsTurnpike*>(track) == nullptr) {
+        return;
+    }
+    if (!CVarGetInteger("gDisableLod", 1) && !CVarGetInteger("gFreecam", 0)) {
+        return;
+    }
+    if ((const void*) track != sCatalogTrack || !sCatalog.Built() || sCatalog.RepairedFullCourseDL().empty()) {
+        return; // catalog builds on the first marked pass; stock-only until then
+    }
+    gSPClearGeometryMode(gDisplayListHead++, G_CULL_BACK | G_CULL_BOTH | G_CULL_FRONT);
+    gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.RepairedFullCourseDL().data());
+    gSPSetGeometryMode(gDisplayListHead++, G_CULL_BACK);
+    GeometryMode_LogTrackDraw("fullcourse-base", -1, 0);
+}
+
 extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16_t direction, int16_t* indexInOut) {
     using namespace GeometryEditor;
     (void) addr;
