@@ -47,12 +47,6 @@ static void DrawNudgeRow(const char* label, int axis) {
 void GeometryEditorWindow::DrawElement() {
     DrawOverlay();
 
-    if (!CVarGetInteger("gGeometryEditorEnabled", 0)) {
-        ImGui::TextWrapped(
-            "The Geometry Editor is off. Turn on \"Enable Geometry Editor\" (Developer > Geometry) to use it.");
-        return;
-    }
-
     Track* track = GetWorld()->GetTrack();
     // The world keeps the last track object alive on the menus; only trust it
     // during an actual race.
@@ -241,15 +235,11 @@ static void RegisterGeometryEditorWidgets() {
     mPortMenu->AddSidebarEntry("Developer", "Geometry", 1);
     WidgetPath path = { "Developer", "Geometry", SECTION_COLUMN_1 };
 
-    mPortMenu->AddWidget(path, "Enable Geometry Editor", WIDGET_CVAR_CHECKBOX)
-        .CVar("gGeometryEditorEnabled")
-        .Options(UIWidgets::CheckboxOptions().Tooltip(
-            "Master switch for the track geometry editor: full-course rendering, wireframe, and vertex editing"));
-
     mPortMenu->AddWidget(path, "Popout Geometry Editor", WIDGET_WINDOW_BUTTON)
         .CVar("gGeometryEditorWindow")
         .Options(UIWidgets::ButtonOptions().Tooltip(
-            "Opens the track geometry editor: click course vertices to inspect and move them"))
+            "THE editor switch: while this window is open, the editor renders the full course and handles "
+            "vertex clicks; close it and races render fully stock."))
         .WindowName("Geometry Editor");
 
     WidgetPath enh = { "Enhancements", "General", SECTION_COLUMN_1 };

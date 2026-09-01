@@ -174,12 +174,10 @@ static float sDragStartHit[3];
 static Transaction sDragTxn;
 
 static bool ModeActive() {
-    if (!CVarGetInteger("gGeometryEditorEnabled", 0)) {
-        return false;
-    }
-    // Enabled arms the tool; only an OPEN editor window activates it. With
-    // the window closed, races render fully stock (no stable-view swap, no
-    // overlay, no click handling).
+    // One switch: the open editor window IS the editor. Closed = races
+    // render fully stock (no stable-view swap, no overlay, no clicks).
+    // The old separate "Enable" checkbox looked like a master switch but
+    // did nothing without the window - removed 2026-08-31 (Andy).
     if (!CVarGetInteger("gGeometryEditorWindow", 0)) {
         return false;
     }
