@@ -1,6 +1,7 @@
 #include "GeometryEditorWindow.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include "port/ui/PortMenu.h"
 #include "port/ui/UIWidgets.h"
@@ -46,6 +47,15 @@ static void DrawNudgeRow(const char* label, int axis) {
 
 void GeometryEditorWindow::DrawElement() {
     DrawOverlay();
+
+    // The menu framework also renders this window's element embedded in
+    // the Developer > Geometry tab, which duplicated the whole interface
+    // there. The editor lives ONLY in the popped-out window; the tab keeps
+    // just its own buttons.
+    if (strncmp(ImGui::GetCurrentWindowRead()->Name, "Geometry Editor", 15) != 0) {
+        ImGui::TextDisabled("Use the Popout button above to open the editor.");
+        return;
+    }
 
     Track* track = GetWorld()->GetTrack();
     // The world keeps the last track object alive on the menus; only trust it
@@ -238,8 +248,8 @@ static void RegisterGeometryEditorWidgets() {
     mPortMenu->AddWidget(path, "Popout Geometry Editor", WIDGET_WINDOW_BUTTON)
         .CVar("gGeometryEditorWindow")
         .Options(UIWidgets::ButtonOptions().Tooltip(
-            "THE editor switch: while this window is open, the editor renders the full course and handles "
-            "vertex clicks; close it and races render fully stock."))
+            "While this window is open, the editor is active: full-course rendering and vertex clicking. "
+            "Close it and races render fully stock."))
         .WindowName("Geometry Editor");
 
     WidgetPath enh = { "Enhancements", "General", SECTION_COLUMN_1 };
