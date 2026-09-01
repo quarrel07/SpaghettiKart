@@ -297,7 +297,7 @@ void GeometryEditor::GateTourWindow::DrawElement() {
         }
     }
     ImGui::Text("Gate Tour: %d of %d spotted", spotted, (int) (sizeof(kGatePieces) / sizeof(kGatePieces[0])));
-    ImGui::TextDisabled("IN VIEW (yellow) = the piece's location is in your\ncamera's horizontal view - a compass, not an X-ray\n(ignores height and walls).\nDRAWING (green) = the piece's draw code executed\nthis frame, with the reason: forced by the TEST\ntoggle, or its vanilla rule is true right now.");
+    ImGui::TextDisabled("IN VIEW (yellow) = the piece's location is in your\ncamera's horizontal view - a compass, not an X-ray\n(ignores height and walls).\nLIFTED (green) = the gate is held open this frame,\nwith the reason: forced by the TEST toggle, or its\nvanilla rule is true right now.");
     ImGui::Separator();
 
     const char* lastCourse = "";
@@ -335,7 +335,7 @@ void GeometryEditor::GateTourWindow::DrawElement() {
         bool drawing = here && GeometryMode_GateDrawnRecently(drawnId);
         const char* drawTag = "";
         if (drawing) {
-            drawTag = CVarGetInteger("gTestOpenGates", 0) ? "  [DRAWING - forced]" : "  [DRAWING - vanilla]";
+            drawTag = CVarGetInteger("gTestOpenGates", 0) ? "  [LIFTED - forced]" : "  [LIFTED - vanilla]";
         }
         if (inView && drawing) {
             ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "%s - %s  [IN VIEW]%s", g.label, g.desc, drawTag);
