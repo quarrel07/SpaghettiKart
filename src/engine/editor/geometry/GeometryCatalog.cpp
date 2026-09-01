@@ -232,6 +232,15 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
                 }
             }
         }
+        // Second pass over the credits stream itself: pieces only the
+        // credits ever draw have no race-side bind, but the credits'
+        // own drawing order carries the correct texture state for them
+        // (the credits render these pieces correctly on every course).
+        // The maps only fill missing keys, so race binds always win.
+        {
+            std::vector<Gfx> creditsBuffer;
+            CaptureRaceBinds(creditsRoot, creditsBuffer, 0);
+        }
         size_t preambleOnly = mScenery.size();
         BuildRepairedFullCourse(creditsRoot, 0);
         Gfx end;
