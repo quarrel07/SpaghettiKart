@@ -1166,7 +1166,11 @@ extern "C" void GeometryMode_EmitFullCourseBase(void) {
     if (dynamic_cast<ChocoMountain*>(track) == nullptr && dynamic_cast<ToadsTurnpike*>(track) == nullptr) {
         return;
     }
-    if (!CVarGetInteger("gDisableLod", 1) && !CVarGetInteger("gFreecam", 0)) {
+    // Freecam only, matching upstream exactly: karts never draw the
+    // full-course copy, so driving keeps its clean fog falloff into the
+    // distance. Layering it under kart mode put crisp unfogged mountains
+    // beyond the fog wall ("fog is super broken" - Andy, 2026-08-31).
+    if (!CVarGetInteger("gFreecam", 0)) {
         return;
     }
     if ((const void*) track != sCatalogTrack || !sCatalog.Built() || sCatalog.RepairedFullCourseDL().empty()) {

@@ -357,7 +357,6 @@ void CM_DrawTrack(ScreenContext* screen) {
                 // full-course assembly during normal driving; with the
                 // enhancement and freecam both off the mark is consumed
                 // without effect and rendering is stock.
-                GeometryMode_EmitFullCourseBase();
                 GeometryMode_MarkTrackPass(1);
                 GetWorld()->GetTrack()->Draw(screen);
                 GeometryMode_MarkTrackPass(0);
