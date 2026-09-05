@@ -90,6 +90,12 @@ void GeometryCatalog::Reset() {
     for (auto& m : mFarMerged) {
         m.clear();
     }
+    for (auto& m : mHomeMerged) {
+        m.clear();
+    }
+    for (auto& st : mHomeStats) {
+        st = HomeStats{};
+    }
     mLeafOrder.clear();
     mLeafSeen.clear();
     mLeafSections.clear();
@@ -179,6 +185,44 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
                 end.words.w0 = (uintptr_t) OP_ENDDL << 24;
                 end.words.w1 = 0;
                 dest[direction].push_back(end);
+            }
+        }
+        // STEP 2 sweep: home-filtered full course (lodFilter 3). Needs
+        // mMergeSection set so the rule can compare against each leaf's
+        // home section.
+        for (int direction = 0; direction < 4; direction++) {
+            std::unordered_set<uint64_t> emitted;
+            for (size_t s = 0; s < sectionCount; s++) {
+                mMergeSection = (int) s + 1;
+                Gfx* cmds = ResolveWrapper(wrappers[s * 4 + direction]);
+                if (cmds != nullptr) {
+                    MergeWrapper(cmds, mHomeMerged[direction], emitted, 3);
+                }
+            }
+            mMergeSection = -1;
+            Gfx end;
+            end.words.w0 = (uintptr_t) OP_ENDDL << 24;
+            end.words.w1 = 0;
+            mHomeMerged[direction].push_back(end);
+        }
+        {
+            FILE* f = fopen("/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/"
+                            "home_filter_stats.txt",
+                            "a");
+            for (int d = 0; d < 4; d++) {
+                const HomeStats& st = mHomeStats[d];
+                printf("[GeometryMode] STEP2 dir %d: home=%zu backdrop=%zu unplaced=%zu variantSkipped=%zu words=%zu\n",
+                       d, st.homeEmitted, st.backdropEmitted, st.unplacedEmitted, st.variantSkipped,
+                       mHomeMerged[d].size());
+                if (f != nullptr) {
+                    fprintf(f, "dir=%d home=%zu backdrop=%zu unplaced=%zu variantSkipped=%zu words=%zu\n", d,
+                            st.homeEmitted, st.backdropEmitted, st.unplacedEmitted, st.variantSkipped,
+                            mHomeMerged[d].size());
+                }
+            }
+            if (f != nullptr) {
+                fprintf(f, "---\n");
+                fclose(f);
             }
         }
     } else {
@@ -282,7 +326,23 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
                 mLeafSections[hash].insert(mMergeSection);
             }
             bool allowed = true;
-            if (lodFilter != 0) {
+            const char* homeKind = nullptr; // stats attribution for lodFilter 3
+            if (lodFilter == 3) {
+                auto li = mLeafInfoIndex.find(hash);
+                if (li != mLeafInfoIndex.end() && mLeafInfo[li->second].hasBox &&
+                    mLeafInfo[li->second].homeSection >= 0) {
+                    const LeafInfo& info = mLeafInfo[li->second];
+                    if (info.inHomeList) {
+                        allowed = (info.homeSection == mMergeSection);
+                        homeKind = "home";
+                    } else {
+                        allowed = true; // far-only backdrop: first appearance wins
+                        homeKind = "backdrop";
+                    }
+                } else {
+                    homeKind = "unplaced";
+                }
+            } else if (lodFilter != 0) {
                 auto li = mLeafInfoIndex.find(hash);
                 if (li != mLeafInfoIndex.end()) {
                     const LeafInfo& info = mLeafInfo[li->second];
@@ -305,7 +365,22 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
                 if (mLeafSeen.insert(hash).second) {
                     mLeafOrder.push_back(hash);
                 }
+                if (lodFilter == 3 && homeKind != nullptr) {
+                    // direction is implied by the destination vector; find it
+                    for (int d = 0; d < 4; d++) {
+                        if (&out == &mHomeMerged[d]) {
+                            if (homeKind[0] == 'h') mHomeStats[d].homeEmitted++;
+                            else if (homeKind[0] == 'b') mHomeStats[d].backdropEmitted++;
+                            else mHomeStats[d].unplacedEmitted++;
+                        }
+                    }
+                }
             } else {
+                if (lodFilter == 3 && homeKind != nullptr && homeKind[0] == 'h' && !allowed) {
+                    for (int d = 0; d < 4; d++) {
+                        if (&out == &mHomeMerged[d]) mHomeStats[d].variantSkipped++;
+                    }
+                }
                 // Course pieces inherit texture state from their in-list
                 // predecessors, so a dropped duplicate must still contribute
                 // its state commands (just not its triangles) or the next

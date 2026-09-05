@@ -98,6 +98,23 @@ class GeometryCatalog {
     const std::vector<Gfx>& FarDL(int direction) const {
         return mFarMerged[direction & 3];
     }
+    // STEP 2 (TRUE No LOD from race data): every zone's list walked in
+    // full, state kept, but each piece's geometry emitted only from its
+    // HOME zone's list (variants drawn from afar never appear in the home
+    // list, so they vanish by construction). Pieces no home list draws
+    // (far-only backdrops) are kept at their first appearance.
+    const std::vector<Gfx>& HomeDL(int direction) const {
+        return mHomeMerged[direction & 3];
+    }
+    struct HomeStats {
+        size_t homeEmitted = 0;     // drawn from their home list
+        size_t backdropEmitted = 0; // no home list draws them; kept once
+        size_t unplacedEmitted = 0; // no box: kept once
+        size_t variantSkipped = 0;  // listed outside home: state only
+    };
+    const HomeStats& HomeStatsFor(int direction) const {
+        return mHomeStats[direction & 3];
+    }
     const std::vector<VertexRef>& Vertices() const {
         return mVertices;
     }
@@ -154,6 +171,8 @@ class GeometryCatalog {
     std::unordered_map<uint64_t, bool> mSubtreeRaceGeo; // scan cache by DL hash
     std::vector<Gfx> mNearMerged[4];
     std::vector<Gfx> mFarMerged[4];
+    std::vector<Gfx> mHomeMerged[4];
+    HomeStats mHomeStats[4];
     std::vector<uint64_t> mLeafOrder;
     std::unordered_set<uint64_t> mLeafSeen;
     std::unordered_map<uint64_t, std::unordered_set<int>> mLeafSections; // leaf -> section ids listing it

@@ -1215,10 +1215,24 @@ extern "C" int32_t GeometryMode_StockFreecamDraw(const char* const addr[], int16
     // render_track_sections (Koopa Beach, Sherbet Land secondary tables).
     sTrackPassMarked = 0;
 
+    // STEP 2 - TRUE No LOD from the living race data. The home-filtered
+    // full-course list (every zone's own list, state kept, geometry only
+    // from its home zone) replaces the single near-kart sheet at the same
+    // point in the frame, so fog pipelines and animated textures behave
+    // exactly as stock. ALLOWLIST: courses graduate one at a time on
+    // Andy's eyes; everything else renders stock (M2.2 = Moo Moo Farm).
+    bool substitution = CVarGetInteger("gDisableLod", 1) || CVarGetInteger("gFreecam", 0);
+    bool stepTwoCourse = dynamic_cast<MooMooFarm*>(track) != nullptr;
+    if (substitution && stepTwoCourse && gModeSelection != BATTLE && !track->IsMod() &&
+        (direction & 3) == direction && EnsureCatalog(addr) && !sCatalog.HomeDL(direction).empty()) {
+        gSPDisplayList(gDisplayListHead++, (Gfx*) sCatalog.HomeDL(direction).data());
+        GeometryMode_LogTrackDraw("fullcourse-home", -1, direction);
+        return 1;
+    }
+
     // CREDITS DATA RETIRED (Andy's directive, 2026-08-31): the renderer
     // never draws the credits world - not under No LOD, not in freecam.
-    // TRUE No LOD gets rebuilt from the living race data (step 2). The
-    // opt-in Credits Scenery toggle below is the single deliberate
+    // The opt-in Credits Scenery toggle below is the single deliberate
     // exception: Andy's archaeology flashlight, drawn only when checked.
     bool wantScenery = CVarGetInteger("gCreditsScenery", 0);
     if (!wantScenery) {
