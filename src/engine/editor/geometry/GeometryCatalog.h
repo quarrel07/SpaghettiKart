@@ -71,6 +71,12 @@ class GeometryCatalog {
         int viewerCount = 0;             // how many sections' lists draw it
         bool drawnByFarthest = true;     // in the farthest viewer's set for its area
         LeafClass cls = LeafClass::Unplaced;
+        // STEP 2 fields: home2 = the LISTING section that views the leaf
+        // from closest (so it is always in its own home list); suppressed =
+        // a far-viewed leaf whose footprint is covered by a near-viewed one
+        // (a distance variant of the same ground, not a backdrop).
+        int home2 = -1;
+        bool suppressed = false;
     };
     const std::vector<LeafInfo>& Leaves() const {
         return mLeafInfo;
@@ -103,14 +109,18 @@ class GeometryCatalog {
     // HOME zone's list (variants drawn from afar never appear in the home
     // list, so they vanish by construction). Pieces no home list draws
     // (far-only backdrops) are kept at their first appearance.
+    // Direction-independent: one list for all four camera directions, so
+    // turning the camera never changes what exists.
     const std::vector<Gfx>& HomeDL(int direction) const {
-        return mHomeMerged[direction & 3];
+        (void) direction;
+        return mHomeMerged[0];
     }
     struct HomeStats {
         size_t homeEmitted = 0;     // drawn from their home list
         size_t backdropEmitted = 0; // no home list draws them; kept once
         size_t unplacedEmitted = 0; // no box: kept once
         size_t variantSkipped = 0;  // listed outside home: state only
+        size_t suppressed = 0;      // far variants covered by near ground: dropped
     };
     const HomeStats& HomeStatsFor(int direction) const {
         return mHomeStats[direction & 3];
@@ -140,6 +150,7 @@ class GeometryCatalog {
     bool mMarkOnly = false; // enumeration pass flags existing refs instead of creating
     bool MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unordered_set<uint64_t>& emittedLeaves, int lodFilter);
     void ClassifyLeaves(const std::vector<SectionCentroid>& sectionCentroids);
+    void ComputeHomeFilter(const std::vector<SectionCentroid>& sectionCentroids);
     void EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth);
     void CaptureRaceBinds(Gfx* cmds, std::vector<Gfx>& buffer, int depth);
     void BuildRepairedFullCourse(Gfx* creditsRoot, int depth);

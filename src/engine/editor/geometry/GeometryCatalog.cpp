@@ -187,37 +187,41 @@ void GeometryCatalog::Build(const char* const wrappers[], size_t sectionCount, G
                 dest[direction].push_back(end);
             }
         }
-        // STEP 2 sweep: home-filtered full course (lodFilter 3). Needs
-        // mMergeSection set so the rule can compare against each leaf's
-        // home section.
-        for (int direction = 0; direction < 4; direction++) {
+        // STEP 2 sweep (v2): one direction-independent list. Every section's
+        // four direction lists are walked with state kept; a leaf's geometry
+        // is emitted only while walking its home2 section and only if it is
+        // not a suppressed distance variant.
+        ComputeHomeFilter(sectionCentroids);
+        {
             std::unordered_set<uint64_t> emitted;
             for (size_t s = 0; s < sectionCount; s++) {
                 mMergeSection = (int) s + 1;
-                Gfx* cmds = ResolveWrapper(wrappers[s * 4 + direction]);
-                if (cmds != nullptr) {
-                    MergeWrapper(cmds, mHomeMerged[direction], emitted, 3);
+                for (int direction = 0; direction < 4; direction++) {
+                    Gfx* cmds = ResolveWrapper(wrappers[s * 4 + direction]);
+                    if (cmds != nullptr) {
+                        MergeWrapper(cmds, mHomeMerged[0], emitted, 3);
+                    }
                 }
             }
             mMergeSection = -1;
             Gfx end;
             end.words.w0 = (uintptr_t) OP_ENDDL << 24;
             end.words.w1 = 0;
-            mHomeMerged[direction].push_back(end);
+            mHomeMerged[0].push_back(end);
         }
         {
             FILE* f = fopen("/Users/Andy/Documents/GitHub/Repo-Clones/SpaghettiKart-geometry/Claude Test Builds/"
                             "home_filter_stats.txt",
                             "a");
-            for (int d = 0; d < 4; d++) {
-                const HomeStats& st = mHomeStats[d];
-                printf("[GeometryMode] STEP2 dir %d: home=%zu backdrop=%zu unplaced=%zu variantSkipped=%zu words=%zu\n",
-                       d, st.homeEmitted, st.backdropEmitted, st.unplacedEmitted, st.variantSkipped,
-                       mHomeMerged[d].size());
+            {
+                const HomeStats& st = mHomeStats[0];
+                printf("[GeometryMode] STEP2 v2: home=%zu backdrop=%zu unplaced=%zu variantSkipped=%zu suppressed=%zu words=%zu\n",
+                       st.homeEmitted, st.backdropEmitted, st.unplacedEmitted, st.variantSkipped, st.suppressed,
+                       mHomeMerged[0].size());
                 if (f != nullptr) {
-                    fprintf(f, "dir=%d home=%zu backdrop=%zu unplaced=%zu variantSkipped=%zu words=%zu\n", d,
-                            st.homeEmitted, st.backdropEmitted, st.unplacedEmitted, st.variantSkipped,
-                            mHomeMerged[d].size());
+                    fprintf(f, "v2 home=%zu backdrop=%zu unplaced=%zu variantSkipped=%zu suppressed=%zu words=%zu\n",
+                            st.homeEmitted, st.backdropEmitted, st.unplacedEmitted, st.variantSkipped, st.suppressed,
+                            mHomeMerged[0].size());
                 }
             }
             if (f != nullptr) {
@@ -329,15 +333,14 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
             const char* homeKind = nullptr; // stats attribution for lodFilter 3
             if (lodFilter == 3) {
                 auto li = mLeafInfoIndex.find(hash);
-                if (li != mLeafInfoIndex.end() && mLeafInfo[li->second].hasBox &&
-                    mLeafInfo[li->second].homeSection >= 0) {
+                if (li != mLeafInfoIndex.end() && mLeafInfo[li->second].home2 >= 0) {
                     const LeafInfo& info = mLeafInfo[li->second];
-                    if (info.inHomeList) {
-                        allowed = (info.homeSection == mMergeSection);
-                        homeKind = "home";
+                    if (info.suppressed) {
+                        allowed = false;
+                        homeKind = "suppressed";
                     } else {
-                        allowed = true; // far-only backdrop: first appearance wins
-                        homeKind = "backdrop";
+                        allowed = (info.home2 == mMergeSection);
+                        homeKind = (info.cls == LeafClass::Far) ? "backdrop" : "home";
                     }
                 } else {
                     homeKind = "unplaced";
@@ -376,10 +379,9 @@ bool GeometryCatalog::MergeWrapper(Gfx* cmds, std::vector<Gfx>& out, std::unorde
                     }
                 }
             } else {
-                if (lodFilter == 3 && homeKind != nullptr && homeKind[0] == 'h' && !allowed) {
-                    for (int d = 0; d < 4; d++) {
-                        if (&out == &mHomeMerged[d]) mHomeStats[d].variantSkipped++;
-                    }
+                if (lodFilter == 3 && homeKind != nullptr && !allowed && &out == &mHomeMerged[0]) {
+                    if (homeKind[0] == 's') mHomeStats[0].suppressed++;
+                    else mHomeStats[0].variantSkipped++;
                 }
                 // Course pieces inherit texture state from their in-list
                 // predecessors, so a dropped duplicate must still contribute
@@ -915,6 +917,75 @@ void GeometryCatalog::CopySubtree(Gfx* cmds, std::vector<Gfx>& out, int depth) {
 // Copies a dropped leaf's non-drawing commands (texture loads, tile setup,
 // modes) into the merged list so later pieces inherit the state their
 // authored order relies on. Triangles and vertex loads are skipped.
+
+// STEP 2: home2 = the listing section that views the leaf from closest
+// (always in its own list by construction); suppressed = a Far-class leaf
+// whose XZ footprint is substantially covered by a nearer-viewed leaf, i.e.
+// a distance variant of ground that already has an up-close version.
+void GeometryCatalog::ComputeHomeFilter(const std::vector<SectionCentroid>& sectionCentroids) {
+    std::unordered_map<int, const SectionCentroid*> centroidById;
+    for (const auto& sc : sectionCentroids) {
+        centroidById[sc.sectionId] = &sc;
+    }
+    auto boxDist = [](const LeafInfo& li, const float* p) {
+        float d2 = 0.0f;
+        for (int i = 0; i < 3; i++) {
+            float v = p[i] < li.boxMin[i] ? li.boxMin[i] - p[i] : (p[i] > li.boxMax[i] ? p[i] - li.boxMax[i] : 0.0f);
+            d2 += v * v;
+        }
+        return std::sqrt(d2);
+    };
+    for (auto& li : mLeafInfo) {
+        li.home2 = -1;
+        li.suppressed = false;
+        auto it = mLeafSections.find(li.hash);
+        if (it == mLeafSections.end() || it->second.empty()) {
+            continue;
+        }
+        if (!li.hasBox) {
+            li.home2 = *it->second.begin();
+            continue;
+        }
+        float best = 1e30f;
+        for (int v : it->second) {
+            auto cIt = centroidById.find(v);
+            float d = (cIt != centroidById.end()) ? boxDist(li, cIt->second->pos) : 1e29f;
+            if (d < best) {
+                best = d;
+                li.home2 = v;
+            }
+        }
+    }
+    // Suppression: Far-class leaves covered (>= 50% of their XZ footprint)
+    // by any Near/Ambiguous leaf.
+    auto xzArea = [](const LeafInfo& a) {
+        return std::max(0.0f, a.boxMax[0] - a.boxMin[0]) * std::max(0.0f, a.boxMax[2] - a.boxMin[2]);
+    };
+    for (auto& far : mLeafInfo) {
+        if (!far.hasBox || far.cls != LeafClass::Far) {
+            continue;
+        }
+        float farArea = xzArea(far);
+        if (farArea <= 0.0f) {
+            continue;
+        }
+        for (const auto& near : mLeafInfo) {
+            if (&near == &far || !near.hasBox || near.cls == LeafClass::Far || near.cls == LeafClass::Unplaced) {
+                continue;
+            }
+            float ix = std::min(far.boxMax[0], near.boxMax[0]) - std::max(far.boxMin[0], near.boxMin[0]);
+            float iz = std::min(far.boxMax[2], near.boxMax[2]) - std::max(far.boxMin[2], near.boxMin[2]);
+            if (ix <= 0.0f || iz <= 0.0f) {
+                continue;
+            }
+            if ((ix * iz) / farArea >= 0.5f) {
+                far.suppressed = true;
+                break;
+            }
+        }
+    }
+}
+
 void GeometryCatalog::EmitLeafStateOnly(Gfx* cmds, std::vector<Gfx>& out, int depth) {
     if (cmds == nullptr || depth > 8) {
         return;
