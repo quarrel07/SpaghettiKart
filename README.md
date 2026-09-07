@@ -1,18 +1,6 @@
 ![Spaghetti Kart](docs/spaghettigithublight.png#gh-light-mode-only)
 ![Spaghetti Kart](docs/spaghettigithubnight.png#gh-dark-mode-only)
 
-> ### 🍎 macOS fork
-> <img src="docs/preview/app-icon.png" align="right" width="96" alt="SpaghettiKart app icon">
->
-> This is a macOS-optimized fork of [HarbourMasters/SpaghettiKart](https://github.com/HarbourMasters/SpaghettiKart).
-> A plain `cmake --build` produces a **self-contained, codesigned `SpaghettiKart.app`** (native Apple
-> Silicon, Metal renderer) that runs on a clean machine — no Homebrew required at runtime. It fixes the
-> build and packaging issues that affect upstream on a current Apple-clang toolchain. See
-> **[README-macOS.md](README-macOS.md)** for details and prebuilt downloads in
-> [Releases](https://github.com/quarrel07/SpaghettiKart-macOS/releases).
->
-> You still supply your own US Mario Kart 64 ROM — no copyrighted assets are included.
-
 ## Discord
 
 Official Discord: <https://discord.com/invite/shipofharkinian>
