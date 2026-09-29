@@ -11,7 +11,6 @@ public:
     ~ContentBrowserWindow();
 
     std::vector<std::string> Content;
-    std::vector<std::string> NonSpawnableContent;
 
     bool Refresh = true;
 
