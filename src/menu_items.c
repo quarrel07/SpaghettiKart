@@ -7741,6 +7741,23 @@ static f32 get_right_half_center(void) {
 #define POINTS_RANKS_1_4_CENTER 82
 #define POINTS_RANKS_5_8_CENTER 231
 #define BANNER_CENTER (160 + 0x41)
+#define TT_LAP_TIMES_RIGHT_CENTER 229 // Time Trials finish, lap times in the right half
+#define TT_RECORDS_CENTER 86           // Time Trials finish, best records in the left half
+#define TT_LAP_TIMES_LEFT_CENTER 87    // Time Trials finish menu, lap times in the left half
+#define TT_MENU_COLUMN 0xB2            // Time Trials finish menu, left edge of the options
+
+// The Time Trials finish options are left-aligned, so center the widest one, the
+// same way as the pause menu. The prompts that replace the options move with them.
+static s32 get_time_trials_menu_shift(void) {
+    s32 textWidth = 0;
+    s32 i;
+
+    for (i = 1; i <= 6; i++) {
+        textWidth = MAX(textWidth, get_string_width(gTextPauseButton[i]));
+    }
+    textWidth = textWidth * 0.75f; // the options are drawn at 0.75 scale
+    return get_right_half_center() - (TT_MENU_COLUMN + (textWidth / 2));
+}
 
 void func_800A2EB8(MenuItem* arg0) {
     s8 sp70[8];
@@ -7988,23 +8005,26 @@ void func_800A3ADC(MenuItem* arg0, s32 arg1, s32 arg2, s32 characterId, s32 arg4
 void time_trials_finish_text_render(MenuItem* arg0) {
     s32 recordType;
     s32 rowOffset;
+    // @port Center each block on its half of the window.
+    s32 leftShift = get_left_half_center() - TT_RECORDS_CENTER;
+    s32 rightShift = get_right_half_center() - TT_LAP_TIMES_RIGHT_CENTER;
 
     set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_1);
-    print_text1_center_mode_1(arg0->column + 0x43, arg0->row + 0x19, CM_GetProps()->Name, 0, 0.6f, 0.6f);
+    print_text1_center_mode_1(arg0->column + rightShift + 0x43, arg0->row + 0x19, CM_GetProps()->Name, 0, 0.6f, 0.6f);
     set_text_color(TEXT_YELLOW);
-    print_text1_center_mode_1(arg0->column + 0x46, arg0->row + 0x28, gLapTimeText, 0, 0.75f, 0.75f);
+    print_text1_center_mode_1(arg0->column + rightShift + 0x46, arg0->row + 0x28, gLapTimeText, 0, 0.75f, 0.75f);
     for (recordType = 0, rowOffset = 0; recordType < TIME_TRIAL_3LAP_RECORD_5; recordType += 1, rowOffset += 0xF) {
-        render_lap_time(recordType, arg0->column + 0x17, arg0->row + rowOffset + 0x37);
+        render_lap_time(recordType, arg0->column + rightShift + 0x17, arg0->row + rowOffset + 0x37);
     }
     set_text_color(TEXT_YELLOW);
-    print_text_mode_1(0xB4 - arg0->column, arg0->row + 0x86, gBestTimeText[0], 0, 0.75f, 0.75f);
+    print_text_mode_1((0xB4 + leftShift) - arg0->column, arg0->row + 0x86, gBestTimeText[0], 0, 0.75f, 0.75f);
     for (recordType = 0, rowOffset = 0; recordType < TIME_TRIAL_1LAP_RECORD; recordType += 1, rowOffset += 0xD) {
         set_text_color(TEXT_RED);
-        render_lap_times(recordType, 0xAA - arg0->column, arg0->row + rowOffset + 0x92);
+        render_lap_times(recordType, (0xAA + leftShift) - arg0->column, arg0->row + rowOffset + 0x92);
     }
     set_text_color(TEXT_YELLOW);
-    print_text_mode_1(0xB4 - arg0->column, arg0->row + 0xD5, gBestTimeText[1], 0, 0.75f, 0.75f);
-    render_lap_times(TIME_TRIAL_1LAP_RECORD, 0xAA - arg0->column, arg0->row + 0xE1);
+    print_text_mode_1((0xB4 + leftShift) - arg0->column, arg0->row + 0xD5, gBestTimeText[1], 0, 0.75f, 0.75f);
+    render_lap_times(TIME_TRIAL_1LAP_RECORD, (0xAA + leftShift) - arg0->column, arg0->row + 0xE1);
 }
 
 void func_800A3E60(MenuItem* arg0) {
@@ -8019,6 +8039,9 @@ void func_800A3E60(MenuItem* arg0) {
     s32 var_s1;
     Unk_D_800E70A0* var_v0_5;
     char sp60[3];
+    // @port Center each block on its half of the window.
+    s32 leftShift = get_left_half_center() - TT_LAP_TIMES_LEFT_CENTER;
+    s32 rightShift = get_time_trials_menu_shift();
 
     var_v0 = arg0->state;
     if (var_v0 == 0) {
@@ -8029,11 +8052,11 @@ void func_800A3E60(MenuItem* arg0) {
     }
 
     set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_1);
-    print_text1_center_mode_1(arg0->column + 0x55, 0x19 - arg0->row, CM_GetProps()->Name, 0, 0.6f, 0.6f);
+    print_text1_center_mode_1(arg0->column + leftShift + 0x55, 0x19 - arg0->row, CM_GetProps()->Name, 0, 0.6f, 0.6f);
     set_text_color(TEXT_YELLOW);
-    print_text1_center_mode_1(arg0->column + 0x55, 0x28 - arg0->row, gLapTimeText, 0, 0.75f, 0.75f);
+    print_text1_center_mode_1(arg0->column + leftShift + 0x55, 0x28 - arg0->row, gLapTimeText, 0, 0.75f, 0.75f);
     for (var_s1 = 0; var_s1 < 4; var_s1++) {
-        render_lap_time(var_s1, arg0->column + 0x26, ((0xF * var_s1) - arg0->row) + 0x37);
+        render_lap_time(var_s1, arg0->column + leftShift + 0x26, ((0xF * var_s1) - arg0->row) + 0x37);
     }
     switch (arg0->state) {
         case 1:
@@ -8062,10 +8085,10 @@ void func_800A3E60(MenuItem* arg0) {
                 if (var_v1 != 0) {
                     set_text_color(TEXT_BLUE);
                     gDPSetPrimColor(gDisplayListHead++, 0, 0, 0x00, 0x00, 0x00, 0x96);
-                    print_text_mode_2(0xB2 - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
+                    print_text_mode_2((TT_MENU_COLUMN + rightShift) - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
                                       gTextPauseButton[var_s1 + 1], 0, 0.75f, 0.75f);
                 } else {
-                    print_text_mode_1(0xB2 - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
+                    print_text_mode_1((TT_MENU_COLUMN + rightShift) - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
                                       gTextPauseButton[var_s1 + 1], 0, 0.75f, 0.75f);
                 }
             }
@@ -8079,24 +8102,24 @@ void func_800A3E60(MenuItem* arg0) {
             set_text_color(TEXT_YELLOW);
             var_v1 = arg0->state - 11;
             for (var_s1 = 0; var_s1 < 7; var_s1++) {
-                print_text_mode_1(0x000000A2, 0x8C + (0xD * var_s1), D_800E798C[(var_v1 * 7) + var_s1], 0, 0.6f, 0.6f);
+                print_text_mode_1(0xA2 + rightShift, 0x8C + (0xD * var_s1), D_800E798C[(var_v1 * 7) + var_s1], 0, 0.6f, 0.6f);
             }
             break;
         case 17:
         case 18:
             set_text_color(TEXT_GREEN);
             for (var_s1 = 0; var_s1 < 2; var_s1++) {
-                print_text_mode_1(0x000000A5, arg0->row + (0xD * var_s1) + 0x8C, D_800E7A3C[var_s1], 0, 0.7f, 0.7f);
+                print_text_mode_1(0xA5 + rightShift, arg0->row + (0xD * var_s1) + 0x8C, D_800E7A3C[var_s1], 0, 0.7f, 0.7f);
             }
             for (var_s1 = 0; var_s1 < 2; var_s1++) {
                 text_rainbow_effect(arg0->state - 0x11, var_s1, 1);
                 convert_number_to_ascii(var_s1 + 1, sp60);
-                print_text_mode_1(0xB1 - arg0->column, 0xAA + (0x1E * var_s1), &sp60[1], 0, 0.6f, 0.6f);
+                print_text_mode_1((0xB1 + rightShift) - arg0->column, 0xAA + (0x1E * var_s1), &sp60[1], 0, 0.6f, 0.6f);
                 if (D_8018EE10[var_s1].ghostDataSaved == 0) {
-                    print_text_mode_1(0xBB - arg0->column, 0xAA + (0x1E * var_s1), D_800E7A44, 0, 0.45f, 0.45f);
+                    print_text_mode_1((0xBB + rightShift) - arg0->column, 0xAA + (0x1E * var_s1), D_800E7A44, 0, 0.45f, 0.45f);
                 } else {
                     print_text_mode_1(
-                        0xBB - arg0->column, 0xAA + (0x1E * var_s1),
+                        (0xBB + rightShift) - arg0->column, 0xAA + (0x1E * var_s1),
                         TrackBrowser_GetTrackNameByIdx(gCupCourseOrder[D_8018EE10[var_s1].trackIndex / 4][D_8018EE10[var_s1].trackIndex % 4]),
                         0, 0.45f, 0.45f
                     );
@@ -8106,7 +8129,7 @@ void func_800A3E60(MenuItem* arg0) {
         case 19:
             set_text_color(TEXT_YELLOW);
             for (var_s1 = 0; var_s1 < 3; var_s1++) {
-                print_text_mode_1(0x000000AA, (0xD * var_s1) + 0x93, D_800E7A48[var_s1], 0, 0.8f, 0.8f);
+                print_text_mode_1(0xAA + rightShift, (0xD * var_s1) + 0x93, D_800E7A48[var_s1], 0, 0.8f, 0.8f);
             }
             break;
         case 20:
@@ -8114,23 +8137,23 @@ void func_800A3E60(MenuItem* arg0) {
             if (var_s1 && var_s1) {}
             set_text_color(TEXT_YELLOW);
             for (var_s1 = 0; var_s1 < 3; var_s1++) {
-                print_text_mode_1(0x000000A3, arg0->row + (0xD * var_s1) + 0x8C, D_800E7A60[var_s1], 0, 0.67f, 0.67f);
+                print_text_mode_1(0xA3 + rightShift, arg0->row + (0xD * var_s1) + 0x8C, D_800E7A60[var_s1], 0, 0.67f, 0.67f);
             }
             for (var_s1 = 0; var_s1 < 2; var_s1++) {
                 text_rainbow_effect(arg0->state - 0x14, var_s1, 1);
-                print_text_mode_1(0xC8 - arg0->column, 0xB9 + (0xF * var_s1), D_800E7A6C[var_s1], 0, 0.75f, 0.75f);
+                print_text_mode_1((0xC8 + rightShift) - arg0->column, 0xB9 + (0xF * var_s1), D_800E7A6C[var_s1], 0, 0.75f, 0.75f);
             }
             break;
         case 25:
             set_text_color(TEXT_YELLOW);
             for (var_s1 = 0; var_s1 < 3; var_s1++) {
-                print_text_mode_1(0x000000A3, (0xD * var_s1) + 0x93, D_800E7A74[var_s1], 0, 0.67f, 0.67f);
+                print_text_mode_1(0xA3 + rightShift, (0xD * var_s1) + 0x93, D_800E7A74[var_s1], 0, 0.67f, 0.67f);
             }
             break;
         case 26:
             set_text_color(TEXT_YELLOW);
             for (var_s1 = 0; var_s1 < 2; var_s1++) {
-                print_text_mode_1(0x000000AA, (0xD * var_s1) + 0x93, D_800E7A80[var_s1], 0, 0.75f, 0.75f);
+                print_text_mode_1(0xAA + rightShift, (0xD * var_s1) + 0x93, D_800E7A80[var_s1], 0, 0.75f, 0.75f);
             }
             break;
     }
@@ -8157,7 +8180,7 @@ void func_800A3E60(MenuItem* arg0) {
         default:
             return;
     }
-    sp84.column = var_v0_5->column - arg0->column;
+    sp84.column = (var_v0_5->column + rightShift) - arg0->column;
     sp84.row = var_v0_5->row + arg0->row;
     pause_menu_item_box_cursor(arg0, &sp84);
 }
