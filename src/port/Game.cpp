@@ -983,8 +983,354 @@ static void ApplyPendingReset() {
     gFadeModeSelection = FADE_MODE_LOGO;
 }
 
+// ============================================================================
+// TEST RIG, NEVER MERGE: scene jumper for PR #753 testing.
+//   ]  next scene      [  previous scene      \  replay current scene
+//   =  cycle window aspect ratio (4:3, 16:9, 21:9, 32:9)
+// Jumps reuse the reset path above (drop to the menus), then launch a race the
+// way the attract demo does, then optionally press Start for a player, force
+// the human players over the finish line, or pop the other battle balloons.
+// ============================================================================
+#include <imgui.h>
+#include <SDL2/SDL.h>
+#include <cstdio>
+
+extern "C" {
+extern s16 gCreditsCourseId;
+extern s16 gPlayerBalloonCount[];
+extern s32 gLapCountByPlayerId[];
+extern s8 gCharacterSelections[];
+extern s8 gDemoUseController;
+extern bool gGhostPlayerInit;
+void func_8000F124(void);
+void set_mirror_mode(s32 mirror);
+}
+
+namespace {
+enum RigKind { RIG_MENU, RIG_RACE, RIG_CREDITS };
+enum RigAction { RIG_NONE, RIG_PAUSE, RIG_FINISH, RIG_BATTLE_WIN };
+
+struct RigScene {
+    const char* name;
+    RigKind kind;
+    s32 menu;
+    s32 mode;
+    s32 players;
+    RigAction action;
+    s32 actionPlayer;
+};
+
+#define RIG_M(name, menu) { name, RIG_MENU, menu, GRAND_PRIX, 1, RIG_NONE, 0 }
+#define RIG_R(name, mode, players, action, p) { name, RIG_RACE, MAIN_MENU, mode, players, action, p }
+
+const RigScene sRigScenes[] = {
+    RIG_M("Title screen", START_MENU),
+    RIG_M("Main menu", MAIN_MENU),
+    RIG_M("Character select", CHARACTER_SELECT_MENU),
+    RIG_M("Course select", COURSE_SELECT_MENU),
+    RIG_M("Options", OPTIONS_MENU),
+    RIG_M("Records", DATA_MENU),
+    RIG_R("GP 1P: race start, course name slides in", GRAND_PRIX, 1, RIG_NONE, 0),
+    RIG_R("GP 1P: pause", GRAND_PRIX, 1, RIG_PAUSE, 0),
+    RIG_R("GP 1P: results, then points (auto finish)", GRAND_PRIX, 1, RIG_FINISH, 0),
+    RIG_R("GP 2P: pause as player 1", GRAND_PRIX, 2, RIG_PAUSE, 0),
+    RIG_R("GP 2P: results, then points (auto finish)", GRAND_PRIX, 2, RIG_FINISH, 0),
+    RIG_R("VS 2P: pause as player 1", VERSUS, 2, RIG_PAUSE, 0),
+    RIG_R("VS 2P: results (auto finish)", VERSUS, 2, RIG_FINISH, 0),
+    RIG_R("VS 3P: pause as player 1, black panel names", VERSUS, 3, RIG_PAUSE, 0),
+    RIG_R("VS 3P: pause as player 2", VERSUS, 3, RIG_PAUSE, 1),
+    RIG_R("VS 3P: pause as player 3", VERSUS, 3, RIG_PAUSE, 2),
+    RIG_R("VS 3P: results (auto finish)", VERSUS, 3, RIG_FINISH, 0),
+    RIG_R("VS 4P: pause as player 1", VERSUS, 4, RIG_PAUSE, 0),
+    RIG_R("VS 4P: pause as player 2", VERSUS, 4, RIG_PAUSE, 1),
+    RIG_R("VS 4P: pause as player 3", VERSUS, 4, RIG_PAUSE, 2),
+    RIG_R("VS 4P: pause as player 4", VERSUS, 4, RIG_PAUSE, 3),
+    RIG_R("VS 4P: results (auto finish)", VERSUS, 4, RIG_FINISH, 0),
+    RIG_R("Battle 3P: pause as player 1, black panel names", BATTLE, 3, RIG_PAUSE, 0),
+    RIG_R("Battle 3P: pause as player 2", BATTLE, 3, RIG_PAUSE, 1),
+    RIG_R("Battle 3P: pause as player 3", BATTLE, 3, RIG_PAUSE, 2),
+    RIG_R("Battle 3P: results (auto win for player 1)", BATTLE, 3, RIG_BATTLE_WIN, 0),
+    RIG_R("Battle 4P: pause as player 1", BATTLE, 4, RIG_PAUSE, 0),
+    RIG_R("Battle 4P: pause as player 2", BATTLE, 4, RIG_PAUSE, 1),
+    RIG_R("Battle 4P: pause as player 3", BATTLE, 4, RIG_PAUSE, 2),
+    RIG_R("Battle 4P: pause as player 4", BATTLE, 4, RIG_PAUSE, 3),
+    RIG_R("Battle 4P: results (auto win for player 1)", BATTLE, 4, RIG_BATTLE_WIN, 0),
+    RIG_R("Time Trials: pause", TIME_TRIALS, 1, RIG_PAUSE, 0),
+    RIG_R("Time Trials: finish screen (auto finish)", TIME_TRIALS, 1, RIG_FINISH, 0),
+    { "Credits", RIG_CREDITS, MAIN_MENU, GRAND_PRIX, 1, RIG_NONE, 0 },
+};
+const int kRigSceneCount = sizeof(sRigScenes) / sizeof(sRigScenes[0]);
+
+enum RigPhase { PH_IDLE, PH_RESET, PH_MENU_WAIT, PH_RACE_WAIT, PH_ACTION, PH_DONE };
+int sRigIndex = -1;
+RigPhase sRigPhase = PH_IDLE;
+int sRigTimer = 0;
+int sRigNextFinisher = 0;
+int sRigInjectStart = -1;
+int sRigAspect = -1;
+const char* sRigStatus = "press ] to start";
+
+const float kRigAspects[] = { 4.0f / 3.0f, 16.0f / 9.0f, 21.0f / 9.0f, 32.0f / 9.0f };
+const char* kRigAspectNames[] = { "4:3", "16:9", "21:9", "32:9" };
+
+bool RigKeyEdge(ImGuiKey key, int slot) {
+    // Edge-detect across game ticks so a quick tap is never missed.
+    static bool prev[4] = { false, false, false, false };
+    bool down = ImGui::IsKeyDown(key);
+    bool edge = down && !prev[slot];
+    prev[slot] = down;
+    return edge;
+}
+
+void RigCycleAspect() {
+    SDL_Window* window = SDL_GetKeyboardFocus();
+    if (window == nullptr) {
+        window = SDL_GetMouseFocus();
+    }
+    if (window == nullptr) {
+        return;
+    }
+    sRigAspect = (sRigAspect + 1) % 4;
+    int display = SDL_GetWindowDisplayIndex(window);
+    SDL_Rect bounds;
+    if (SDL_GetDisplayUsableBounds(display, &bounds) != 0) {
+        bounds = { 0, 0, 1440, 900 };
+    }
+    float aspect = kRigAspects[sRigAspect];
+    float height = bounds.h * 0.8f;
+    float width = height * aspect;
+    if (width > bounds.w * 0.95f) {
+        width = bounds.w * 0.95f;
+        height = width / aspect;
+    }
+    SDL_SetWindowFullscreen(window, 0);
+    SDL_SetWindowSize(window, (int) width, (int) height);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display));
+}
+
+void RigStartScene() {
+    sRigPhase = PH_RESET;
+    sRigTimer = 0;
+    sRigNextFinisher = 0;
+    sRigInjectStart = -1;
+    sRigStatus = "going to the menus";
+}
+
+void RigResetToMenus(const RigScene& scene) {
+    // Same steps as ApplyPendingReset, landing on the scene's menu.
+    gGamestateNext = (gGamestate == MAIN_MENU_FROM_QUIT) ? START_MENU_FROM_QUIT : MAIN_MENU_FROM_QUIT;
+    gIsGamePaused = 0;
+    D_800DC5E4 = 0;
+    gTourComplete = false;
+    gDemoMode = 0;
+    gDemoUseController = 0;
+    SetMarioRaceway();
+    memset(&gGameModeMenuColumn, 0, sizeof(s8) * NUM_ROWS_GAME_MODE_MENU);
+    memset(&gGameModeSubMenuColumn, 0, sizeof(s8) * NUM_COLUMN_GAME_MODE_SUB_MENU * NUM_ROWS_GAME_MODE_SUB_MENU);
+    CM_ResetAudio();
+    if (gEditor.IsEnabled()) {
+        gEditor.Disable();
+    }
+    TrackBrowser::Instance->Reset();
+    gModeSelection = GRAND_PRIX;
+    gPlayerCountSelection1 = 1;
+    gPlayerCount = 1;
+    gScreenModeSelection = SCREEN_MODE_1P;
+    gMenuSelection = scene.menu;
+    gMenuFadeType = 0;
+    gFadeModeSelection = FADE_MODE_LOGO;
+}
+
+void RigLaunchRace(const RigScene& scene) {
+    gDemoMode = 0;
+    gDemoUseController = 0;
+    gModeSelection = scene.mode;
+    gPlayerCountSelection1 = scene.players;
+    gPlayerCount = (s8) scene.players;
+    if (scene.players == 1) {
+        gScreenModeSelection = SCREEN_MODE_1P;
+    } else if (scene.players == 2) {
+        gScreenModeSelection = SCREEN_MODE_2P_SPLITSCREEN_HORIZONTAL;
+    } else {
+        gScreenModeSelection = SCREEN_MODE_3P_4P_SPLITSCREEN;
+    }
+    for (int i = 0; i < 4; i++) {
+        gCharacterSelections[i] = (s8) i;
+    }
+    gCCSelection = 1;
+    set_mirror_mode(0);
+    if (scene.mode == BATTLE) {
+        SelectBlockFort();
+        CM_SetCup(GetBattleCup());
+    } else {
+        SelectMarioRaceway();
+        CM_SetCup(GetFlowerCup());
+    }
+    TrackBrowser_SetTrackFromCup();
+    D_800DC540 = (s32) GetCupIndex();
+    gCourseIndexInCup = GetCupCursorPosition();
+    gGhostPlayerInit = (scene.mode == TIME_TRIALS);
+    func_8000F124();
+    gGamestateNext = RACING;
+}
+
+void RigDoAction(const RigScene& scene) {
+    sRigTimer++;
+    switch (scene.action) {
+        case RIG_NONE:
+            sRigPhase = PH_DONE;
+            sRigStatus = "ready";
+            break;
+        case RIG_PAUSE:
+            if (sRigTimer >= 30) {
+                sRigInjectStart = scene.actionPlayer;
+                sRigPhase = PH_DONE;
+                sRigStatus = "paused";
+            }
+            break;
+        case RIG_BATTLE_WIN:
+            if (sRigTimer >= 45) {
+                for (int i = 1; i < scene.players; i++) {
+                    gPlayerBalloonCount[i] = -1;
+                }
+                sRigPhase = PH_DONE;
+                sRigStatus = "popped the other balloons";
+            }
+            break;
+        case RIG_FINISH:
+            if ((gRaceState != RACE_IN_PROGRESS) && (gRaceState != RACE_CALCULATE_RANKS)) {
+                sRigPhase = PH_DONE;
+                sRigStatus = "race finished";
+                break;
+            }
+            // One player at a time, so each finish runs through the game's own logic alone.
+            if ((sRigTimer >= 45) && ((sRigTimer % 25) == 20)) {
+                while (sRigNextFinisher < 4) {
+                    Player* player = &gPlayers[sRigNextFinisher];
+                    int index = sRigNextFinisher++;
+                    if ((player->type & PLAYER_EXISTS) && (player->type & PLAYER_HUMAN) &&
+                        !(player->type & PLAYER_CPU)) {
+                        gLapCountByPlayerId[index] = 3;
+                        sRigStatus = "finishing players";
+                        break;
+                    }
+                }
+                if (sRigNextFinisher >= 4) {
+                    sRigStatus = "waiting for results";
+                }
+            }
+            break;
+    }
+}
+
+void RigBeginFrame() {
+    if (RigKeyEdge(ImGuiKey_RightBracket, 0)) {
+        sRigIndex = (sRigIndex + 1) % kRigSceneCount;
+        RigStartScene();
+    }
+    if (RigKeyEdge(ImGuiKey_LeftBracket, 1)) {
+        sRigIndex = (sRigIndex <= 0) ? (kRigSceneCount - 1) : (sRigIndex - 1);
+        RigStartScene();
+    }
+    if (RigKeyEdge(ImGuiKey_Backslash, 2)) {
+        if (sRigIndex < 0) {
+            sRigIndex = 0;
+        }
+        RigStartScene();
+    }
+    if (RigKeyEdge(ImGuiKey_Equal, 3)) {
+        RigCycleAspect();
+    }
+    if (sRigIndex < 0) {
+        return;
+    }
+    const RigScene& scene = sRigScenes[sRigIndex];
+    switch (sRigPhase) {
+        case PH_RESET:
+            RigResetToMenus(scene);
+            sRigTimer = 0;
+            if (scene.kind == RIG_MENU) {
+                sRigPhase = PH_DONE;
+                sRigStatus = "ready";
+            } else {
+                sRigPhase = PH_MENU_WAIT;
+                sRigStatus = "loading";
+            }
+            break;
+        case PH_MENU_WAIT:
+            sRigTimer++;
+            if ((sRigTimer >= 20) && (gGamestate == gGamestateNext)) {
+                if (scene.kind == RIG_CREDITS) {
+                    gCreditsCourseId = TRACK_LUIGI_RACEWAY;
+                    gGamestateNext = CREDITS_SEQUENCE;
+                    sRigPhase = PH_DONE;
+                    sRigStatus = "ready";
+                } else {
+                    RigLaunchRace(scene);
+                    sRigPhase = PH_RACE_WAIT;
+                    sRigStatus = "starting race";
+                }
+            }
+            break;
+        case PH_RACE_WAIT:
+            if ((gGamestate == RACING) && (gRaceState == RACE_IN_PROGRESS)) {
+                sRigPhase = PH_ACTION;
+                sRigTimer = 0;
+                sRigStatus = "race running";
+            }
+            break;
+        case PH_ACTION:
+            RigDoAction(scene);
+            break;
+        default:
+            break;
+    }
+}
+
+class RigOverlayWindow : public Ship::GuiWindow {
+  public:
+    using Ship::GuiWindow::GuiWindow;
+
+  protected:
+    void InitElement() override {
+    }
+    void UpdateElement() override {
+    }
+    void DrawElement() override {
+        ImGui::SetWindowPos(ImVec2(12.0f, 12.0f), ImGuiCond_Always);
+        if (sRigIndex < 0) {
+            ImGui::Text("TEST RIG  press ] to start");
+        } else {
+            ImGui::Text("#%d of %d  %s", sRigIndex + 1, kRigSceneCount, sRigScenes[sRigIndex].name);
+            ImGui::Text("status: %s", sRigStatus);
+        }
+        ImGui::Text("[ ] prev/next   \\ replay   = aspect: %s", sRigAspect < 0 ? "as is" : kRigAspectNames[sRigAspect]);
+    }
+};
+} // namespace
+
+std::shared_ptr<Ship::GuiWindow> Rig_CreateOverlayWindow() {
+    CVarSetInteger("gRigOverlay", 1);
+    auto window = std::make_shared<RigOverlayWindow>(
+        "gRigOverlay", "Test Rig", ImVec2(-1, -1),
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoNav);
+    return window;
+}
+
+extern "C" void Rig_AfterControllers(void) {
+    // Runs right after the game reads the controllers, like a real Start press.
+    if (sRigInjectStart >= 0) {
+        gControllers[sRigInjectStart].buttonPressed |= START_BUTTON;
+        sRigInjectStart = -1;
+    }
+}
+// ========================== END TEST RIG ====================================
+
 void push_frame() {
     ApplyPendingReset();
+    RigBeginFrame();
     GameEngine::StartAudioFrame();
     GameEngine::Instance->StartFrame();
     thread5_iteration();

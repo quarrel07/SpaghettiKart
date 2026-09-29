@@ -27,6 +27,8 @@ extern s32 gMenuSelection;
 #include "defines.h"
 }
 
+std::shared_ptr<Ship::GuiWindow> Rig_CreateOverlayWindow(); // TEST RIG, NEVER MERGE
+
 namespace GameUI {
 // std::shared_ptr<GameMenuBar> mGameMenuBar;
 std::shared_ptr<PortMenu> mPortMenu;
@@ -86,6 +88,9 @@ void SetupGuiElements() {
     mContentBrowserWindow =
         std::make_shared<TrackEditor::ContentBrowserWindow>("gEditorEnabled", "Content Browser");
     gui->AddGuiWindow(mContentBrowserWindow);
+
+    // TEST RIG, NEVER MERGE
+    gui->AddGuiWindow(::Rig_CreateOverlayWindow());
 }
 
 void Destroy() {

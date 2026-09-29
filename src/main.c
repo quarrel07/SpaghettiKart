@@ -1155,6 +1155,8 @@ void thread5_game_loop(void) {
     func_800C5CB8();
 }
 
+void Rig_AfterControllers(void); // TEST RIG, NEVER MERGE
+
 void thread5_iteration(void) {
     func_800CB2C4();
     calculate_delta_time();
@@ -1175,6 +1177,7 @@ void thread5_iteration(void) {
     profiler_log_thread5_time(THREAD5_START);
     config_gfx_pool();
     read_controllers();
+    Rig_AfterControllers(); // TEST RIG, NEVER MERGE
     FB_CreateFramebuffers();
     clear_framebuffer(0); // Clear the framebuffer
     game_state_handler();
