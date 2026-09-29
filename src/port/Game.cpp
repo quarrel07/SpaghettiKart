@@ -992,6 +992,7 @@ static void ApplyPendingReset() {
 // the human players over the finish line, or pop the other battle balloons.
 // ============================================================================
 #include <imgui.h>
+#include <SDL2/SDL.h>
 #include <cstdio>
 #include "menu_items.h"
 
@@ -1089,21 +1090,31 @@ bool RigKeyEdge(ImGuiKey key, int slot) {
 }
 
 void RigCycleAspect() {
-    // Uses libultraship's advanced resolution aspect setting, which shapes the
-    // game picture inside the window (fullscreen included) without resizing it.
-    // "off" turns the override off so the picture follows the window's shape.
-    sRigAspect++;
-    if (sRigAspect >= 4) {
-        sRigAspect = -1;
-        CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 0);
+    // Resize the real window (libultraship's letterbox mode squashes the race views
+    // but not the text, so it misrepresents wide screens). Fullscreen is left alone.
+    SDL_Window* window = SDL_GetKeyboardFocus();
+    if (window == nullptr) {
+        window = SDL_GetMouseFocus();
+    }
+    if ((window == nullptr) || (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN)) {
+        sRigStatus = "aspect: leave fullscreen first";
         return;
     }
-    const float x[] = { 4.0f, 16.0f, 21.0f, 32.0f };
-    const float y[] = { 3.0f, 9.0f, 9.0f, 9.0f };
-    CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 1);
-    CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".VerticalResolutionToggle", 0);
-    CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioX", x[sRigAspect]);
-    CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioY", y[sRigAspect]);
+    sRigAspect = (sRigAspect + 1) % 4;
+    const float aspects[] = { 4.0f / 3.0f, 16.0f / 9.0f, 21.0f / 9.0f, 32.0f / 9.0f };
+    int display = SDL_GetWindowDisplayIndex(window);
+    SDL_Rect bounds;
+    if (SDL_GetDisplayUsableBounds(display, &bounds) != 0) {
+        bounds = { 0, 0, 1440, 900 };
+    }
+    float width = bounds.w * 0.95f;
+    float height = width / aspects[sRigAspect];
+    if (height > bounds.h * 0.9f) {
+        height = bounds.h * 0.9f;
+        width = height * aspects[sRigAspect];
+    }
+    SDL_SetWindowSize(window, (int) width, (int) height);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display));
 }
 
 void RigStartScene() {
@@ -1366,7 +1377,7 @@ class RigOverlayWindow : public Ship::GuiWindow {
             snprintf(lines[count++], sizeof(lines[0]), "status: %s", sRigStatus);
         }
         snprintf(lines[count++], sizeof(lines[0]), "[ ] prev/next   \\ replay   = aspect: %s   - intro skip: %s",
-                 sRigAspect < 0 ? "off (window shape)" : kRigAspectNames[sRigAspect], sRigSkipIntro ? "on" : "off");
+                 sRigAspect < 0 ? "window as is" : kRigAspectNames[sRigAspect], sRigSkipIntro ? "on" : "off");
 
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
         ImFont* font = ImGui::GetFont();
