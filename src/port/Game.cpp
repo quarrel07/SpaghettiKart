@@ -1074,7 +1074,7 @@ int sRigTimer = 0;
 int sRigNextFinisher = 0;
 int sRigInjectStart = -1;
 int sRigAspect = -1;
-bool sRigSkipIntro = true;
+bool sRigSkipIntro = false; // off by default: skipping broke the auto finish
 const char* sRigStatus = "press ] to start";
 
 const char* kRigAspectNames[] = { "4:3", "16:9", "21:9", "32:9" };
