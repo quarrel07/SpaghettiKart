@@ -191,9 +191,9 @@ struct FRotator {
     FRotator() : pitch(0), yaw(0), roll(0) {}
     FRotator(float p, float y, float r) : pitch(p), yaw(y), roll(r) {}
     FRotator(IRotator rot) {
-        pitch = static_cast<float>(rot.pitch * (360 / UINT16_MAX));
-        yaw   = static_cast<float>(rot.yaw   * (360 / UINT16_MAX));
-        roll  = static_cast<float>(rot.roll  * (360 / UINT16_MAX));
+        pitch = static_cast<float>(rot.pitch * (360.0f / UINT16_MAX));
+        yaw = static_cast<float>(rot.yaw * (360.0f / UINT16_MAX));
+        roll = static_cast<float>(rot.roll * (360.0f / UINT16_MAX));
     }
 #endif // __cplusplus
 };
