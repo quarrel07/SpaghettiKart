@@ -7775,7 +7775,9 @@ void func_800A2EB8(MenuItem* arg0) {
         sp70[var_s2] = gPlayers[gGPCurrentRacePlayerIdByRank[var_s2]].characterId;
     }
     set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_1);
-    print_text_mode_1(column + rightShift + 0x1E, arg0->row + 0x19, "results", 0, 1.0f, 1.0f);
+    // @port Center the title on the same point as the rows below it.
+    print_text_mode_1(column + rightShift + (RESULTS_RANKS_1_4_CENTER - 160) - (get_string_width("results") / 2),
+                      arg0->row + 0x19, "results", 0, 1.0f, 1.0f);
     set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_2);
     print_text_mode_1(column + rightShift + 0x2C, arg0->row + 0x28, "round", 0, 0.7f, 0.7f);
     convert_number_to_ascii(GetCupCursorPosition() + 1, sp68);
@@ -7865,7 +7867,10 @@ void func_800A34A8(MenuItem* arg0) {
             func_800A3A10(gCharacterIdByGPOverallRank);
         }
         set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_1);
-        print_text_mode_1(column + leftShift + 0x19, 0x19 - arg0->row, "driver's points", 0, 0.8f, 0.8f);
+        // @port Center the title on the same point as the rows below it.
+        print_text_mode_1(column + leftShift + POINTS_RANKS_1_4_CENTER -
+                              (s32) (get_string_width("driver's points") * 0.8f / 2),
+                          0x19 - arg0->row, "driver's points", 0, 0.8f, 0.8f);
         set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_2);
         print_text_mode_1(column + leftShift + 0x36, 0x28 - arg0->row, "round", 0, 0.7f, 0.7f);
         convert_number_to_ascii(GetCupCursorPosition() + 1, sp78);
