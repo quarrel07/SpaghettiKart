@@ -1302,14 +1302,39 @@ class RigOverlayWindow : public Ship::GuiWindow {
     void UpdateElement() override {
     }
     void DrawElement() override {
-        ImGui::SetWindowPos(ImVec2(12.0f, 12.0f), ImGuiCond_Always);
+        // libultraship draws the game picture after every GuiWindow, which would
+        // cover a normal window, so draw on the foreground layer instead.
+        char lines[3][160];
+        int count = 0;
         if (sRigIndex < 0) {
-            ImGui::Text("TEST RIG  press ] to start");
+            snprintf(lines[count++], sizeof(lines[0]), "TEST RIG  press ] to start");
         } else {
-            ImGui::Text("#%d of %d  %s", sRigIndex + 1, kRigSceneCount, sRigScenes[sRigIndex].name);
-            ImGui::Text("status: %s", sRigStatus);
+            snprintf(lines[count++], sizeof(lines[0]), "#%d of %d  %s", sRigIndex + 1, kRigSceneCount,
+                     sRigScenes[sRigIndex].name);
+            snprintf(lines[count++], sizeof(lines[0]), "status: %s", sRigStatus);
         }
-        ImGui::Text("[ ] prev/next   \\ replay   = aspect: %s", sRigAspect < 0 ? "off (window shape)" : kRigAspectNames[sRigAspect]);
+        snprintf(lines[count++], sizeof(lines[0]), "[ ] prev/next   \\ replay   = aspect: %s",
+                 sRigAspect < 0 ? "off (window shape)" : kRigAspectNames[sRigAspect]);
+
+        ImDrawList* drawList = ImGui::GetForegroundDrawList();
+        ImFont* font = ImGui::GetFont();
+        float fontSize = ImGui::GetFontSize() * 1.25f;
+        ImVec2 origin = ImGui::GetMainViewport()->Pos;
+        origin.x += 12.0f;
+        origin.y += 12.0f;
+        float width = 0.0f;
+        for (int i = 0; i < count; i++) {
+            ImVec2 size = font->CalcTextSizeA(fontSize, FLT_MAX, 0.0f, lines[i]);
+            width = (size.x > width) ? size.x : width;
+        }
+        float lineHeight = fontSize + 4.0f;
+        drawList->AddRectFilled(ImVec2(origin.x - 8.0f, origin.y - 6.0f),
+                                ImVec2(origin.x + width + 8.0f, origin.y + (lineHeight * count) + 4.0f),
+                                IM_COL32(0, 0, 0, 190), 6.0f);
+        for (int i = 0; i < count; i++) {
+            drawList->AddText(font, fontSize, ImVec2(origin.x, origin.y + (lineHeight * i)),
+                              (i == 0) ? IM_COL32(255, 230, 80, 255) : IM_COL32(255, 255, 255, 255), lines[i]);
+        }
     }
 };
 } // namespace
@@ -1318,7 +1343,7 @@ std::shared_ptr<Ship::GuiWindow> Rig_CreateOverlayWindow() {
     CVarSetInteger("gRigOverlay", 1);
     auto window = std::make_shared<RigOverlayWindow>(
         "gRigOverlay", "Test Rig", ImVec2(-1, -1),
-        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground |
             ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoSavedSettings |
             ImGuiWindowFlags_NoNav);
     return window;
