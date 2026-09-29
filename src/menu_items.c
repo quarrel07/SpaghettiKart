@@ -2048,13 +2048,13 @@ UNUSED void func_800930E4(s32 arg0, s32 arg1, char* arg2) {
 // address and content (the results print several strings from one stack
 // buffer), and its row (identical strings such as "00" sit on different rows).
 // Strings only ever slide horizontally, so the row is stable frame to frame.
-static uintptr_t sTextGroup = 0;
+static size_t sTextGroup = 0;
 
-static uintptr_t text_identity(const char* text, s32 row) {
-    uintptr_t h = ((uintptr_t) text >> 2) + (sTextGroup * 7919) + ((uintptr_t) row * 131);
+static size_t text_identity(const char* text, s32 row) {
+    size_t h = ((uintptr_t) text >> 2) + (sTextGroup * 7919) + ((size_t) row * 131);
     s32 i;
 
-    for (i = 0; (i < 16) && (text[i] != 0); i++) {
+    for (i = 0; (i < 16) && (text[i] != '\0'); i++) {
         h = (h * 31) + (u8) text[i];
     }
     return h & 0xFFFF;
@@ -2070,7 +2070,7 @@ void print_text0(s32 column, s32 row, char* text, s32 tracking, f32 scaleX, f32 
         // @port if invalid text is loaded it will skip rendering it.
         return;
     }
-    uintptr_t textId = text_identity(text, row);
+    size_t textId = text_identity(text, row);
 
     gSPDisplayList(gDisplayListHead++, D_020077A8);
     if (*text != 0) {
@@ -2110,7 +2110,7 @@ void print_text0_wide_right(s32 column, s32 row, char* text, s32 tracking, f32 s
         // @port if invalid text is loaded it will skip rendering it.
         return;
     }
-    uintptr_t textId = text_identity(text, row);
+    size_t textId = text_identity(text, row);
 
     gSPDisplayList(gDisplayListHead++, D_020077A8);
     if (*text != 0) {
@@ -2168,7 +2168,7 @@ void print_text1(s32 column, s32 row, char* text, s32 tracking, f32 scaleX, f32 
         // @port if invalid text is loaded it will skip rendering it.
         return;
     }
-    uintptr_t textId = text_identity(text, row);
+    size_t textId = text_identity(text, row);
 
     while (*temp_string != 0) {
         glyphIndex = char_to_glyph_index(temp_string);
@@ -2258,7 +2258,7 @@ void print_text2(s32 column, s32 row, char* text, s32 tracking, f32 scaleX, f32 
         // @port if invalid text is loaded it will skip rendering it.
         return;
     }
-    uintptr_t textId = text_identity(text, row);
+    size_t textId = text_identity(text, row);
 
     gSPDisplayList(gDisplayListHead++, D_020077A8);
     if (*text != 0) {
@@ -2303,7 +2303,7 @@ void print_text2_wide(s32 column, s32 row, char* text, s32 tracking, f32 scaleX,
         // @port if invalid text is loaded it will skip rendering it.
         return;
     }
-    uintptr_t textId = text_identity(text, row);
+    size_t textId = text_identity(text, row);
 
     gSPDisplayList(gDisplayListHead++, D_020077A8);
     if (*text != 0) {
@@ -4695,14 +4695,13 @@ Gfx* func_8009BC9C(Gfx* arg0, MenuTexture* texProps, s32 arg2, s32 arg3, s32 arg
     return arg0;
 }
 
-// textId/charIndex identify the glyph across frames for interpolation; a glyph that
-// is culled must not shift the tags of the glyphs after it.
-static u32 letter_tag(uintptr_t textId, s32 charIndex, s32 subIndex) {
+// textId/charIndex identify the glyph across frames for interpolation.
+static u32 letter_tag(size_t textId, s32 charIndex, s32 subIndex) {
     return TAG_LETTER(((textId & 0xFFFF) << 12) | (((u32) charIndex & 0xFF) << 4) | ((u32) subIndex & 0xF));
 }
 
 Gfx* print_letter(Gfx* arg0, MenuTexture* glyphTexture, f32 arg2, f32 arg3, s32 mode, f32 scaleX, f32 scaleY,
-                  uintptr_t textId, s32 charIndex) {
+                  size_t textId, s32 charIndex) {
     s32 var_v0;
     UNUSED u8* temp_v0_2;
     f32 thing0;
@@ -4756,7 +4755,7 @@ Gfx* print_letter(Gfx* arg0, MenuTexture* glyphTexture, f32 arg2, f32 arg3, s32 
 }
 
 Gfx* print_letter_wide_right(Gfx* arg0, MenuTexture* glyphTexture, f32 arg2, f32 arg3, s32 mode, f32 scaleX,
-                             f32 scaleY, uintptr_t textId, s32 charIndex) {
+                             f32 scaleY, size_t textId, s32 charIndex) {
     s32 var_v0;
     u8* temp_v0_2;
     f32 thing0;
@@ -9686,7 +9685,7 @@ void handle_menus_with_pri_arg(s32 priSpecial) {
                 isRendered = true;
             }
             if (isRendered && (j == (s8) menuItem->priority)) {
-                sTextGroup = (uintptr_t) (i + 1);
+                sTextGroup = (size_t) (i + 1);
                 render_menus(menuItem);
                 sTextGroup = 0;
             }
