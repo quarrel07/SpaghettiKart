@@ -4642,23 +4642,36 @@ Gfx* func_8009BC9C(Gfx* arg0, MenuTexture* texProps, s32 arg2, s32 arg3, s32 arg
     return arg0;
 }
 
+// @port Set while drawing text that is parked just off the 4:3 picture and
+// should stay hidden there on wide windows.
+static bool sCullLettersAt4x3 = false;
+
 Gfx* print_letter(Gfx* arg0, MenuTexture* glyphTexture, f32 arg2, f32 arg3, s32 mode, f32 scaleX, f32 scaleY) {
     s32 var_v0;
     UNUSED u8* temp_v0_2;
     f32 thing0;
     f32 thing1;
     MenuTexture* var_s0;
+    // @port Cull against the window edges rather than the 4:3 area, so text on
+    // wide windows can be drawn where it is centered.
+    f32 leftEdge = OTRGetDimensionFromLeftEdge(0);
+    f32 rightEdge = OTRGetDimensionFromRightEdge(SCREEN_WIDTH);
+
+    if (sCullLettersAt4x3) {
+        leftEdge = 0.0f;
+        rightEdge = SCREEN_WIDTH;
+    }
 
     var_s0 = glyphTexture;
     while (var_s0->textureData != NULL) {
         var_v0 = 0;
 
         thing0 = var_s0->dX + arg2;
-        if (thing0 > 320.0f) {
+        if (thing0 > rightEdge) {
             var_v0 = 1;
         }
         thing0 += var_s0->width * scaleX;
-        if (thing0 < 0.0f) {
+        if (thing0 < leftEdge) {
             var_v0 += 1;
         }
         thing1 = var_s0->dY + arg3;
@@ -6667,11 +6680,14 @@ void render_menus(MenuItem* arg0) {
                 } else {
                     scaleX = 0.8f;
                 }
+                // @port These panels wait beside the 4:3 picture on the map select.
+                sCullLettersAt4x3 = true;
                 func_800A86E8(arg0);
                 set_text_color(3);
                 print_text_mode_1(arg0->column + 8, arg0->row + 0x10, gBestTimeText[arg0->type - MENU_ITEM_TYPE_065], 0,
                                   scaleX, 0.8f);
                 func_800A874C(arg0);
+                sCullLettersAt4x3 = false;
                 break;
             case MENU_ITEM_TYPE_06E:
                 render_battle_introduction(arg0);
@@ -7674,16 +7690,9 @@ void func_800A2EB8(MenuItem* arg0) {
     s32 rightShift;
 
     // @port Center each results column on its half of the window (ranks 1-4 sit in
-    // the right half here). print_letter culls glyphs that start outside the
-    // vanilla 320 wide area, so clamp on very wide windows.
+    // the right half here).
     leftShift = get_left_half_center() - RESULTS_RANKS_5_8_CENTER;
     rightShift = get_right_half_center() - RESULTS_RANKS_1_4_CENTER;
-    if (leftShift < -25) {
-        leftShift = -25;
-    }
-    if (rightShift > 32) {
-        rightShift = 32;
-    }
 
     for (var_s2 = 0; var_s2 < NUM_PLAYERS; var_s2++) {
         sp70[var_s2] = gPlayers[gGPCurrentRacePlayerIdByRank[var_s2]].characterId;
@@ -7764,17 +7773,9 @@ void func_800A34A8(MenuItem* arg0) {
     s32 leftShift;
     s32 rightShift;
 
-    // @port Center each tally column on its half of the window. print_letter culls
-    // glyphs that start outside the vanilla 320 wide area, so clamp on very wide
-    // windows.
+    // @port Center each tally column on its half of the window.
     leftShift = get_left_half_center() - POINTS_RANKS_1_4_CENTER;
     rightShift = get_right_half_center() - POINTS_RANKS_5_8_CENTER;
-    if (leftShift < -25) {
-        leftShift = -25;
-    }
-    if (rightShift > 24) {
-        rightShift = 24;
-    }
 
     if (arg0->state != 0) {
         if (arg0->state < 9) {
@@ -8312,16 +8313,7 @@ static s32 get_pause_menu_column(s32 column) {
                         get_string_width(gTextPauseButton[DRIVER_CHANGE])));
     textWidth = textWidth * 0.75f; // the pause items are drawn at 0.75 scale
 
-    column = halfCenter - (textWidth / 2);
-    // print_letter culls glyphs that fall entirely outside the vanilla 320 wide
-    // area, so keep the text inside it on very wide windows.
-    if (column < 2) {
-        column = 2;
-    }
-    if (column > (SCREEN_WIDTH - 2) - textWidth) {
-        column = (SCREEN_WIDTH - 2) - textWidth;
-    }
-    return column;
+    return halfCenter - (textWidth / 2);
 }
 
 void render_pause_menu_versus(MenuItem* arg0) {
@@ -8718,23 +8710,13 @@ void func_800A6034(MenuItem* arg0) {
     char* cupText;
     char* courseText;
     s32 rightShift;
-    s32 maxShift;
-    s32 cupHalf;
-    s32 courseHalf;
 
     if (D_801657E8 != true) {
         // @port Center the text on the fourth viewport's black panel, which stretches
-        // to the window edge. print_letter culls glyphs that start past the vanilla
-        // 320 area, so back off just enough to keep the wider line intact.
+        // to the window edge.
         cupText = gCupNames[D_800DC540];
         courseText = CM_GetProps()->Name;
         rightShift = get_right_half_center() - BANNER_CENTER;
-        cupHalf = (s32) (get_string_width(cupText) * 0.85f) / 2;
-        courseHalf = (s32) (get_string_width(courseText) * 0.65f) / 2;
-        maxShift = (SCREEN_WIDTH - 2) - (cupHalf > courseHalf ? cupHalf : courseHalf) - BANNER_CENTER;
-        if (rightShift > maxShift) {
-            rightShift = maxShift;
-        }
         gDPSetPrimColor(gDisplayListHead++, 0, 0, 0x00, 0x00, 0x00, arg0->param1);
         set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_2);
         print_text1_center_mode_2(arg0->column + rightShift + 0x41, arg0->row + 0xA0, cupText, 0, 0.85f, 1.0f);
