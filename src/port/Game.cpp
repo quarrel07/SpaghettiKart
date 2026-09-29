@@ -1252,6 +1252,14 @@ void RigDoAction(const RigScene& scene) {
 }
 
 void RigBeginFrame() {
+    // The aspect override is saved with the game's settings, so a quit mid-cycle
+    // would come back forced to that aspect while the overlay says "off". Start
+    // every launch with it off so the overlay always matches the picture.
+    static bool sRigAspectReset = false;
+    if (!sRigAspectReset) {
+        CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 0);
+        sRigAspectReset = true;
+    }
     if (RigKeyEdge(ImGuiKey_RightBracket, 0)) {
         sRigIndex = (sRigIndex + 1) % kRigSceneCount;
         RigStartScene();
