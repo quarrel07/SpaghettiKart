@@ -998,6 +998,8 @@ extern "C" {
 extern s16 gCreditsCourseId;
 extern s16 gPlayerBalloonCount[];
 extern s32 gLapCountByPlayerId[];
+extern f32 D_802BA034;
+void start_race(void);
 extern f32 gCourseCompletionPercentByPlayerId[];
 extern s8 gCharacterSelections[];
 extern s8 gCharacterGridSelections[];
@@ -1297,6 +1299,15 @@ void RigBeginFrame() {
             }
             break;
         case PH_RACE_WAIT:
+            // Skip the intro fanfare and the Lakitu countdown, except in the race
+            // start scene (the only race scene with no action), which is about them.
+            if ((gGamestate == RACING) && (scene.action != RIG_NONE)) {
+                if (gRaceState == RACE_SETUP) {
+                    D_802BA034 = 1.0f; // finish the start zoom-in now
+                } else if (gRaceState == RACE_STAGING) {
+                    start_race(); // what demo mode does at the countdown
+                }
+            }
             if ((gGamestate == RACING) && (gRaceState == RACE_IN_PROGRESS)) {
                 sRigPhase = PH_ACTION;
                 sRigTimer = 0;
