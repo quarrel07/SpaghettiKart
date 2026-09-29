@@ -7729,16 +7729,22 @@ static f32 get_right_half_center(void) {
 #define POINTS_RANKS_1_4_CENTER 82
 #define POINTS_RANKS_5_8_CENTER 231
 #define BANNER_CENTER (160 + 0x41)
+#define TT_LAP_TIMES_RIGHT_CENTER 229 // Time Trials finish, lap times in the right half
+#define TT_RECORDS_CENTER 86           // Time Trials finish, best records in the left half
+#define TT_LAP_TIMES_LEFT_CENTER 87    // Time Trials finish menu, lap times in the left half
+#define TT_MENU_COLUMN 0xB2            // Time Trials finish menu, left edge of the options
 
-// How far each half of the window has moved from where it sits on a 4:3 screen.
-// The Time Trials finish panels shift by this so each keeps its original layout
-// over its own half.
-static s32 get_left_half_shift(void) {
-    return get_left_half_center() - (SCREEN_WIDTH / 4);
-}
+// The Time Trials finish options are left-aligned, so center the widest one, the
+// same way as the pause menu. The prompts that replace the options move with them.
+static s32 get_time_trials_menu_shift(void) {
+    s32 textWidth = 0;
+    s32 i;
 
-static s32 get_right_half_shift(void) {
-    return get_right_half_center() - (SCREEN_WIDTH * 3 / 4);
+    for (i = 1; i <= 6; i++) {
+        textWidth = MAX(textWidth, get_string_width(gTextPauseButton[i]));
+    }
+    textWidth = textWidth * 0.75f; // the options are drawn at 0.75 scale
+    return get_right_half_center() - (TT_MENU_COLUMN + (textWidth / 2));
 }
 
 void func_800A2EB8(MenuItem* arg0) {
@@ -7987,9 +7993,9 @@ void func_800A3ADC(MenuItem* arg0, s32 arg1, s32 arg2, s32 characterId, s32 arg4
 void time_trials_finish_text_render(MenuItem* arg0) {
     s32 recordType;
     s32 rowOffset;
-    // @port Keep each panel over its half of the window on wide screens.
-    s32 leftShift = get_left_half_shift();
-    s32 rightShift = get_right_half_shift();
+    // @port Center each block on its half of the window.
+    s32 leftShift = get_left_half_center() - TT_RECORDS_CENTER;
+    s32 rightShift = get_right_half_center() - TT_LAP_TIMES_RIGHT_CENTER;
 
     set_text_color(TEXT_BLUE_GREEN_RED_CYCLE_1);
     print_text1_center_mode_1(arg0->column + rightShift + 0x43, arg0->row + 0x19, CM_GetProps()->Name, 0, 0.6f, 0.6f);
@@ -8021,9 +8027,9 @@ void func_800A3E60(MenuItem* arg0) {
     s32 var_s1;
     Unk_D_800E70A0* var_v0_5;
     char sp60[3];
-    // @port Keep each panel over its half of the window on wide screens.
-    s32 leftShift = get_left_half_shift();
-    s32 rightShift = get_right_half_shift();
+    // @port Center each block on its half of the window.
+    s32 leftShift = get_left_half_center() - TT_LAP_TIMES_LEFT_CENTER;
+    s32 rightShift = get_time_trials_menu_shift();
 
     var_v0 = arg0->state;
     if (var_v0 == 0) {
@@ -8067,10 +8073,10 @@ void func_800A3E60(MenuItem* arg0) {
                 if (var_v1 != 0) {
                     set_text_color(TEXT_BLUE);
                     gDPSetPrimColor(gDisplayListHead++, 0, 0, 0x00, 0x00, 0x00, 0x96);
-                    print_text_mode_2((0xB2 + rightShift) - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
+                    print_text_mode_2((TT_MENU_COLUMN + rightShift) - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
                                       gTextPauseButton[var_s1 + 1], 0, 0.75f, 0.75f);
                 } else {
-                    print_text_mode_1((0xB2 + rightShift) - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
+                    print_text_mode_1((TT_MENU_COLUMN + rightShift) - arg0->column, arg0->row + (0xD * var_s1) + 0x93,
                                       gTextPauseButton[var_s1 + 1], 0, 0.75f, 0.75f);
                 }
             }
