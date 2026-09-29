@@ -993,6 +993,7 @@ static void ApplyPendingReset() {
 // ============================================================================
 #include <imgui.h>
 #include <cstdio>
+#include "menu_items.h"
 
 extern "C" {
 extern s16 gCreditsCourseId;
@@ -1073,13 +1074,14 @@ int sRigTimer = 0;
 int sRigNextFinisher = 0;
 int sRigInjectStart = -1;
 int sRigAspect = -1;
+bool sRigSkipIntro = true;
 const char* sRigStatus = "press ] to start";
 
 const char* kRigAspectNames[] = { "4:3", "16:9", "21:9", "32:9" };
 
 bool RigKeyEdge(ImGuiKey key, int slot) {
     // Edge-detect across game ticks so a quick tap is never missed.
-    static bool prev[4] = { false, false, false, false };
+    static bool prev[5] = { false, false, false, false, false };
     bool down = ImGui::IsKeyDown(key);
     bool edge = down && !prev[slot];
     prev[slot] = down;
@@ -1267,6 +1269,9 @@ void RigBeginFrame() {
     if (RigKeyEdge(ImGuiKey_Equal, 3)) {
         RigCycleAspect();
     }
+    if (RigKeyEdge(ImGuiKey_Minus, 4)) {
+        sRigSkipIntro = !sRigSkipIntro;
+    }
     if (sRigIndex < 0) {
         return;
     }
@@ -1301,11 +1306,20 @@ void RigBeginFrame() {
         case PH_RACE_WAIT:
             // Skip the intro fanfare and the Lakitu countdown, except in the race
             // start scene (the only race scene with no action), which is about them.
-            if ((gGamestate == RACING) && (scene.action != RIG_NONE)) {
+            if (sRigSkipIntro && (gGamestate == RACING) && (scene.action != RIG_NONE)) {
                 if (gRaceState == RACE_SETUP) {
                     D_802BA034 = 1.0f; // finish the start zoom-in now
                 } else if (gRaceState == RACE_STAGING) {
                     start_race(); // what demo mode does at the countdown
+                    // The intro's cup and course card runs on its own timer and
+                    // would play out over the race, so remove it with the intro.
+                    const s32 introCards[] = { MENU_ITEM_TYPE_096, MENU_ITEM_TYPE_097 };
+                    for (s32 type : introCards) {
+                        MenuItem* card = find_menu_items_dupe(type);
+                        if ((card != NULL) && (card->type == type)) {
+                            card->type = 0;
+                        }
+                    }
                 }
             }
             if ((gGamestate == RACING) && (gRaceState == RACE_IN_PROGRESS)) {
@@ -1343,8 +1357,8 @@ class RigOverlayWindow : public Ship::GuiWindow {
                      sRigScenes[sRigIndex].name);
             snprintf(lines[count++], sizeof(lines[0]), "status: %s", sRigStatus);
         }
-        snprintf(lines[count++], sizeof(lines[0]), "[ ] prev/next   \\ replay   = aspect: %s",
-                 sRigAspect < 0 ? "off (window shape)" : kRigAspectNames[sRigAspect]);
+        snprintf(lines[count++], sizeof(lines[0]), "[ ] prev/next   \\ replay   = aspect: %s   - intro skip: %s",
+                 sRigAspect < 0 ? "off (window shape)" : kRigAspectNames[sRigAspect], sRigSkipIntro ? "on" : "off");
 
         ImDrawList* drawList = ImGui::GetForegroundDrawList();
         ImFont* font = ImGui::GetFont();
