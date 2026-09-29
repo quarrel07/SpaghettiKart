@@ -1000,6 +1000,9 @@ extern s16 gPlayerBalloonCount[];
 extern s32 gLapCountByPlayerId[];
 extern f32 gCourseCompletionPercentByPlayerId[];
 extern s8 gCharacterSelections[];
+extern s8 gCharacterGridSelections[];
+extern bool gCharacterGridIsSelected[];
+extern s8 gPlayerSelectMenuSelection;
 extern s8 gDemoUseController;
 extern bool gGhostPlayerInit;
 void func_8000F124(void);
@@ -1128,6 +1131,16 @@ void RigResetToMenus(const RigScene& scene) {
     gPlayerCount = 1;
     gScreenModeSelection = SCREEN_MODE_1P;
     gMenuSelection = scene.menu;
+    if (scene.menu == CHARACTER_SELECT_MENU) {
+        // Same setup the main menu does on the way in; without it the empty grid
+        // counts as already confirmed and the game skips to course select.
+        gPlayerSelectMenuSelection = PLAYER_SELECT_MENU_MAIN;
+        for (int i = 0; i < 4; i++) {
+            gCharacterGridSelections[i] = (i < gPlayerCount) ? (s8) (i + 1) : 0;
+            gCharacterGridIsSelected[i] = false;
+            gCharacterSelections[i] = (s8) i;
+        }
+    }
     gMenuFadeType = 0;
     gFadeModeSelection = FADE_MODE_LOGO;
 }
@@ -1148,14 +1161,17 @@ void RigLaunchRace(const RigScene& scene) {
     for (int i = 0; i < 4; i++) {
         gCharacterSelections[i] = (s8) i;
     }
-    gCCSelection = 1;
+    gCCSelection = 0; // 50cc, matching the menu's default cc column
     set_mirror_mode(0);
     if (scene.mode == BATTLE) {
         SelectBlockFort();
         CM_SetCup(GetBattleCup());
     } else {
-        SelectMarioRaceway();
-        CM_SetCup(GetFlowerCup());
+        // Mushroom Cup's first course, so the cup object and the cup index the
+        // results screens read agree (the Flower Cup left them mismatched).
+        SelectLuigiRaceway();
+        CM_SetCup(GetMushroomCup());
+        CM_SetCupIndex(0);
     }
     TrackBrowser_SetTrackFromCup();
     D_800DC540 = (s32) GetCupIndex();
