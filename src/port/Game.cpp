@@ -998,6 +998,7 @@ extern "C" {
 extern s16 gCreditsCourseId;
 extern s16 gPlayerBalloonCount[];
 extern s32 gLapCountByPlayerId[];
+extern f32 gCourseCompletionPercentByPlayerId[];
 extern s8 gCharacterSelections[];
 extern s8 gDemoUseController;
 extern bool gGhostPlayerInit;
@@ -1083,26 +1084,11 @@ bool RigKeyEdge(ImGuiKey key, int slot) {
 void RigCycleAspect() {
     // Uses libultraship's advanced resolution aspect setting, which shapes the
     // game picture inside the window (fullscreen included) without resizing it.
-    // "off" puts back whatever the settings were before the first press.
-    static bool saved = false;
-    static int savedEnabled = 0;
-    static float savedX = 0.0f;
-    static float savedY = 0.0f;
-    static int savedVertical = 0;
-    if (!saved) {
-        savedEnabled = CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 0);
-        savedX = CVarGetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioX", 16.0f);
-        savedY = CVarGetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioY", 9.0f);
-        savedVertical = CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".VerticalResolutionToggle", 0);
-        saved = true;
-    }
+    // "off" turns the override off so the picture follows the window's shape.
     sRigAspect++;
     if (sRigAspect >= 4) {
         sRigAspect = -1;
-        CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", savedEnabled);
-        CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioX", savedX);
-        CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioY", savedY);
-        CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".VerticalResolutionToggle", savedVertical);
+        CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 0);
         return;
     }
     const float x[] = { 4.0f, 16.0f, 21.0f, 32.0f };
@@ -1217,6 +1203,10 @@ void RigDoAction(const RigScene& scene) {
                     Player* player = &gPlayers[i];
                     if ((player->type & PLAYER_EXISTS) && (player->type & PLAYER_HUMAN)) {
                         gLapCountByPlayerId[i] = 2;
+                        // Progress is only recalculated when a kart reaches a new path
+                        // point, and an idle kart never does, so set it here too.
+                        // Player 1 slightly ahead of player 2 so the order is stable.
+                        gCourseCompletionPercentByPlayerId[i] = 2.9f - (0.01f * i);
                     }
                 }
                 sRigStatus = "final lap";
