@@ -262,8 +262,6 @@ extern "C" s32 osPfsFileState(UNUSED OSPfs* pfs, s32 file_no, OSPfsState* state)
 
 extern "C" s32 osPfsFindFile(UNUSED OSPfs* pfs, u16 company_code, u32 game_code, u8* game_name, u8* ext_name,
                              s32* file_no) {
-    UNUSED ControllerPak pak;
-
     for (size_t i = 0; i < MAX_FILES; i++) {
         u32 file_size_ = 0;
         u32 game_code_ = 0;
