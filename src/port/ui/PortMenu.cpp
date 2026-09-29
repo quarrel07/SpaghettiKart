@@ -100,7 +100,9 @@ void PortMenu::AddSettings() {
 #ifndef __SWITCH__
     AddWidget(path, "Toggle Fullscreen", WIDGET_CHECKBOX)
         .ValuePointer(&isFullscreen)
-        .PreFunc([](UNUSED WidgetInfo& info) { isFullscreen = Ship::Context::GetRawInstance()->GetWindow()->IsFullscreen(); })
+        .PreFunc([](UNUSED WidgetInfo& info) {
+            isFullscreen = Ship::Context::GetRawInstance()->GetWindow()->IsFullscreen();
+        })
         .Callback([](UNUSED WidgetInfo& info) { Ship::Context::GetRawInstance()->GetWindow()->ToggleFullscreen(); })
         .Options(CheckboxOptions().Tooltip("Toggles Fullscreen On/Off."));
 #endif
@@ -680,7 +682,9 @@ void PortMenu::InitElement() {
           { [](UNUSED disabledInfo& info) -> bool { return CVarGetInteger("gMatchRefreshRate", 0); },
             "Match Refresh Rate is Enabled" } },
         { DISABLE_FOR_ADVANCED_RESOLUTION_ON,
-          { [](UNUSED disabledInfo& info) -> bool { return CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 0); },
+          { [](UNUSED disabledInfo& info) -> bool {
+               return CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 0);
+           },
             "Advanced Resolution Enabled" } },
         { DISABLE_FOR_VERTICAL_RES_TOGGLE_ON,
           { [](UNUSED disabledInfo& info) -> bool {
@@ -688,7 +692,8 @@ void PortMenu::InitElement() {
            },
             "Vertical Resolution Toggle Enabled" } },
         { DISABLE_FOR_LOW_RES_MODE_ON,
-          { [](UNUSED disabledInfo& info) -> bool { return CVarGetInteger(CVAR_LOW_RES_MODE, 0); }, "N64 Mode Enabled" } },
+          { [](UNUSED disabledInfo& info) -> bool { return CVarGetInteger(CVAR_LOW_RES_MODE, 0); },
+            "N64 Mode Enabled" } },
         //{ DISABLE_FOR_MULTIPLAYER_CONNECTED,
         //  { CheckNetworkConnected, "Multiplayer Connected"}},
     };

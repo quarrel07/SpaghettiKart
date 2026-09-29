@@ -51,7 +51,6 @@ public:
     void func_8007BFB0(s32 objectIndex);
 
 private:
-
-    [[maybe_unused]] s32 _idx;
-    Behaviour _behaviour;
+  [[maybe_unused]] s32 _idx;
+  Behaviour _behaviour;
 };

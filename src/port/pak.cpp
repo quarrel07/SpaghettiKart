@@ -260,7 +260,8 @@ extern "C" s32 osPfsFileState(UNUSED OSPfs* pfs, s32 file_no, OSPfsState* state)
     return PFS_NO_ERROR;
 }
 
-extern "C" s32 osPfsFindFile(UNUSED OSPfs* pfs, u16 company_code, u32 game_code, u8* game_name, u8* ext_name, s32* file_no) {
+extern "C" s32 osPfsFindFile(UNUSED OSPfs* pfs, u16 company_code, u32 game_code, u8* game_name, u8* ext_name,
+                             s32* file_no) {
     UNUSED ControllerPak pak;
 
     for (size_t i = 0; i < MAX_FILES; i++) {
@@ -291,7 +292,8 @@ extern "C" s32 osPfsFindFile(UNUSED OSPfs* pfs, u16 company_code, u32 game_code,
     return PFS_ERR_INVALID;
 }
 
-extern "C" s32 osPfsReadWriteFile(UNUSED OSPfs* pfs, s32 file_no, u8 flag, int offset, int size_in_bytes, u8* data_buffer) {
+extern "C" s32 osPfsReadWriteFile(UNUSED OSPfs* pfs, s32 file_no, u8 flag, int offset, int size_in_bytes,
+                                  u8* data_buffer) {
     ControllerPak pak;
     std::string filename = Pfs_PakFile_GetPath(file_no);
 

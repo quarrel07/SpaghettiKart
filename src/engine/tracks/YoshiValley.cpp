@@ -186,9 +186,11 @@ void YoshiValley::DrawTrackObjects(UNUSED s32 cameraId) {
 void YoshiValley::SomeSounds() {
 }
 
-void YoshiValley::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {}
+void YoshiValley::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
-void YoshiValley::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {}
+void YoshiValley::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
 void YoshiValley::Draw(ScreenContext* arg0) {
     gDPPipeSync(gDisplayListHead++);

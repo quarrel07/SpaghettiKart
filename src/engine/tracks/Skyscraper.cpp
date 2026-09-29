@@ -143,9 +143,11 @@ void Skyscraper::InitTrackObjects() {}
 
 void Skyscraper::SomeSounds() {}
 
-void Skyscraper::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {}
+void Skyscraper::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
-void Skyscraper::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {}
+void Skyscraper::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
 void Skyscraper::Draw(UNUSED ScreenContext* arg0) {
     set_track_light_direction(D_800DC610, D_802B87D4, 0, 1);

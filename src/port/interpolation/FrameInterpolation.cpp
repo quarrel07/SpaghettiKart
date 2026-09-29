@@ -403,9 +403,9 @@ struct InterpolateCtx {
                 if (item.second < it->second.size()) {
                     Data& old_op = it->second[item.second];
                     switch (item.first) {
-        // Unhandled states take no action.
-        default:
-            break;
+                        // Unhandled states take no action.
+                        default:
+                            break;
                         case Op::OpenChild:
                         case Op::CloseChild:
                         case Op::Marker:
@@ -775,7 +775,8 @@ void FrameInterpolation_RecordSetMatrixTransformation(Mat4* dest, Vec3f location
     append(Op::SetMatrixTransformation).set_matrix_transformation_data = { dest, {location[0], location[1], location[2]}, { rotation[0], rotation[1], rotation[2] }, scale};
 }
 
-void FrameInterpolation_RecordCalculateOrientationMatrix(UNUSED Mat3* dest, UNUSED f32 x, UNUSED f32 y, UNUSED f32 z, UNUSED s16 rot) {
+void FrameInterpolation_RecordCalculateOrientationMatrix(UNUSED Mat3* dest, UNUSED f32 x, UNUSED f32 y, UNUSED f32 z,
+                                                         UNUSED s16 rot) {
     if (!check_if_recording()) {
         return;
     }

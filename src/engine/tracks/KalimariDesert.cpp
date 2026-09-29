@@ -234,9 +234,11 @@ void KalimariDesert::InitTrackObjects() {
 
 void KalimariDesert::SomeSounds() {}
 
-void KalimariDesert::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {}
+void KalimariDesert::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
-void KalimariDesert::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {}
+void KalimariDesert::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
 void KalimariDesert::Draw(ScreenContext* arg0) {
     set_track_light_direction(D_800DC610, D_802B87D4, 0, 1);

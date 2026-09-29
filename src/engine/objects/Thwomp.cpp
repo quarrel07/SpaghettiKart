@@ -120,9 +120,9 @@ void OThwomp::Tick60fps() { // func_80081210
 
     if (gObjectList[_objectIndex].state != 0) {
         switch(Behaviour) {
-        // Unhandled states take no action.
-        default:
-            break;
+            // Unhandled states take no action.
+            default:
+                break;
             case States::STATIONARY:
                 OThwomp::StationaryBehaviour(_objectIndex);
                 break;

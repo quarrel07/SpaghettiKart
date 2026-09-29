@@ -571,7 +571,8 @@ f32 Track::GetWaterLevel(FVector pos, UNUSED struct Collision* collision) {
 
 void Track::Tick() {
 }
-void Track::DrawTransparency(UNUSED ScreenContext* screen, UNUSED uint16_t pathCounter, UNUSED uint16_t cameraRot, UNUSED uint16_t playerDirection) {
+void Track::DrawTransparency(UNUSED ScreenContext* screen, UNUSED uint16_t pathCounter, UNUSED uint16_t cameraRot,
+                             UNUSED uint16_t playerDirection) {
 }
 
 void Track::Destroy() {

@@ -88,7 +88,7 @@ void SkyCloud::Tick() { // func_800788F8
 }
 
 void SkyCloud::Draw(UNUSED ScreenContext* screen, s32 arg0) { // render_clouds
-   // Object* object = &gObjectList[_objectIndex];
+                                                              // Object* object = &gObjectList[_objectIndex];
     s32 posY = arg0 - mY;
     func_8004B6C4(255, 255, 255);
     // Skip drawing the object this frame if it warped to the other side of the screen

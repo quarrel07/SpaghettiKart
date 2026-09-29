@@ -101,7 +101,7 @@ OTrophy::OTrophy(const SpawnParams& params) : OObject(params) {
 
 void OTrophy::SetSpawnParams(SpawnParams& params) {
     OObject::SetSpawnParams(params);
-    UNUSED Object *object = &gObjectList[_objectIndex];
+    UNUSED Object* object = &gObjectList[_objectIndex];
     params.Type = _type;
     params.Behaviour = _bhv;
 }
@@ -266,9 +266,9 @@ void OTrophy::Draw(s32 cameraId) {
         }
 
         switch (_bhv) {
-        // Unhandled states take no action.
-        default:
-            break;
+            // Unhandled states take no action.
+            default:
+                break;
             case GO_FISH:
                 size_t numTrophies = 0;
                 func_80057A50(40, 22, (char*) "Trophies Collected: ", (s16) numTrophies);

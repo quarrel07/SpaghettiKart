@@ -215,9 +215,11 @@ void KoopaTroopaBeach::SomeSounds() {
     func_800C9D80(D_8015F738, D_802B91C8, 0x51028001);
 }
 
-void KoopaTroopaBeach::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {}
+void KoopaTroopaBeach::WhatDoesThisDo(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
-void KoopaTroopaBeach::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {}
+void KoopaTroopaBeach::WhatDoesThisDoAI(UNUSED Player* player, UNUSED int8_t playerId) {
+}
 
 void KoopaTroopaBeach::Draw(ScreenContext* arg0) {
     gDPPipeSync(gDisplayListHead++);
@@ -288,7 +290,8 @@ void KoopaTroopaBeach::Tick() {
     find_and_set_tile_size((uintptr_t) d_course_koopa_troopa_beach_packed_dl_2E8, D_802B87C8, D_802B87CC);
 }
 
-void KoopaTroopaBeach::DrawTransparency(ScreenContext* screen, uint16_t pathCounter, UNUSED uint16_t cameraRot, UNUSED uint16_t playerDirection) {
+void KoopaTroopaBeach::DrawTransparency(ScreenContext* screen, uint16_t pathCounter, UNUSED uint16_t cameraRot,
+                                        UNUSED uint16_t playerDirection) {
     Mat4 matrix;
     Vec3f vector;
 

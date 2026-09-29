@@ -398,7 +398,7 @@ Camera* CM_GetPlayerCamera(s32 playerIndex) {
     for (auto& cam : GetWorld()->Cameras) {
         // Make sure this is a player camera and not a different type of camera
         auto& camRef = *cam;
-    if (typeid(camRef) == typeid(GameCamera)) {
+        if (typeid(camRef) == typeid(GameCamera)) {
             Camera* camera = cam->Get();
             if (camera->playerId == playerIndex) {
                 return camera;

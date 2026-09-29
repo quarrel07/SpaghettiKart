@@ -70,7 +70,7 @@ void RegisterFreecamWidgets() {
     mPortMenu->AddWidget(path, "Controller: Up: A, Down: B, Faster: Z\n  Target Player Mode: R, Next: Right DPad, Previous: Left DPad\n  Driving Mode: L and R Buttons", WIDGET_TEXT);
     mPortMenu->AddWidget(path, "Enable Freecam", WIDGET_CVAR_CHECKBOX)
         .CVar("gFreecam")
-        .Options(UIWidgets::CheckboxOptions({{ .tooltip = "Allows you to fly around the track"}}))
+        .Options(UIWidgets::CheckboxOptions({ { .tooltip = "Allows you to fly around the track" } }))
         .Callback([](UNUSED WidgetInfo& info) {
             bool state = (bool) CVarGetInteger("gFreecam", false);
             CM_SetFreeCamera(state);
@@ -93,8 +93,7 @@ void RegisterFreecamWidgets() {
         .Options(UIWidgets::FloatSliderOptions().Min(0.0f).Max(1.0f).Step(0.01f).Format("%.2f"));
 
     mPortMenu->AddWidget(path, "Target Player", WIDGET_TEXT);
-    mPortMenu->AddWidget(path, "None", WIDGET_BUTTON)
-        .Callback([](UNUSED WidgetInfo& info) { fTargetPlayer = false; });
+    mPortMenu->AddWidget(path, "None", WIDGET_BUTTON).Callback([](UNUSED WidgetInfo& info) { fTargetPlayer = false; });
 
     mPortMenu->AddWidget(path, "Player 1", WIDGET_BUTTON)
         .PreFunc([](WidgetInfo& info) {

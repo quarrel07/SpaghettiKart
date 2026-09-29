@@ -181,10 +181,11 @@ void ObjectPicker::FindObject(Ray ray, UNUSED std::vector<GameObject*> objects) 
 
     // Set _selected from object variant
     _selected = object;
-    std::visit([](auto* obj) {
-        if (obj) {
-        }
-    }, object);
+    std::visit(
+        [](auto* obj) {
+            if (obj) {}
+        },
+        object);
 }
 
 std::pair<GameObject*, float> ObjectPicker::CheckEditorObjectRay(Ray ray) {

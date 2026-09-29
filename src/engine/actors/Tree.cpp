@@ -65,5 +65,6 @@ void ATree::Draw(Camera* camera) {
     }
 }
 
-void ATree::Collision(UNUSED Player* player, AActor*) { }
+void ATree::Collision(UNUSED Player* player, AActor*) {
+}
 void ATree::Destroy() { }

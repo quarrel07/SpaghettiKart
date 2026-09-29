@@ -391,9 +391,9 @@ void AText::DrawText3D(Camera* camera) { // Based on func_80095BD0
         }
 
         switch(FadeState) {
-        // Unhandled states take no action.
-        default:
-            break;
+            // Unhandled states take no action.
+            default:
+                break;
             case FADE_IN:
                 AText::FadeIn(tex.vtx);
                 break;

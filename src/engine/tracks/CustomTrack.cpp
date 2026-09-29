@@ -180,9 +180,9 @@ void CustomTrack::ParseMeshForCollision(TrackSections* sections, size_t numMesh)
 
     for (size_t i = 0; i < numMesh; i++) {
         switch(static_cast<SurfaceClip>(sections[i].clip)) {
-        // Unhandled states take no action.
-        default:
-            break;
+            // Unhandled states take no action.
+            default:
+                break;
             case SurfaceClip::CLIP_NONE:
                 continue;
             case SurfaceClip::CLIP_SINGLE_SIDED_WALL:
@@ -277,7 +277,8 @@ void CustomTrack::Draw(ScreenContext* arg0) {
 void CustomTrack::Tick() {
 }
 
-void CustomTrack::DrawTransparency(ScreenContext* screen, UNUSED uint16_t pathCounter, UNUSED uint16_t cameraRot, UNUSED uint16_t playerDirection) {
+void CustomTrack::DrawTransparency(ScreenContext* screen, UNUSED uint16_t pathCounter, UNUSED uint16_t cameraRot,
+                                   UNUSED uint16_t playerDirection) {
     FVector cam = { screen->camera->pos[0], screen->camera->pos[1], screen->camera->pos[2] };
 
     std::sort(mTranslucentItems.begin(), mTranslucentItems.end(),

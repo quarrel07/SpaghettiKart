@@ -67,7 +67,7 @@ static bool update[3];
 
 // Initialise integer scale bounds.
 UNUSED static short max_integerScaleFactor = default_maxIntegerScaleFactor; // default value, which may or may not get
-                                                                     // overridden depending on viewport res
+                                                                            // overridden depending on viewport res
 
 UNUSED static short integerScale_maximumBounds = 1; // can change when window is resized
 

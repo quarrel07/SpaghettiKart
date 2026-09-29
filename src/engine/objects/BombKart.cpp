@@ -390,7 +390,6 @@ void OBombKart::Draw(s32 cameraId) {
 }
 
 void OBombKart::DrawBattle(UNUSED s32 cameraId) {
-
 }
 
 void OBombKart::func_800563DC(s32 cameraId, s32 arg2) {
