@@ -25,13 +25,10 @@ extern "C" {
 #include "defines.h"
 #include "code_80005FD0.h"
 #include "math_util_2.h"
-#include "racing/collision.h"
 #include "assets/models/tracks/bowsers_castle/bowsers_castle_data.h"
 #include "assets/textures/tracks/bowsers_castle/bowsers_castle_data.h"
 #include "ending/ceremony_and_credits.h"
 #include "objects.h"
-#include "update_objects.h"
-#include "render_objects.h"
 #include "textures/some_data.h"
 #include "assets/models/common_data.h"
 extern s8 gPlayerCount;

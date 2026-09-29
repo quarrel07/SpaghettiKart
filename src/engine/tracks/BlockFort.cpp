@@ -31,7 +31,6 @@ extern "C" {
 #include "racing/actors.h"
 #include "racing/collision.h"
 #include "memory.h"
-#include "course_offsets.h"
 extern s16 currentScreenSection;
 }
 

@@ -493,7 +493,7 @@ void UpdateResolutionVars() {
         CVarSave();
     }
     // Initialise update flags.
-    for (uint8_t i = 0; i < sizeof(update); i++) {
+    for (size_t i = 0; i < sizeof(update); i++) {
         update[i] = false;
     }
 

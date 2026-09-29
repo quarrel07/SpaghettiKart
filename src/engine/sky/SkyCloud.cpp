@@ -33,7 +33,7 @@ SkyCloud::SkyCloud(ScreenContext* screen, u16 cloudVariant, u16 posY, u16 rotY, 
 
     // Stock
     if (GameEngine_ResourceGetTexTypeByName((const char*)CM_GetProps()->CloudTexture) != 1) {
-        mTexture = ((u8*) LOAD_ASSET_RAW(CM_GetProps()->CloudTexture)) + (cloudVariant * 1024);
+        mTexture = ((u8*) LOAD_ASSET_RAW(CM_GetProps()->CloudTexture)) + ((size_t) cloudVariant * 1024);
         mVtx = (Vtx*)D_0D005FB0;
     } else { // Texture pack
         mTexture = CM_GetProps()->CloudTexture;

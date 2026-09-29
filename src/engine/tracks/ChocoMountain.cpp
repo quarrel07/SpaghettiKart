@@ -33,9 +33,8 @@ extern "C" {
     #include "racing/actors.h"
     #include "racing/collision.h"
     #include "code_8003DC40.h"
-    #include "memory.h"
-    #include "course_offsets.h"
-    extern const char *choco_mountain_dls[96];
+#include "memory.h"
+extern const char* choco_mountain_dls[96];
 }
 
 ChocoMountain::ChocoMountain() {

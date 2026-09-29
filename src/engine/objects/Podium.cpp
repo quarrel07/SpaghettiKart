@@ -15,7 +15,6 @@ extern "C" {
 #include "textures/some_data.h"
 #include "code_80091440.h"
 #include "code_80086E70.h"
-#include "code_80086E70.h"
 extern Vec3s D_800E634C[];
 }
 

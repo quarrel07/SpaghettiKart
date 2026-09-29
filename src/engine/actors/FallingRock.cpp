@@ -15,7 +15,6 @@ extern "C" {
 #include "actor_types.h"
 #include "code_800029B0.h"
 #include "racing/collision.h"
-#include "code_800029B0.h"
 #include "audio/external.h"
 }
 

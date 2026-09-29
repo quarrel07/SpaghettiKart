@@ -5,7 +5,6 @@
 #include "ship/window/gui/GuiElement.h"
 #include <variant>
 #include <spdlog/fmt/fmt.h>
-#include <variant>
 #include <tuple>
 
 extern "C" {

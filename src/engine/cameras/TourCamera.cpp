@@ -142,7 +142,7 @@ bool TourCamera::MoveCameraAlongSpline(f32* arg1, std::vector<KeyFrame>& keyFram
     }
 
     // Check for end of the spline
-    if ((size_t) (keyFrameIdx + 3) >= keyFrame.size()) {
+    if (keyFrameIdx < 0 || (size_t) keyFrameIdx + 3 >= keyFrame.size()) {
         return true;
     }
 
@@ -170,7 +170,8 @@ bool TourCamera::MoveCameraAlongSpline(f32* arg1, std::vector<KeyFrame>& keyFram
     }
 
     progressChange = (((secondSpeed - firstSpeed)) * KeyFrameProgress + firstSpeed);
-    if (1 <= (KeyFrameProgress += progressChange)) {
+    KeyFrameProgress += progressChange;
+    if (KeyFrameProgress >= 1) {
         KeyFrameIndex++;
         if ( (KeyFrameIndex + 3 ) >= keyFrame.size()) {
             KeyFrameIndex = 0;

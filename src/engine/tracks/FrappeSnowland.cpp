@@ -34,10 +34,9 @@ extern "C" {
     #include "racing/actors.h"
     #include "racing/collision.h"
     #include "memory.h"
-    #include "update_objects.h"
-    #include "course_offsets.h"
-    extern const char *d_course_frappe_snowland_dl_list[68];
-    extern s8 gPlayerCount;
+#include "update_objects.h"
+extern const char* d_course_frappe_snowland_dl_list[68];
+extern s8 gPlayerCount;
 }
 
 FrappeSnowland::FrappeSnowland() {

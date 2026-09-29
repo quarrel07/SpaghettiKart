@@ -7,7 +7,6 @@
 #include <variant>
 #include "ship/utils/StringHelper.h"
 #include <spdlog/fmt/fmt.h>
-#include <variant>
 #include <tuple>
 #include "ResolutionEditor.h"
 
