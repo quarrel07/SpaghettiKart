@@ -7655,6 +7655,14 @@ static f32 get_right_half_center(void) {
     return (OTRGetDimensionFromRightEdge(SCREEN_WIDTH) + (SCREEN_WIDTH / 2)) / 2.0f;
 }
 
+// Where vanilla centers each block of rows on a 4:3 screen. Subtracting one from
+// the matching half center gives how far to move that block.
+#define RESULTS_RANKS_1_4_CENTER 225
+#define RESULTS_RANKS_5_8_CENTER 88
+#define POINTS_RANKS_1_4_CENTER 82
+#define POINTS_RANKS_5_8_CENTER 231
+#define BANNER_CENTER (160 + 0x41)
+
 void func_800A2EB8(MenuItem* arg0) {
     s8 sp70[8];
     UNUSED s32 stackPadding0;
@@ -7665,20 +7673,11 @@ void func_800A2EB8(MenuItem* arg0) {
     s32 leftShift;
     s32 rightShift;
 
-    // @port Keep each results column over its half of the window; this screen
-    // parks ranks 1-4 in the right half and ranks 5-8 in the left half. The
-    // baseline keeps vanilla's anchors (a 4:3 window renders unchanged); Fix
-    // Visuals centers the rank rows truly on their halves (vanilla parks them
-    // on x=225 and x=88, slightly toward the middle). print_letter culls
-    // glyphs that start outside the vanilla 320 wide area, so clamp on very
-    // wide windows.
-    if (CVarGetInteger("gFixVisuals", 0) == true) {
-        leftShift = get_left_half_center() - 88;
-        rightShift = get_right_half_center() - 225;
-    } else {
-        leftShift = get_left_half_center() - 80;
-        rightShift = get_right_half_center() - 240;
-    }
+    // @port Center each results column on its half of the window (ranks 1-4 sit in
+    // the right half here). print_letter culls glyphs that start outside the
+    // vanilla 320 wide area, so clamp on very wide windows.
+    leftShift = get_left_half_center() - RESULTS_RANKS_5_8_CENTER;
+    rightShift = get_right_half_center() - RESULTS_RANKS_1_4_CENTER;
     if (leftShift < -25) {
         leftShift = -25;
     }
@@ -7765,18 +7764,11 @@ void func_800A34A8(MenuItem* arg0) {
     s32 leftShift;
     s32 rightShift;
 
-    // @port Keep each tally column over its half of the window. The baseline
-    // keeps vanilla's anchors (a 4:3 window renders unchanged); Fix Visuals
-    // centers the rows truly on their halves (vanilla parks them on x=86 and
-    // x=248, slightly toward the middle). print_letter culls glyphs that
-    // start outside the vanilla 320 wide area, so clamp on very wide windows.
-    if (CVarGetInteger("gFixVisuals", 0) == true) {
-        leftShift = get_left_half_center() - 82;
-        rightShift = get_right_half_center() - 231;
-    } else {
-        leftShift = get_left_half_center() - 80;
-        rightShift = get_right_half_center() - 240;
-    }
+    // @port Center each tally column on its half of the window. print_letter culls
+    // glyphs that start outside the vanilla 320 wide area, so clamp on very wide
+    // windows.
+    leftShift = get_left_half_center() - POINTS_RANKS_1_4_CENTER;
+    rightShift = get_right_half_center() - POINTS_RANKS_5_8_CENTER;
     if (leftShift < -25) {
         leftShift = -25;
     }
@@ -8318,7 +8310,7 @@ static s32 get_pause_menu_column(s32 column) {
     textWidth = MAX(get_string_width(gTextPauseButton[CONTINUE_GAME]),
                     MAX(get_string_width(gTextPauseButton[COURSE_CHANGE]),
                         get_string_width(gTextPauseButton[DRIVER_CHANGE])));
-    textWidth = textWidth * 0.75f;
+    textWidth = textWidth * 0.75f; // the pause items are drawn at 0.75 scale
 
     column = halfCenter - (textWidth / 2);
     // print_letter culls glyphs that fall entirely outside the vanilla 320 wide
@@ -8731,22 +8723,15 @@ void func_800A6034(MenuItem* arg0) {
     s32 courseHalf;
 
     if (D_801657E8 != true) {
-        // @port Follow the fourth viewport's black panel, which stretches to the
-        // window edge. The baseline keeps vanilla's anchor (a 4:3 window renders
-        // unchanged); Fix Visuals centers the text truly on the panel (vanilla
-        // parks it on x = 160 + 0x41 = 225, slightly left of center).
-        // print_letter culls glyphs that start past the vanilla 320 area, so
-        // back off just enough to keep the wider line intact.
+        // @port Center the text on the fourth viewport's black panel, which stretches
+        // to the window edge. print_letter culls glyphs that start past the vanilla
+        // 320 area, so back off just enough to keep the wider line intact.
         cupText = gCupNames[D_800DC540];
         courseText = CM_GetProps()->Name;
-        if (CVarGetInteger("gFixVisuals", 0) == true) {
-            rightShift = get_right_half_center() - (160 + 0x41);
-        } else {
-            rightShift = get_right_half_center() - 240;
-        }
+        rightShift = get_right_half_center() - BANNER_CENTER;
         cupHalf = (s32) (get_string_width(cupText) * 0.85f) / 2;
         courseHalf = (s32) (get_string_width(courseText) * 0.65f) / 2;
-        maxShift = (SCREEN_WIDTH - 2) - (cupHalf > courseHalf ? cupHalf : courseHalf) - (160 + 0x41);
+        maxShift = (SCREEN_WIDTH - 2) - (cupHalf > courseHalf ? cupHalf : courseHalf) - BANNER_CENTER;
         if (rightShift > maxShift) {
             rightShift = maxShift;
         }
