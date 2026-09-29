@@ -1208,8 +1208,21 @@ void RigDoAction(const RigScene& scene) {
                 sRigStatus = "race finished";
                 break;
             }
-            // One player at a time, so each finish runs through the game's own logic alone.
-            if ((sRigTimer >= 45) && ((sRigTimer % 25) == 20)) {
+            // Put every human on the final lap first (like the game's own debug lap
+            // skip), so the ranking moves them ahead of the CPUs before anyone
+            // finishes. Finishing straight from the grid ranks them last, which a
+            // Grand Prix treats as a loss and shows Retry.
+            if (sRigTimer == 30) {
+                for (int i = 0; i < 4; i++) {
+                    Player* player = &gPlayers[i];
+                    if ((player->type & PLAYER_EXISTS) && (player->type & PLAYER_HUMAN)) {
+                        gLapCountByPlayerId[i] = 2;
+                    }
+                }
+                sRigStatus = "final lap";
+            }
+            // Then one player at a time, so each finish runs through the game's own logic alone.
+            if ((sRigTimer >= 60) && ((sRigTimer % 25) == 10)) {
                 while (sRigNextFinisher < 4) {
                     Player* player = &gPlayers[sRigNextFinisher];
                     int index = sRigNextFinisher++;
