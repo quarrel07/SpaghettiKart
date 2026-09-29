@@ -986,13 +986,12 @@ static void ApplyPendingReset() {
 // ============================================================================
 // TEST RIG, NEVER MERGE: scene jumper for PR #753 testing.
 //   ]  next scene      [  previous scene      \  replay current scene
-//   =  cycle window aspect ratio (4:3, 16:9, 21:9, 32:9)
+//   =  cycle game aspect ratio (4:3, 16:9, 21:9, 32:9, off) without resizing the window
 // Jumps reuse the reset path above (drop to the menus), then launch a race the
 // way the attract demo does, then optionally press Start for a player, force
 // the human players over the finish line, or pop the other battle balloons.
 // ============================================================================
 #include <imgui.h>
-#include <SDL2/SDL.h>
 #include <cstdio>
 
 extern "C" {
@@ -1070,7 +1069,6 @@ int sRigInjectStart = -1;
 int sRigAspect = -1;
 const char* sRigStatus = "press ] to start";
 
-const float kRigAspects[] = { 4.0f / 3.0f, 16.0f / 9.0f, 21.0f / 9.0f, 32.0f / 9.0f };
 const char* kRigAspectNames[] = { "4:3", "16:9", "21:9", "32:9" };
 
 bool RigKeyEdge(ImGuiKey key, int slot) {
@@ -1083,29 +1081,36 @@ bool RigKeyEdge(ImGuiKey key, int slot) {
 }
 
 void RigCycleAspect() {
-    SDL_Window* window = SDL_GetKeyboardFocus();
-    if (window == nullptr) {
-        window = SDL_GetMouseFocus();
+    // Uses libultraship's advanced resolution aspect setting, which shapes the
+    // game picture inside the window (fullscreen included) without resizing it.
+    // "off" puts back whatever the settings were before the first press.
+    static bool saved = false;
+    static int savedEnabled = 0;
+    static float savedX = 0.0f;
+    static float savedY = 0.0f;
+    static int savedVertical = 0;
+    if (!saved) {
+        savedEnabled = CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 0);
+        savedX = CVarGetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioX", 16.0f);
+        savedY = CVarGetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioY", 9.0f);
+        savedVertical = CVarGetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".VerticalResolutionToggle", 0);
+        saved = true;
     }
-    if (window == nullptr) {
+    sRigAspect++;
+    if (sRigAspect >= 4) {
+        sRigAspect = -1;
+        CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", savedEnabled);
+        CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioX", savedX);
+        CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioY", savedY);
+        CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".VerticalResolutionToggle", savedVertical);
         return;
     }
-    sRigAspect = (sRigAspect + 1) % 4;
-    int display = SDL_GetWindowDisplayIndex(window);
-    SDL_Rect bounds;
-    if (SDL_GetDisplayUsableBounds(display, &bounds) != 0) {
-        bounds = { 0, 0, 1440, 900 };
-    }
-    float aspect = kRigAspects[sRigAspect];
-    float height = bounds.h * 0.8f;
-    float width = height * aspect;
-    if (width > bounds.w * 0.95f) {
-        width = bounds.w * 0.95f;
-        height = width / aspect;
-    }
-    SDL_SetWindowFullscreen(window, 0);
-    SDL_SetWindowSize(window, (int) width, (int) height);
-    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED_DISPLAY(display), SDL_WINDOWPOS_CENTERED_DISPLAY(display));
+    const float x[] = { 4.0f, 16.0f, 21.0f, 32.0f };
+    const float y[] = { 3.0f, 9.0f, 9.0f, 9.0f };
+    CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".Enabled", 1);
+    CVarSetInteger(CVAR_PREFIX_ADVANCED_RESOLUTION ".VerticalResolutionToggle", 0);
+    CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioX", x[sRigAspect]);
+    CVarSetFloat(CVAR_PREFIX_ADVANCED_RESOLUTION ".AspectRatioY", y[sRigAspect]);
 }
 
 void RigStartScene() {
@@ -1304,7 +1309,7 @@ class RigOverlayWindow : public Ship::GuiWindow {
             ImGui::Text("#%d of %d  %s", sRigIndex + 1, kRigSceneCount, sRigScenes[sRigIndex].name);
             ImGui::Text("status: %s", sRigStatus);
         }
-        ImGui::Text("[ ] prev/next   \\ replay   = aspect: %s", sRigAspect < 0 ? "as is" : kRigAspectNames[sRigAspect]);
+        ImGui::Text("[ ] prev/next   \\ replay   = aspect: %s", sRigAspect < 0 ? "off (window shape)" : kRigAspectNames[sRigAspect]);
     }
 };
 } // namespace
