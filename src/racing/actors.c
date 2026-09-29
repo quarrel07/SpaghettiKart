@@ -684,7 +684,7 @@ void render_palm_trees(Camera* camera, Mat4 arg1) {
                 0.0f &&
             CVarGetInteger("gNoCulling", 0) == 0) {
             var_s1++;
-            i++; // keep the interpolation tag tied to the tree, not to the draw order
+            i++;
             continue;
         }
         FrameInterpolation_RecordOpenChild("render_palm_tree", TAG_ITEM_ADDR((i << 4) | (camera - cameras)));
