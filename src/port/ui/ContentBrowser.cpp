@@ -60,7 +60,6 @@ bool IsDisplayListAsset(const std::string& path) {
         if (Refresh) {
             Refresh = false;
             Content.clear();
-            NonSpawnableContent.clear();
             TrackBrowser::Instance->Refresh(gTrackRegistry);
             FindContent();
             return;
@@ -239,25 +238,6 @@ void ContentBrowserWindow::AddActorContent(std::string search) {
             }
             i_custom += 1;
         }
-
-        if (!NonSpawnableContent.empty()) {
-            ImGui::NewLine();
-            ImGui::Separator();
-            ImGui::TextDisabled("Not spawnable (data assets)");
-            ImGui::BeginDisabled();
-            size_t i_data = 0;
-            for (const auto& file : NonSpawnableContent) {
-                if (!search.empty() && ToLower(file).find(search) == std::string::npos) {
-                    continue;
-                }
-                if ((i_data != 0) && (i_data % 5 != 0)) {
-                    ImGui::SameLine();
-                }
-                ImGui::Button(fmt::format("{}##data{}", file, i_data).c_str());
-                i_data += 1;
-            }
-            ImGui::EndDisabled();
-        }
     }
 
     void ContentBrowserWindow::FindContent() {
@@ -290,7 +270,6 @@ void ContentBrowserWindow::AddActorContent(std::string search) {
                 // Only models can be spawned; the archive also holds data assets
                 // (track sections, paths) that would be drawn as garbage.
                 if (!IsDisplayListAsset(file)) {
-                    NonSpawnableContent.push_back(file);
                     continue;
                 }
 
