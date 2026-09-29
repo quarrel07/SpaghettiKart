@@ -2567,6 +2567,17 @@ void func_8004EF9C(s32 arg0) {
 
     width = ResourceGetTexWidthByName(minimap);
     height = ResourceGetTexHeightByName(minimap);
+    // @port Texture packs report their own larger size. Bring it back to the
+    // original scale the same way the race minimap does (shorter side of 64).
+    if ((width > 0) && (height > 0)) {
+        if (height < width) {
+            width = (width * 64) / height;
+            height = 64;
+        } else {
+            height = (height * 64) / width;
+            width = 64;
+        }
+    }
     // @port The records screen is drawn at 4:3, so keep the map at its 4:3 spot
     // instead of pinning it to the window edge like the race minimap.
     gSPDisplayList(gDisplayListHead++, D_0D007FE0);
