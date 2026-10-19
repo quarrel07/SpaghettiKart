@@ -141,6 +141,15 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # With static vcpkg dependencies (CI) this is a near no-op; it matters for
 # local builds against Homebrew/MacPorts dylibs.
 # ---------------------------------------------------------------------------
+# SDL3 to bundle next to the sdl2-compat shim: prefer the CMAKE_PREFIX_PATH dependency set (e.g. libraries
+# built for an older macOS), then fall back to Homebrew.
+execute_process(COMMAND brew --prefix sdl3 OUTPUT_VARIABLE SPAGHETTI_BREW_SDL3 OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+find_library(SPAGHETTI_SDL3_DYLIB NAMES SDL3.0 SDL3 PATHS ${CMAKE_PREFIX_PATH} PATH_SUFFIXES lib NO_DEFAULT_PATH)
+if (NOT SPAGHETTI_SDL3_DYLIB AND SPAGHETTI_BREW_SDL3)
+    set(SPAGHETTI_SDL3_DYLIB "${SPAGHETTI_BREW_SDL3}/lib/libSDL3.0.dylib")
+endif()
+message(STATUS "Bundling SDL3 from: ${SPAGHETTI_SDL3_DYLIB}")
+
 if (SPAGHETTI_BUNDLE_DEPS)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND}
@@ -153,7 +162,7 @@ if (SPAGHETTI_BUNDLE_DEPS)
         # a dynamic libSDL2 was bundled, copy SDL3 in next to it (= @loader_path)
         # or the app aborts with "Failed loading SDL3 library." SDL3 itself only
         # links system frameworks. Static SDL2 builds (vcpkg) skip this entirely.
-        COMMAND bash -c "FRAMEWORKS='$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Frameworks'; if ls \"$FRAMEWORKS\"/libSDL2*.dylib >/dev/null 2>&1; then SDL3_LIB=$(brew --prefix sdl3 2>/dev/null)/lib/libSDL3.0.dylib; if [ -f \"$SDL3_LIB\" ]; then cp \"$SDL3_LIB\" \"$FRAMEWORKS/libSDL3.dylib\" && chmod u+w \"$FRAMEWORKS/libSDL3.dylib\"; else echo 'warning: bundled libSDL2 is sdl2-compat but Homebrew sdl3 was not found'; fi; fi"
+        COMMAND bash -c "FRAMEWORKS='$<TARGET_BUNDLE_DIR:${PROJECT_NAME}>/Contents/Frameworks'; if ls \"$FRAMEWORKS\"/libSDL2*.dylib >/dev/null 2>&1; then SDL3_LIB='${SPAGHETTI_SDL3_DYLIB}'; if [ -f \"$SDL3_LIB\" ]; then cp \"$SDL3_LIB\" \"$FRAMEWORKS/libSDL3.dylib\" && chmod u+w \"$FRAMEWORKS/libSDL3.dylib\"; else echo 'warning: bundled libSDL2 is sdl2-compat but no SDL3 library was found'; fi; fi"
         COMMENT "Relinking dylibs into the .app bundle"
         VERBATIM
     )
