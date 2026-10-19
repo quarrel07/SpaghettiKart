@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="docs/preview/app-icon.png" width="128" alt="SpaghettiKart app icon">
+  <img src="docs/preview/liquid-glass-macos26.png" width="160" alt="Liquid Glass app icon on macOS 26 Tahoe">
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/preview/liquid-glass-macos27.png" width="160" alt="Liquid Glass app icon on macOS 27 Golden Gate">
+  <br>
+  <sub><b>Liquid Glass app icon:</b> &nbsp;macOS 26 Tahoe (left) &nbsp;·&nbsp; macOS 27 Golden Gate (right)</sub>
 </p>
 
 # SpaghettiKart on macOS: quarrel07's working fork
