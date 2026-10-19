@@ -276,6 +276,68 @@ void PortMenu::AddSettings() {
                 .Max(8)
                 .DefaultValue(1));
 #endif
+#ifdef __APPLE__
+    // macOS fork HDR options (Metal renderer). 16-bit keeps the same colors with more precision (less banding);
+    // Auto HDR then lets the brightest parts of the game image go past SDR white on displays with HDR headroom.
+    AddWidget(path, "16-bit Color + HDR Output", WIDGET_CVAR_CHECKBOX)
+        .CVar("gHdr.HighPrecision")
+        .Options(CheckboxOptions().Tooltip(
+            "Draws the game and the window in 16-bit color instead of 8-bit, which smooths banding in dark scenes, "
+            "fog and sky, and enables HDR output. Colors are otherwise unchanged. Metal renderer only."));
+    AddWidget(path, "Auto HDR", WIDGET_CVAR_CHECKBOX)
+        .CVar("gHdr.AutoHdr")
+        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0); })
+        .Options(CheckboxOptions().Tooltip(
+            "Converts the game's standard picture to HDR in the style of Dolphin's AutoHDR: darker colors stay as "
+            "they are and the brightest ones (sun, sky, lights, item effects) glow brighter than normal white. Needs "
+            "a display with HDR headroom, such as a MacBook Pro's built-in screen."));
+    AddWidget(path, "Auto HDR Peak Brightness", WIDGET_CVAR_SLIDER_FLOAT)
+        .CVar("gHdr.AutoHdrPeak")
+        .PreFunc([](WidgetInfo& info) {
+            info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0) || !CVarGetInteger("gHdr.AutoHdr", 0);
+        })
+        .Options(FloatSliderOptions()
+                     .Tooltip("How bright pure white may get, as a multiple of normal white. Capped automatically at "
+                              "what the display can show right now.")
+                     .Min(1.0f)
+                     .Max(8.0f)
+                     .Step(0.1f)
+                     .DefaultValue(2.0f)
+                     .Format("%.1fx"));
+    AddWidget(path, "Auto HDR Shoulder Start", WIDGET_CVAR_SLIDER_FLOAT)
+        .CVar("gHdr.AutoHdrShoulderStart")
+        .PreFunc([](WidgetInfo& info) {
+            info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0) || !CVarGetInteger("gHdr.AutoHdr", 0);
+        })
+        .Options(FloatSliderOptions()
+                     .Tooltip("Brightness level where the HDR boost begins. Higher keeps more of the picture "
+                              "exactly as it was.")
+                     .Min(0.0f)
+                     .Max(0.95f)
+                     .Step(0.05f)
+                     .DefaultValue(0.0f)
+                     .Format("%.2f"));
+    AddWidget(path, "Auto HDR Shoulder Curve", WIDGET_CVAR_SLIDER_FLOAT)
+        .CVar("gHdr.AutoHdrShoulderPow")
+        .PreFunc([](WidgetInfo& info) {
+            info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0) || !CVarGetInteger("gHdr.AutoHdr", 0);
+        })
+        .Options(FloatSliderOptions()
+                     .Tooltip("How sharply the boost ramps up. Higher keeps the boost to only the very brightest "
+                              "colors.")
+                     .Min(1.0f)
+                     .Max(10.0f)
+                     .Step(0.1f)
+                     .DefaultValue(2.5f)
+                     .Format("%.1f"));
+    AddWidget(path, "Display HDR headroom", WIDGET_TEXT).PreFunc([](WidgetInfo& info) {
+        info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0);
+        char text[64];
+        snprintf(text, sizeof(text), "Display HDR headroom right now: %.1fx",
+                 CVarGetFloat("gHdr.Internal.Headroom", 1.0f));
+        info.name = text;
+    });
+#endif
 
     AddWidget(path, "Current FPS: %d", WIDGET_CVAR_SLIDER_INT)
         .CVar("gInterpolationFPS")

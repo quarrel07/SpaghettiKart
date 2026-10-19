@@ -284,8 +284,8 @@ fragment float4 fragmentShader(ProjectedVertex in [[stage_in]], constant FrameUn
         @if(o_invisible)
             texel.w = 0.0;
         @end
-        return texel;
+        return saturate(texel);
     @else
-        return float4(texel, 1.0);
+        return float4(saturate(texel), 1.0);
     @end
 }

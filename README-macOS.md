@@ -38,8 +38,9 @@ The app is ad-hoc signed and self-contained, using upstream's own macOS packagin
 
 | Where | What |
 |-------|------|
-| `libultraship` submodule | Pinned to [`quarrel07/libultraship@sk-libus-pm-2026-08-15`](https://github.com/quarrel07/libultraship/tree/sk-libus-pm-2026-08-15): the same lus commit upstream pins, plus this fork's open libultraship pull requests and a macOS SDL2 lookup fix. |
+| `libultraship` submodule | Pinned to [`quarrel07/libultraship@sk-libus-pm-2026-08-15`](https://github.com/quarrel07/libultraship/tree/sk-libus-pm-2026-08-15): the same lus commit upstream pins, plus this fork's open libultraship pull requests, a macOS SDL2 lookup fix and the renderer side of HDR upscaling. |
 | `src/port/Engine.cpp` | Metal shader prewarm at boot (upstream PR #710) and sharp ImGui text on Retina displays. |
+| `src/port/ui/PortMenu.cpp`, `assets/shaders/metal`, `libultraship` | **HDR upscaling** (Settings > Graphics): opt-in **16-bit Color + HDR Output** draws the game and the window in 16-bit color instead of 8-bit, which smooths banding in dark scenes, fog and sky, and turns on macOS extended dynamic range (EDR). **Auto HDR** then converts the game's standard picture to HDR: darker colors stay as they are and the brightest ones glow brighter than normal white, up to what the display can show at that moment. Both are off by default and apply instantly. Metal renderer only. |
 | `Info.plist` | Fork version number, writable data folder at `~/Library/Application Support/com.spaghettikart` via `SHIP_HOME`, HiDPI flag. |
 | `cmake/macos/make-dmg.sh` | Packages the built app as a `.dmg`. |
 | `.github/workflows/fork-release.yml` | CI for the `fork-release` branch. |
@@ -49,3 +50,5 @@ Torch is upstream's own pin, unchanged.
 ## Credits
 
 All credit for SpaghettiKart goes to the **[HarbourMasters](https://github.com/HarbourMasters)** team and contributors, and to **[Kenix3](https://github.com/Kenix3)** and the libultraship project. This fork only carries fixes on their way upstream and the macOS packaging conveniences above.
+
+Auto HDR is based on **[Filippo Tarpini (Filoppi)](https://github.com/Filoppi)**'s [PumboAutoHDR](https://github.com/Filoppi/PumboAutoHDR) and the AutoHDR shader he wrote for the [Dolphin](https://github.com/dolphin-emu/dolphin) emulator.
