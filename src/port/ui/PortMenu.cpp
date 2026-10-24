@@ -279,22 +279,47 @@ void PortMenu::AddSettings() {
 #ifdef __APPLE__
     // macOS fork HDR options (Metal renderer). 16-bit keeps the same colors with more precision (less banding);
     // Auto HDR then lets the brightest parts of the game image go past SDR white on displays with HDR headroom.
+    // Only the Metal renderer implements these. While another renderer is chosen they are greyed out and
+    // switched off (so they never look on), and the player's choices are put back once Metal is chosen again.
+    static auto HdrDisableUnlessMetal = [](WidgetInfo& info) {
+        bool parked = CVarGetInteger("gHdr.Internal.Parked", 0);
+        if (mPortMenu->disabledMap.at(DISABLE_FOR_NOT_METAL).active) {
+            info.activeDisables.push_back(DISABLE_FOR_NOT_METAL);
+            if (!parked) {
+                CVarSetInteger("gHdr.Internal.ParkedHighPrecision", CVarGetInteger("gHdr.HighPrecision", 0));
+                CVarSetInteger("gHdr.Internal.ParkedAutoHdr", CVarGetInteger("gHdr.AutoHdr", 0));
+                CVarSetInteger("gHdr.HighPrecision", 0);
+                CVarSetInteger("gHdr.AutoHdr", 0);
+                CVarSetInteger("gHdr.Internal.Parked", 1);
+                Ship::Context::GetRawInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+            }
+        } else if (parked) {
+            CVarSetInteger("gHdr.HighPrecision", CVarGetInteger("gHdr.Internal.ParkedHighPrecision", 0));
+            CVarSetInteger("gHdr.AutoHdr", CVarGetInteger("gHdr.Internal.ParkedAutoHdr", 0));
+            CVarSetInteger("gHdr.Internal.Parked", 0);
+            Ship::Context::GetRawInstance()->GetWindow()->GetGui()->SaveConsoleVariablesNextFrame();
+        }
+    };
     AddWidget(path, "16-bit Color + HDR Output", WIDGET_CVAR_CHECKBOX)
         .CVar("gHdr.HighPrecision")
+        .PreFunc(HdrDisableUnlessMetal)
         .Options(CheckboxOptions().Tooltip(
             "Draws the game and the window in 16-bit color instead of 8-bit, which smooths banding in dark scenes, "
-            "fog and sky, and enables HDR output. Colors are otherwise unchanged. Metal renderer only."));
+            "fog and sky, and enables HDR output. Colors are otherwise unchanged."));
     AddWidget(path, "Auto HDR", WIDGET_CVAR_CHECKBOX)
         .CVar("gHdr.AutoHdr")
-        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0); })
+        .PreFunc([](WidgetInfo& info) {
+            info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0);
+            HdrDisableUnlessMetal(info);
+        })
         .Options(CheckboxOptions().Tooltip(
-            "Converts the game's standard picture to HDR in the style of Dolphin's AutoHDR: darker colors stay as "
-            "they are and the brightest ones (sun, sky, lights, item effects) glow brighter than normal white. Needs "
-            "a display with HDR headroom, such as a MacBook Pro's built-in screen."));
+            "Converts the game's standard picture to HDR: darker colors stay as they are and the brightest ones (sun, "
+            "sky, lights, item effects) glow brighter than normal white. Needs a display with HDR headroom."));
     AddWidget(path, "Auto HDR Peak Brightness", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar("gHdr.AutoHdrPeak")
         .PreFunc([](WidgetInfo& info) {
             info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0) || !CVarGetInteger("gHdr.AutoHdr", 0);
+            HdrDisableUnlessMetal(info);
         })
         .Options(FloatSliderOptions()
                      .Tooltip("How bright pure white may get, as a multiple of normal white. Capped automatically at "
@@ -308,6 +333,7 @@ void PortMenu::AddSettings() {
         .CVar("gHdr.AutoHdrShoulderStart")
         .PreFunc([](WidgetInfo& info) {
             info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0) || !CVarGetInteger("gHdr.AutoHdr", 0);
+            HdrDisableUnlessMetal(info);
         })
         .Options(FloatSliderOptions()
                      .Tooltip("Brightness level where the HDR boost begins. Higher keeps more of the picture "
@@ -321,6 +347,7 @@ void PortMenu::AddSettings() {
         .CVar("gHdr.AutoHdrShoulderPow")
         .PreFunc([](WidgetInfo& info) {
             info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0) || !CVarGetInteger("gHdr.AutoHdr", 0);
+            HdrDisableUnlessMetal(info);
         })
         .Options(FloatSliderOptions()
                      .Tooltip("How sharply the boost ramps up. Higher keeps the boost to only the very brightest "
@@ -331,7 +358,8 @@ void PortMenu::AddSettings() {
                      .DefaultValue(2.5f)
                      .Format("%.1f"));
     AddWidget(path, "Display HDR headroom", WIDGET_TEXT).PreFunc([](WidgetInfo& info) {
-        info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0);
+        info.isHidden = !CVarGetInteger("gHdr.HighPrecision", 0) ||
+                        mPortMenu->disabledMap.at(DISABLE_FOR_NOT_METAL).active;
         char text[64];
         snprintf(text, sizeof(text), "Display HDR headroom right now: %.1fx",
                  CVarGetFloat("gHdr.Internal.Headroom", 1.0f));
@@ -745,6 +773,18 @@ void PortMenu::InitElement() {
                       Fast::WindowBackend::FAST3D_DXGI_DX11;
            },
             "Not Available on DirectX" } },
+        { DISABLE_FOR_NOT_METAL,
+          { [](disabledInfo& info) -> bool {
+               // Follow the renderer picked in the menu (saved right away, applied on restart), not the
+               // running one, so the HDR options grey out as soon as another renderer is chosen.
+               auto window = Ship::Context::GetRawInstance()->GetWindow();
+               int32_t backend = Ship::Context::GetRawInstance()->GetConfig()->GetInt("Window.Backend.Id", -1);
+               if (!window->IsAvailableWindowBackend(backend)) {
+                   backend = window->GetWindowBackend();
+               }
+               return backend != Fast::WindowBackend::FAST3D_SDL_METAL;
+           },
+            "Available Only on Metal" } },
         { DISABLE_FOR_MATCH_REFRESH_RATE_ON,
           { [](UNUSED disabledInfo& info) -> bool { return CVarGetInteger("gMatchRefreshRate", 0); },
             "Match Refresh Rate is Enabled" } },
