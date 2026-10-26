@@ -135,8 +135,7 @@ common_tlut_debug_font:
   size: 0x20
   type: texture
   ctype: u16
-  colors: 4
-  height: 4
+  colors: 16
   format: tlut
 common_texture_debug_font:
   symbol: common_texture_debug_font
@@ -361,8 +360,7 @@ common_tlut_player_emblem: # // tlut for 1p, 2p, 3p, 4p
   offset: 0x17258
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_texture_player_emblem_1p:
   symbol: common_texture_player_emblem_1p
@@ -410,8 +408,7 @@ common_tlut_hud_type_C_rank_font: # Font tlut for 12345678
   offset: 0x19458
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_texture_hud_type_C_rank_font_1:
   symbol: common_texture_hud_type_C_rank_font_1
@@ -499,8 +496,7 @@ common_tlut_hud_type_C_rank_tiny_font: # Font tlut for 0123456789
   offset: 0x19E58
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_texture_hud_type_C_rank_tiny_font_0:
   symbol: common_texture_hud_type_C_rank_tiny_font_0
@@ -617,8 +613,7 @@ common_tlut_portrait_mario:
   offset: 0x1A4D8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_luigi:
   symbol: common_tlut_portrait_luigi
@@ -626,8 +621,7 @@ common_tlut_portrait_luigi:
   offset: 0x1A6D8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_peach:
   symbol: common_tlut_portrait_peach
@@ -635,8 +629,7 @@ common_tlut_portrait_peach:
   offset: 0x1A8D8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_toad:
   symbol: common_tlut_portrait_toad
@@ -644,8 +637,7 @@ common_tlut_portrait_toad:
   offset: 0x1AAD8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_yoshi:
   symbol: common_tlut_portrait_yoshi
@@ -653,8 +645,7 @@ common_tlut_portrait_yoshi:
   offset: 0x1ACD8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_donkey_kong:
   symbol: common_tlut_portrait_donkey_kong
@@ -662,8 +653,7 @@ common_tlut_portrait_donkey_kong:
   offset: 0x1AED8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_wario:
   symbol: common_tlut_portrait_wario
@@ -671,8 +661,7 @@ common_tlut_portrait_wario:
   offset: 0x1B0D8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_bowser:
   symbol: common_tlut_portrait_bowser
@@ -680,8 +669,7 @@ common_tlut_portrait_bowser:
   offset: 0x1B2D8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_tlut_portrait_bomb_kart_and_question_mark:
   symbol: common_tlut_portrait_bomb_kart_and_question_mark
@@ -689,8 +677,7 @@ common_tlut_portrait_bomb_kart_and_question_mark:
   offset: 0x1B4D8
   size: 0x200
   ctype: u16
-  colors: 16
-  height: 16
+  colors: 256
   format: tlut
 common_texture_portrait_mario:
   symbol: common_texture_portrait_mario # 132B50_16A58
@@ -798,7 +785,6 @@ common_tlut_item_window_none:
   offset: 0x1DED8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_banana:
   symbol: common_tlut_item_window_banana
@@ -806,7 +792,6 @@ common_tlut_item_window_banana:
   offset: 0x1E0D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_banana_bunch:
   symbol: common_tlut_item_window_banana_bunch
@@ -814,7 +799,6 @@ common_tlut_item_window_banana_bunch:
   offset: 0x1E2D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_mushroom:
   symbol: common_tlut_item_window_mushroom
@@ -822,7 +806,6 @@ common_tlut_item_window_mushroom:
   offset: 0x1E4D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_double_mushroom:
   symbol: common_tlut_item_window_double_mushroom
@@ -830,7 +813,6 @@ common_tlut_item_window_double_mushroom:
   offset: 0x1E6D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_triple_mushroom:
   symbol: common_tlut_item_window_triple_mushroom
@@ -838,7 +820,6 @@ common_tlut_item_window_triple_mushroom:
   offset: 0x1E8D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_super_mushroom:
   symbol: common_tlut_item_window_super_mushroom
@@ -846,7 +827,6 @@ common_tlut_item_window_super_mushroom:
   offset: 0x1EAD8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_blue_shell:
   symbol: common_tlut_item_window_blue_shell
@@ -854,7 +834,6 @@ common_tlut_item_window_blue_shell:
   offset: 0x1ECD8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_boo:
   symbol: common_tlut_item_window_boo
@@ -862,7 +841,6 @@ common_tlut_item_window_boo:
   offset: 0x1EED8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_green_shell:
   symbol: common_tlut_item_window_green_shell
@@ -870,7 +848,6 @@ common_tlut_item_window_green_shell:
   offset: 0x1F0D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_triple_green_shell:
   symbol: common_tlut_item_window_triple_green_shell
@@ -878,7 +855,6 @@ common_tlut_item_window_triple_green_shell:
   offset: 0x1F2D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_red_shell:
   symbol: common_tlut_item_window_red_shell
@@ -886,7 +862,6 @@ common_tlut_item_window_red_shell:
   offset: 0x1F4D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_triple_red_shell:
   symbol: common_tlut_item_window_triple_red_shell
@@ -894,7 +869,6 @@ common_tlut_item_window_triple_red_shell:
   offset: 0x1F6D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_star:
   symbol: common_tlut_item_window_star
@@ -902,7 +876,6 @@ common_tlut_item_window_star:
   offset: 0x1F8D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_thunder_bolt:
   symbol: common_tlut_item_window_thunder_bolt
@@ -910,7 +883,6 @@ common_tlut_item_window_thunder_bolt:
   offset: 0x1FAD8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_item_window_fake_item_box:
   symbol: common_tlut_item_window_fake_item_box
@@ -918,7 +890,6 @@ common_tlut_item_window_fake_item_box:
   offset: 0x1FCD8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_texture_item_window_none:
   symbol: common_texture_item_window_none
@@ -1054,7 +1025,6 @@ common_tlut_lakitu_no_lights:
   offset: 0x24ED8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_lakitu_red_lights:
   symbol: common_tlut_lakitu_red_lights
@@ -1062,7 +1032,6 @@ common_tlut_lakitu_red_lights:
   offset: 0x250D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_lakitu_blue_lights:
   symbol: common_tlut_lakitu_blue_lights
@@ -1070,7 +1039,6 @@ common_tlut_lakitu_blue_lights:
   offset: 0x252D8
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_tlut_lakitu_checkered_flag:
   symbol: common_tlut_lakitu_checkered_flag
@@ -1235,7 +1203,6 @@ common_tlut_bomb: # This is placed below in rom. Hack to make torch extract the 
   offset: 0x2A858
   ctype: u16
   colors: 256
-  height: 16
   format: tlut
 common_texture_bomb_1: # Smoke?
   symbol: common_texture_bomb_1
